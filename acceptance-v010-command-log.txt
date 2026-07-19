@@ -979,3 +979,83 @@ $ git rev-parse HEAD
 
 The audited baseline contains 87 files and 12,529 inserted lines. `.env`, runtime data, browser
 evidence, coverage, caches, virtual environments, and build outputs remain ignored and untracked.
+
+==============================================================================
+18. FINAL PACKAGE, CLI VERSION, CONTAINER, AND SECRET GATES
+==============================================================================
+
+The first isolated wheel check exposed that `linguaspindle --version` was not implemented and
+exited 2. No tag or remote push existed. A minimal Typer eager option and one regression test were
+added; commit `14e5961a582c00d86561684cb0880f3386d53926` contains the fix.
+
+$ .venv/bin/ruff format --check src tests
+41 files already formatted
+$ .venv/bin/ruff check src tests
+All checks passed
+$ .venv/bin/mypy src
+Success: no issues found in 24 source files
+$ .venv/bin/python -m compileall -q src tests
+Exit: 0
+$ .venv/bin/pytest -q
+69 passed, 2 skipped, 108 upstream FastAPI deprecation warnings in 2.09s
+$ .venv/bin/pytest --cov=linguaspindle --cov-report=term-missing -q
+69 passed, 2 skipped; total coverage 82%
+
+$ .venv/bin/python -m build
+Successfully built linguaspindle-0.1.0.tar.gz and linguaspindle-0.1.0-py3-none-any.whl.
+The initial sandboxed isolated-build dependency fetch was denied at the local proxy; the same
+command succeeded in the approved external execution context. Setuptools emitted only its
+forward-looking license-metadata deprecation notice.
+
+$ .venv/bin/python -m twine check dist/*
+wheel: PASSED
+sdist: PASSED
+
+Release artifacts:
+- linguaspindle-0.1.0-py3-none-any.whl: 67319 bytes,
+  SHA-256 8256ec41e189f3a9abad235d09843d09f4f2faaaa5a871e79fef75674ef70f28
+- linguaspindle-0.1.0.tar.gz: 62610 bytes,
+  SHA-256 7af799d02754a63fc05781d182732f8d4442df1c260c9bd5dea450f9a3a1a24a
+- SHA256SUMS: 206 bytes,
+  SHA-256 f82e14be9fb972640cdada7db826ff676461df6197a6c8a44c202444da578c68
+
+The host Python lacks Ubuntu's ensurepip component. A fresh environment was therefore created with
+`python3 -m venv --without-pip /tmp/linguaspindle-release-venv`, and the existing pip frontend used
+its supported `--python` option to install the wheel and dependencies into that isolated target.
+
+$ /tmp/linguaspindle-release-venv/bin/linguaspindle --version
+0.1.0
+$ /tmp/linguaspindle-release-venv/bin/linguaspindle doctor \
+  --data-dir /tmp/linguaspindle-release-doctor
+Exit: 0; ok=true; required storage/database/Mock Provider/Mock Adapter checks passed. Docker socket,
+port introspection, real Provider, and external manga service checks were optional in this clean
+environment.
+
+Wheel entries: 34; Web assets and migration present; forbidden entries: 0.
+Source distribution entries: 49; forbidden entries: 0.
+Package Project-URL metadata points only to https://github.com/taoning0403/lingua-spindle.
+
+$ docker compose build
+Exit: 0
+$ docker compose up -d
+Exit: 0; container recreated and named Volume retained
+$ docker compose exec -T linguaspindle linguaspindle --version
+0.1.0
+$ docker compose ps
+lingua-spindle-linguaspindle-1 Up (healthy) 127.0.0.1:8765->8765/tcp
+$ curl --fail --silent --show-error http://127.0.0.1:8765/health
+{"status":"ok","version":"0.1.0","database":"ok"}
+
+Final image:
+sha256:36b7db00ce6feab9da36f033b41d89b690f5d34ced0a9cfc1673b12e9ff4ea37
+linux/amd64, 60423794 bytes, user 10001:10001
+OCI source: https://github.com/taoning0403/lingua-spindle
+
+Final Docker GUI browser checks:
+- Mock flow: 1 passed, 70 deselected in 6.89s
+- Existing real Job replay: 1 passed, 70 deselected in 0.97s; no Provider call
+
+Final exact scans:
+- Docker /data: 115 files, 4925531 bytes, exact key 0, Authorization/Bearer 0
+- Browser evidence, acceptance documents, Release files, and archive members: 267 scan units,
+  7147792 bytes, exact key 0, Authorization/Bearer 0

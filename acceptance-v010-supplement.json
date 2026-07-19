@@ -34,8 +34,8 @@
     "docker_context": "default",
     "docker_compose": "5.3.0",
     "final_image": {
-      "id": "sha256:b44ed1145f424478199a11c17af6babb93650b1e4dc3cdce7c78ca586a79e910",
-      "size_bytes": 60422645,
+      "id": "sha256:36b7db00ce6feab9da36f033b41d89b690f5d34ced0a9cfc1673b12e9ff4ea37",
+      "size_bytes": 60423794,
       "platform": "linux/amd64",
       "user": "10001:10001",
       "source": "https://github.com/taoning0403/lingua-spindle"
@@ -209,6 +209,39 @@
       "authorization_header_hits": 0
     },
     "limitations": "Long documents, concurrency, rate limits, and long-term stability were not validated."
+  },
+  "release_candidate": {
+    "build_source_commit": "14e5961a582c00d86561684cb0880f3386d53926",
+    "wheel": {
+      "filename": "linguaspindle-0.1.0-py3-none-any.whl",
+      "size_bytes": 67319,
+      "sha256": "8256ec41e189f3a9abad235d09843d09f4f2faaaa5a871e79fef75674ef70f28"
+    },
+    "sdist": {
+      "filename": "linguaspindle-0.1.0.tar.gz",
+      "size_bytes": 62610,
+      "sha256": "7af799d02754a63fc05781d182732f8d4442df1c260c9bd5dea450f9a3a1a24a"
+    },
+    "sha256sums": {
+      "filename": "SHA256SUMS",
+      "size_bytes": 206,
+      "sha256": "f82e14be9fb972640cdada7db826ff676461df6197a6c8a44c202444da578c68"
+    },
+    "twine_check": "Pass",
+    "isolated_install": "Pass",
+    "cli_version": "0.1.0",
+    "doctor_required_checks": "Pass",
+    "web_assets": "Pass",
+    "migration": "Pass",
+    "forbidden_archive_entries": 0,
+    "final_secret_scan": {
+      "docker_data_files": 115,
+      "docker_data_bytes": 4925531,
+      "evidence_release_archive_units": 267,
+      "evidence_release_archive_bytes": 7147792,
+      "secret_exact_match_hits": 0,
+      "authorization_header_hits": 0
+    }
   },
   "docker_revalidation": {
     "status": "Pass",

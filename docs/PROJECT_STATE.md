@@ -63,7 +63,7 @@ Executed in WSL2 Linux with Python 3.14.4 and Node 18.20.7:
   the ordinary WSL Linux CLI reaches Docker Desktop, while the current Codex sandbox is denied
   access to its Unix socket.
 - Docker Desktop 4.82.0 Engine 29.6.1 (Linux containers) and Compose 5.3.0 build and run the
-  60,422,645-byte Linux/amd64 image with container Python 3.12.13. Compose is healthy, publishes
+  60,423,794-byte Linux/amd64 image with container Python 3.12.13. Compose is healthy, publishes
   only `127.0.0.1:8765`, runs as UID/GID 10001 with a read-only root, and retains real GUI-created
   Projects, Jobs, Steps, logs, Segments, and Artifact bytes across restart, down/up, rebuild, and
   force-recreate.

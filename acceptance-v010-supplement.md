@@ -69,8 +69,8 @@
 | Playwright | 1.61.0 |
 | Headless Chromium | 149.0.7827.55 |
 | Node（JS syntax only） | 18.20.7 |
-| Final image | `sha256:b44ed1145f424478199a11c17af6babb93650b1e4dc3cdce7c78ca586a79e910` |
-| Final image size | 60,422,645 bytes |
+| Final image | `sha256:36b7db00ce6feab9da36f033b41d89b690f5d34ced0a9cfc1673b12e9ff4ea37` |
+| Final image size | 60,423,794 bytes |
 | Git | `main`; audited baseline `98682bde47c536d5856e196b03cf8116693dbbaa` |
 
 Docker Desktop Engine 和本发行版的普通 Linux CLI 均实际可用。当前 shell 命中与最终解析路径为：
@@ -268,6 +268,10 @@ HTTP `POST /api/jobs/{id}/retry` 后：
 - 浏览器截图/trace/下载及验收文件扫描：33 files、9,092,891 bytes；两类命中均为 0；
 - SQLite 表仅包含 Project/Job/Step/Artifact/Profile/ProviderConfig/Segment/QA 等实例级实体；
   identity-shaped match 为空；
+
+最终候选提交还对当前 Docker `/data` 的 115 个文件（4,925,531 bytes），以及浏览器证据、
+验收文档、wheel、sdist 与其 archive members 共 267 个扫描单元（7,147,792 bytes）复扫；真实
+密钥与 Authorization/Bearer 均为 0 hit。
 - `provider_configs` 仅有 `id/base_url/model/timeout/concurrency/retries/updated_at`，没有
   key/secret/token/credential 列；
 - OpenAPI 没有 auth/user/account/tenant/role/permission 路由，GUI 没有密码、登录、注册入口；
