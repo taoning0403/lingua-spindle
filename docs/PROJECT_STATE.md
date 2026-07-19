@@ -34,8 +34,9 @@ boundaries.
   tests. No upstream code/model/font distribution.
 - Web dashboard, Project create/list/detail/delete, Job detail/controls/logs/Artifact links,
   latest novel result/QA view, downloads, and Adapter/Provider/Pipeline status using polling only.
-- CLI commands required by the product contract, doctor diagnostics, async HTTP resources,
-  downloads, stable error envelopes, and generated OpenAPI with no identity-shaped contract.
+- CLI commands required by the product contract, explicit `--version`, doctor diagnostics, async
+  HTTP resources, downloads, stable error envelopes, and generated OpenAPI with no identity-shaped
+  contract.
 - Non-root core Dockerfile, loopback-published Compose, persistent volume, health check, read-only
   Compose root filesystem, environment example, bilingual README, operational/developer docs,
   project policies, and structured third-party inventory.

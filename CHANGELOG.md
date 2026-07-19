@@ -20,8 +20,8 @@ No changes beyond the v0.1.0 delivery are currently planned or implemented.
   basic QA, and TXT/JSON export.
 - CBZ/image import, safe archive handling, Mock Manga Adapter, process-separated
   `manga-image-translator` HTTP Adapter, raw response Artifacts, and CBZ export.
-- Shared no-login Web GUI, Typer CLI, FastAPI asynchronous Job API, OpenAPI, health, and doctor
-  diagnostics.
+- Shared no-login Web GUI, Typer CLI with an explicit `--version` release check, FastAPI
+  asynchronous Job API, OpenAPI, health, and doctor diagnostics.
 - Non-root Dockerfile, loopback-published Compose deployment, runtime-only secrets, bilingual
   README, project policies, Adapter/API/install/deployment docs, and structured third-party
   inventory.

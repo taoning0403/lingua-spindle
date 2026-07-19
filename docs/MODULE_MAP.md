@@ -76,6 +76,7 @@ migration, tests, generated OpenAPI, and runtime evidence.
 .venv/bin/python -m compileall -q src tests
 .venv/bin/pytest -q
 node --check src/linguaspindle/web/app.js
+.venv/bin/linguaspindle --version
 LINGUASPINDLE_RUN_BROWSER_TESTS=1 .venv/bin/pytest -q -m browser
 LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
   LINGUASPINDLE_BROWSER_BASE_URL=http://127.0.0.1:8765 \

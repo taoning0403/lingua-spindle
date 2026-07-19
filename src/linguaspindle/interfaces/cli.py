@@ -11,6 +11,7 @@ from typing import Annotated, Any
 import typer
 import uvicorn
 
+from .. import __version__
 from ..application import ApplicationService
 from ..config import ConfigurationError, Settings
 from ..errors import LinguaError
@@ -30,6 +31,27 @@ app.add_typer(projects_app, name="projects")
 app.add_typer(jobs_app, name="jobs")
 app.add_typer(artifacts_app, name="artifacts")
 app.add_typer(adapters_app, name="adapters")
+
+
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(__version__)
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            callback=_version_callback,
+            is_eager=True,
+            help="Show the LinguaSpindle version and exit.",
+        ),
+    ] = False,
+) -> None:
+    """Persistent translation orchestration for novels and manga."""
 
 
 def _print(value: Any) -> None:

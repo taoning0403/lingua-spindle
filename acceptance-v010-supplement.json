@@ -148,7 +148,7 @@
     {
       "id": "static_tests_coverage",
       "status": "Pass",
-      "detail": "Ruff format/check, strict mypy, compileall, 68 default tests, 82% coverage, Mock Docker browser, and opt-in real Provider browser passed."
+      "detail": "Ruff format/check, strict mypy, compileall, 69 default tests, 82% coverage, Mock Docker browser, and opt-in real Provider browser passed."
     },
     {
       "id": "container_ps",
@@ -270,7 +270,7 @@
     "browser_acceptance_changed": true,
     "context_refreshed": true,
     "docker_revalidation_report_refreshed": true,
-    "detail": "The existing Playwright framework gained an explicit paid-test opt-in and existing-Job evidence mode; Provider results capture standard token usage in redacted Step logs; Compose now forwards its existing timeout/concurrency/retry settings; public repository metadata points to taoning0403/lingua-spindle. Schema and API contracts did not change."
+    "detail": "The existing Playwright framework gained an explicit paid-test opt-in and existing-Job evidence mode; Provider results capture standard token usage in redacted Step logs; Compose now forwards its existing timeout/concurrency/retry settings; public repository metadata points to taoning0403/lingua-spindle; the Typer CLI now supports the required --version release check. Schema and API contracts did not change."
   },
   "failed_items": [],
   "blocked_items": [

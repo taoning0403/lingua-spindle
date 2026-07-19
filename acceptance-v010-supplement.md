@@ -4,7 +4,7 @@
 - 验收范围：仅 v0.1.0
 - 宿主：Ubuntu 26.04 LTS on WSL2，x86_64
 - 首个 Git 基线 commit：`98682bde47c536d5856e196b03cf8116693dbbaa`
-- 代码修改：是；增加 Provider usage 审计、补全 Compose 已有 Provider 配置透传并扩展同一套 Playwright 验收；migration 与 schema 未变
+- 代码修改：是；增加 Provider usage 审计、补全 Compose 已有 Provider 配置透传、扩展同一套 Playwright 验收并补齐 CLI `--version` 发布检查；migration 与 schema 未变
 - 总体判断：`Pass`
 
 > **LinguaSpindle v0.1.0 is ready for a WSL2/Linux Technical Preview release.**
@@ -44,7 +44,7 @@
 | SIGKILL 恢复与显式 retry | Pass | 800 Segment Job 在 translate Step 运行时被 SIGKILL；恢复为 `PROCESS_INTERRUPTED`，retry 后完整成功且复用已完成工作。 |
 | 密钥与身份边界 | Pass | 真实调用后扫描 Docker `/data` 43 文件、3,019,776 bytes，以及浏览器证据/trace/下载/报告 33 文件、9,092,891 bytes；真实密钥与 Authorization/Bearer 均 0 hit。 |
 | Artifact provenance 与删除 | Pass | 7 个 Job Artifact 均有 Step provenance；专用测试 Project 删除后 metadata/download 404 且 payload 目录消失。 |
-| 静态检查、测试、coverage | Pass | 41 files formatted；Ruff、mypy、compileall、68 default tests、82% coverage、Mock Docker 浏览器与真实 Provider opt-in 浏览器测试均通过。 |
+| 静态检查、测试、coverage | Pass | 41 files formatted；Ruff、mypy、compileall、69 default tests、82% coverage、Mock Docker 浏览器与真实 Provider opt-in 浏览器测试均通过。 |
 | 容器内 `ps` | Not in scope | `python:3.12-slim` 最终镜像没有 `ps` 可执行文件；该检查仅在镜像支持时要求。 |
 | 原生 Windows | Not in scope | 本轮不测试 PowerShell/Python 原生 Windows 执行。 |
 | Python 多版本矩阵 | Not in scope | 按指令仅记录实际主机 3.14.4 和容器 3.12.13。 |
@@ -283,8 +283,8 @@ ruff check: All checks passed
 mypy: Success, 24 source files
 compileall: exit 0
 node --check app.js: exit 0
-pytest: 68 passed, 2 browser skips, 108 upstream FastAPI deprecation warnings
-coverage: 68 passed, 2 browser skips, total 82%
+pytest: 69 passed, 2 browser skips, 108 upstream FastAPI deprecation warnings
+coverage: 69 passed, 2 browser skips, total 82%
 Docker-target Mock browser: 1 passed, 1 real-provider skip, 68 deselected
 real Provider opt-in evidence replay: 1 passed, 69 deselected
 final compose config/build/up: exit 0
@@ -313,7 +313,8 @@ known limitation 一致，没有测试失败。
 `ERR_ABORTED`；真实流程支持 existing-Job 只读采证，避免因测试断言重试而重复计费。Provider
 结果新增标准 token usage，并以脱敏 Step log 持久化；Compose 只补全现有 timeout/concurrency/
 retry 环境变量透传。正式仓库确认后，Python metadata、安装文档、Changelog 和 OCI source label
-统一为 `taoning0403/lingua-spindle`。schema/API 不变。
+统一为 `taoning0403/lingua-spindle`。隔离 wheel 验证发现 CLI 缺少发布所需的 `--version`，已在
+现有 Typer 接口中补齐并新增回归测试。schema/API 不变。
 
 新增两个只用于本轮证据的脚本：
 

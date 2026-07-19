@@ -6,9 +6,17 @@ import json
 import httpx
 from typer.testing import CliRunner
 
+from linguaspindle import __version__
 from linguaspindle.config import Settings
 from linguaspindle.interfaces.api import create_app
 from linguaspindle.interfaces.cli import app as cli_app
+
+
+def test_cli_version() -> None:
+    result = CliRunner().invoke(cli_app, ["--version"])
+
+    assert result.exit_code == 0, result.output
+    assert result.output.strip() == __version__
 
 
 async def _wait_for_terminal(client: httpx.AsyncClient, job_id: str) -> dict:
