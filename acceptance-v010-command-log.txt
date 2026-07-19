@@ -955,3 +955,27 @@ Release-candidate final image:
 sha256:b44ed1145f424478199a11c17af6babb93650b1e4dc3cdce7c78ca586a79e910
 linux/amd64, 60422645 bytes, user 10001:10001
 OCI source: https://github.com/taoning0403/lingua-spindle
+
+==============================================================================
+17. FIRST AUDITED GIT BASELINE
+==============================================================================
+
+$ git diff --cached --check
+Exit: 0
+
+Staged scan:
+files_scanned=87
+bytes_scanned=533116
+secret_exact_match_hits=0
+credential_token_hits=0
+private_key_header_hits=0
+Two Authorization/Bearer matches were synthetic redaction-test fixtures only.
+
+$ git commit -m "feat: establish LinguaSpindle v0.1.0 technical preview"
+[main (root-commit) 98682bd] feat: establish LinguaSpindle v0.1.0 technical preview
+
+$ git rev-parse HEAD
+98682bde47c536d5856e196b03cf8116693dbbaa
+
+The audited baseline contains 87 files and 12,529 inserted lines. `.env`, runtime data, browser
+evidence, coverage, caches, virtual environments, and build outputs remain ignored and untracked.

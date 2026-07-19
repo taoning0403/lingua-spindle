@@ -12,10 +12,10 @@
     "detail": "Native Windows execution: Not in scope for this supplemental acceptance."
   },
   "git": {
-    "status": "Pending",
+    "status": "Pass",
     "branch": "main",
-    "commit": null,
-    "detail": "Real Provider and regression gates passed; the first audited baseline commit is pending."
+    "commit": "98682bde47c536d5856e196b03cf8116693dbbaa",
+    "detail": "The first audited, buildable, and tested v0.1.0 baseline commit was created after staged-file and exact-secret scans passed."
   },
   "environment": {
     "wsl": {
@@ -276,8 +276,7 @@
   "blocked_items": [
     "Current Codex agent sandbox access to /var/run/docker.sock (ordinary WSL Docker passes)",
     "Direct Docker Hub OAuth connectivity",
-    "Real manga-image-translator service",
-    "Git HEAD/commit"
+    "Real manga-image-translator service"
   ],
   "volume_preserved": true,
   "github_release_created": false,
