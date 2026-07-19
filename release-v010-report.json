@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "product": "LinguaSpindle",
+  "version": "0.1.0",
+  "release_status": "Published",
+  "scope": "WSL2/Linux Technical Preview",
+  "git": {
+    "release_commit": "90439f66d2d2ddf656174bc33a34ffdacee2b41d",
+    "tag_name": "v0.1.0",
+    "tag_kind": "annotated",
+    "tag_object": "4aa155e91ef1465e3ba8d5813b8b0d0db7477d10",
+    "tag_target": "90439f66d2d2ddf656174bc33a34ffdacee2b41d",
+    "branch": "main",
+    "remote_main_at_release": "90439f66d2d2ddf656174bc33a34ffdacee2b41d",
+    "default_branch": "main",
+    "remote_ssh": "git@github.com:taoning0403/lingua-spindle.git",
+    "remote_url": "https://github.com/taoning0403/lingua-spindle",
+    "force_push_used": false,
+    "tag_overwritten": false,
+    "commits": [
+      {
+        "commit": "98682bde47c536d5856e196b03cf8116693dbbaa",
+        "subject": "feat: establish LinguaSpindle v0.1.0 technical preview"
+      },
+      {
+        "commit": "72b5b795c7e583d1339fd6fc7356837c51692cf8",
+        "subject": "docs: finalize v0.1.0 release evidence"
+      },
+      {
+        "commit": "14e5961a582c00d86561684cb0880f3386d53926",
+        "subject": "fix: add CLI version release check"
+      },
+      {
+        "commit": "90439f66d2d2ddf656174bc33a34ffdacee2b41d",
+        "subject": "docs: record final v0.1.0 artifact checks"
+      }
+    ]
+  },
+  "github_release": {
+    "url": "https://github.com/taoning0403/lingua-spindle/releases/tag/v0.1.0",
+    "title": "LinguaSpindle v0.1.0 — Technical Preview",
+    "tag_name": "v0.1.0",
+    "is_prerelease": true,
+    "is_draft": false,
+    "published_at": "2026-07-19T11:54:18Z",
+    "assets": [
+      {
+        "name": "linguaspindle-0.1.0-py3-none-any.whl",
+        "size_bytes": 67319,
+        "sha256": "8256ec41e189f3a9abad235d09843d09f4f2faaaa5a871e79fef75674ef70f28"
+      },
+      {
+        "name": "linguaspindle-0.1.0.tar.gz",
+        "size_bytes": 62610,
+        "sha256": "7af799d02754a63fc05781d182732f8d4442df1c260c9bd5dea450f9a3a1a24a"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size_bytes": 206,
+        "sha256": "f82e14be9fb972640cdada7db826ff676461df6197a6c8a44c202444da578c68"
+      },
+      {
+        "name": "acceptance-v010-supplement.md",
+        "size_bytes": 20714,
+        "sha256": "50122c6f837d34cda19502156a20ef2705762644315e4f4e4f08b0b9d868e499"
+      }
+    ],
+    "download_verification": {
+      "all_assets_downloaded": true,
+      "all_assets_match_local_bytes": true,
+      "wheel_and_sdist_sha256_match_manifest": true,
+      "manifest_path_basis": "repository-root dist/ paths",
+      "flat_downloads_rehashed_by_filename": true
+    }
+  },
+  "real_provider": {
+    "status": "Pass",
+    "provider_type": "OpenAI-compatible (DeepSeek)",
+    "base_url_origin": "https://api.deepseek.com",
+    "model": "deepseek-v4-flash",
+    "project_id": "a76cc19f-41c2-4229-8a47-5b41d3f14a7f",
+    "job_id": "fd04c94c-71ea-4000-b118-6f8aa7526e54",
+    "job_status": "succeeded",
+    "step_count": 6,
+    "segment_count": 3,
+    "usage": {
+      "prompt_tokens": 133,
+      "completion_tokens": 937,
+      "total_tokens": 1070
+    },
+    "txt_sha256": "d699035ae69e5e47bec144217e0873b3ce56657c30cee867b3bc2cfcf50d24f2",
+    "json_sha256": "0699a8917c9cbfee6fb5295345fe6cd48132ebb20298fea9d25195503a57dc30",
+    "final_browser_check_reused_existing_job": true,
+    "additional_provider_call": false
+  },
+  "security_scans": {
+    "post_real_call": {
+      "docker_data_files": 43,
+      "docker_data_bytes": 3019776,
+      "browser_evidence_files": 33,
+      "browser_evidence_bytes": 9092891,
+      "secret_exact_match_hits": 0,
+      "authorization_header_hits": 0
+    },
+    "final_candidate": {
+      "docker_data_files": 115,
+      "docker_data_bytes": 4925531,
+      "evidence_report_release_archive_units": 267,
+      "evidence_report_release_archive_bytes": 7147792,
+      "secret_exact_match_hits": 0,
+      "authorization_header_hits": 0
+    },
+    "staged_exact_key_hits": 0,
+    "staged_credential_token_hits": 0,
+    "staged_private_key_header_hits": 0,
+    "env_tracked": false,
+    "env_mode": "600"
+  },
+  "regression": {
+    "ruff_format": "Pass (41 files)",
+    "ruff_check": "Pass",
+    "mypy_strict": "Pass (24 source files)",
+    "compileall": "Pass",
+    "node_syntax": "Pass",
+    "pytest": "69 passed, 2 skipped",
+    "upstream_fastapi_deprecation_warnings": 108,
+    "coverage_percent": 82,
+    "mock_docker_browser": "1 passed, 70 deselected",
+    "real_provider_existing_job_browser": "1 passed, 70 deselected",
+    "twine_check": "Pass",
+    "isolated_wheel_install": "Pass",
+    "cli_version": "0.1.0",
+    "doctor_required_checks": "Pass",
+    "wheel_web_assets": true,
+    "wheel_migration": true,
+    "forbidden_package_entries": 0
+  },
+  "docker": {
+    "status": "Pass",
+    "image_id": "sha256:36b7db00ce6feab9da36f033b41d89b690f5d34ced0a9cfc1673b12e9ff4ea37",
+    "image_size_bytes": 60423794,
+    "platform": "linux/amd64",
+    "user": "10001:10001",
+    "source_label": "https://github.com/taoning0403/lingua-spindle",
+    "health": {
+      "status": "ok",
+      "version": "0.1.0",
+      "database": "ok"
+    },
+    "loopback_publish": "127.0.0.1:8765",
+    "volume_preserved": true,
+    "volume_deleted": false
+  },
+  "browser": {
+    "headless_chromium": "Pass",
+    "docker_gui": "http://127.0.0.1:8765",
+    "mock_flow": "Pass",
+    "real_provider_flow": "Pass",
+    "browser_side_provider_requests": 0,
+    "console_errors": 0,
+    "page_errors": 0,
+    "unexpected_request_failures": 0
+  },
+  "limitations": {
+    "real_manga_image_translator": "Blocked",
+    "native_windows": "Not in scope",
+    "long_document_scale": "Not validated",
+    "concurrency": "Not validated",
+    "rate_limit_behavior": "Not validated",
+    "long_term_stability": "Not validated",
+    "docker_hub_direct_oauth": "Host-network dependent"
+  },
+  "modified_files": {
+    "published_file_count": 87,
+    "published_files": [
+      ".agents/skills/repo-context/SKILL.md",
+      ".agents/skills/repo-context/agents/openai.yaml",
+      ".dockerignore",
+      ".env.example",
+      ".gitignore",
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "CODE_OF_CONDUCT.md",
+      "CONTRIBUTING.md",
+      "Dockerfile",
+      "LICENSE",
+      "README.md",
+      "README.zh-CN.md",
+      "SECURITY.md",
+      "THIRD_PARTY_NOTICES.md",
+      "acceptance-v010-command-log.txt",
+      "acceptance-v010-supplement.json",
+      "acceptance-v010-supplement.md",
+      "acceptance-v010.md",
+      "compose.yaml",
+      "constraints-v010.txt",
+      "docs/DECISIONS.md",
+      "docs/MODULE_MAP.md",
+      "docs/PRODUCT_SPEC.md",
+      "docs/PROJECT_STATE.md",
+      "docs/adapter-development.md",
+      "docs/adr/0001-no-user-system-and-loopback-default.md",
+      "docs/adr/0002-standalone-shared-application-core.md",
+      "docs/adr/0003-capability-adapters-and-artifacts.md",
+      "docs/adr/0004-python-modular-monolith-and-sqlite-runner.md",
+      "docs/adr/0005-runtime-only-provider-secrets.md",
+      "docs/adr/0006-manga-image-translator-external-adapter.md",
+      "docs/api.md",
+      "docs/architecture.md",
+      "docs/data-model.md",
+      "docs/docker.md",
+      "docs/installation.md",
+      "docs/releases/v0.1.0.md",
+      "docs/research/name-availability.md",
+      "docs/research/translation-tools.md",
+      "pyproject.toml",
+      "src/linguaspindle/__init__.py",
+      "src/linguaspindle/adapters/__init__.py",
+      "src/linguaspindle/adapters/base.py",
+      "src/linguaspindle/adapters/manga_image_translator.py",
+      "src/linguaspindle/adapters/mock_manga.py",
+      "src/linguaspindle/application.py",
+      "src/linguaspindle/config.py",
+      "src/linguaspindle/database.py",
+      "src/linguaspindle/errors.py",
+      "src/linguaspindle/interfaces/__init__.py",
+      "src/linguaspindle/interfaces/api.py",
+      "src/linguaspindle/interfaces/cli.py",
+      "src/linguaspindle/migrations/0001_initial.sql",
+      "src/linguaspindle/migrations/__init__.py",
+      "src/linguaspindle/models.py",
+      "src/linguaspindle/orchestration/__init__.py",
+      "src/linguaspindle/orchestration/engine.py",
+      "src/linguaspindle/orchestration/pipelines.py",
+      "src/linguaspindle/orchestration/state.py",
+      "src/linguaspindle/providers/__init__.py",
+      "src/linguaspindle/providers/base.py",
+      "src/linguaspindle/providers/mock.py",
+      "src/linguaspindle/providers/openai_compatible.py",
+      "src/linguaspindle/security.py",
+      "src/linguaspindle/storage.py",
+      "src/linguaspindle/web/app.js",
+      "src/linguaspindle/web/index.html",
+      "src/linguaspindle/web/styles.css",
+      "tests/browser/test_gui_flow.py",
+      "tests/conftest.py",
+      "tests/integration/test_adapter_orchestration.py",
+      "tests/integration/test_api_cli_shared.py",
+      "tests/integration/test_artifacts_and_secrets.py",
+      "tests/integration/test_job_controls.py",
+      "tests/integration/test_manga_pipeline.py",
+      "tests/integration/test_novel_pipeline.py",
+      "tests/integration/test_recovery.py",
+      "tests/unit/test_config.py",
+      "tests/unit/test_doctor.py",
+      "tests/unit/test_manga_adapter.py",
+      "tests/unit/test_provider.py",
+      "tests/unit/test_repository_surface.py",
+      "tests/unit/test_security.py",
+      "tests/unit/test_segmentation.py",
+      "tests/unit/test_state.py",
+      "third-party-components.toml"
+    ],
+    "post_baseline_modified_files": [
+      "CHANGELOG.md",
+      "acceptance-v010-command-log.txt",
+      "acceptance-v010-supplement.json",
+      "acceptance-v010-supplement.md",
+      "docs/MODULE_MAP.md",
+      "docs/PROJECT_STATE.md",
+      "src/linguaspindle/interfaces/cli.py",
+      "tests/integration/test_api_cli_shared.py"
+    ],
+    "post_release_report_files": [
+      "release-v010-report.md",
+      "release-v010-report.json"
+    ]
+  },
+  "worktree": {
+    "pre_report_porcelain": "clean",
+    "ignored_local_state_only": true,
+    "ignored_examples": [
+      ".env",
+      ".venv/",
+      "artifacts/",
+      "dist/",
+      "build/",
+      "coverage and caches",
+      "runtime data"
+    ]
+  },
+  "package_or_image_registry_published": false,
+  "v020_started": false,
+  "final_conclusion": "LinguaSpindle v0.1.0 has been published as a WSL2/Linux Technical Preview.\nThe real OpenAI-compatible Provider passed a minimal end-to-end validation.\nLong-document scale, concurrency, rate-limit behavior, long-term stability,\nnative Windows, and the real manga model runtime remain outside this release acceptance."
+}
