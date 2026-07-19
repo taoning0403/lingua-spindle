@@ -1,0 +1,957 @@
+LinguaSpindle v0.1.0 supplemental acceptance command log
+Date: 2026-07-19 (Asia/Shanghai)
+Workspace: /home/mine/code/lingua-spindle
+
+This log records commands actually executed and their non-secret results. Large JSON/HTML/build
+responses are represented by exact status/count/hash summaries where noted. No API key or
+Authorization header was present or copied into this file.
+
+==============================================================================
+01. HOST AND GIT BASELINE
+==============================================================================
+
+$ uname -a
+Linux WIN-HB61853PJQO 6.18.33.1-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Fri Jun  5 01:12:21 UTC 2026 x86_64 GNU/Linux
+
+$ cat /etc/os-release
+PRETTY_NAME="Ubuntu 26.04 LTS"
+NAME="Ubuntu"
+VERSION_ID="26.04"
+VERSION="26.04 (Resolute Raccoon)"
+VERSION_CODENAME=resolute
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=resolute
+LOGO=ubuntu-logo
+
+$ python3 --version
+Python 3.14.4
+
+$ .venv/bin/python --version
+Python 3.14.4
+
+$ .venv/bin/python -c 'import importlib.metadata as m; print(m.version("playwright"))'
+1.61.0
+
+$ git status --short
+?? .agents/
+?? .dockerignore
+?? .env.example
+?? .gitignore
+?? AGENTS.md
+?? CHANGELOG.md
+?? CODE_OF_CONDUCT.md
+?? CONTRIBUTING.md
+?? Dockerfile
+?? LICENSE
+?? README.md
+?? README.zh-CN.md
+?? SECURITY.md
+?? THIRD_PARTY_NOTICES.md
+?? acceptance-v010.md
+?? compose.yaml
+?? constraints-v010.txt
+?? docs/
+?? pyproject.toml
+?? src/
+?? tests/
+?? third-party-components.toml
+
+$ git rev-parse HEAD
+fatal: ambiguous argument 'HEAD': unknown revision or path not in the working tree.
+HEAD
+
+$ git log -5 --oneline --decorate
+fatal: your current branch 'main' does not have any commits yet
+
+Interpretation: unborn main, no commit. All listed paths existed as user-owned untracked content
+before this supplemental run.
+
+==============================================================================
+02. DOCKER ENVIRONMENT
+==============================================================================
+
+$ docker version
+
+The command 'docker' could not be found in this WSL 2 distro.
+We recommend to activate the WSL integration in Docker Desktop settings.
+
+For details about using Docker Desktop with WSL 2, visit:
+
+https://docs.docker.com/go/wsl2/
+
+Exit: 1
+
+$ docker info
+$ docker compose version
+$ docker context ls
+
+Each returned the same Docker Desktop WSL integration message and exit 1.
+
+$ type -a docker
+docker is /mnt/c/Program Files/Docker/Docker/resources/bin/docker
+
+$ /mnt/wsl/docker-desktop/cli-tools/usr/bin/docker version
+/bin/bash: /mnt/wsl/docker-desktop/cli-tools/usr/bin/docker: Input/output error
+
+Historical note: this was the result of the earlier supplemental run. It is superseded by the
+ordinary Linux CLI revalidation in section 13 and must not be treated as a current requirement to
+use Windows docker.exe.
+
+$ "/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe" version
+Client:
+ Version:           29.6.1
+ API version:       1.55
+ Go version:        go1.26.4
+ Git commit:        8900f1d
+ Built:             Fri Jun 26 11:43:32 2026
+ OS/Arch:           windows/amd64
+ Context:           desktop-linux
+
+Server: Docker Desktop 4.82.0 (233772)
+ Engine:
+  Version:          29.6.1
+  API version:      1.55 (minimum version 1.40)
+  Go version:       go1.26.4
+  Git commit:       8ec5ab3
+  Built:            Fri Jun 26 11:41:04 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.2.5
+ runc:
+  Version:          1.3.6
+ docker-init:
+  Version:          0.19.0
+
+$ "/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe" info
+Client:
+ Version:    29.6.1
+ Context:    desktop-linux
+ Debug Mode: false
+Server:
+ Containers: 0
+  Running: 0
+  Paused: 0
+  Stopped: 0
+ Images: 1
+ Server Version: 29.6.1
+ Storage Driver: overlayfs
+ Cgroup Version: 2
+ Swarm: inactive
+ Kernel Version: 6.18.33.1-microsoft-standard-WSL2
+ Operating System: Docker Desktop
+ OSType: linux
+ Architecture: x86_64
+ CPUs: 16
+ Total Memory: 23.25GiB
+ Name: docker-desktop
+ Docker Root Dir: /var/lib/docker
+ Experimental: false
+ Live Restore Enabled: false
+
+$ "/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe" compose version
+Docker Compose version v5.3.0
+
+$ "/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe" context ls
+NAME              DESCRIPTION                               DOCKER ENDPOINT                             ERROR
+default           Current DOCKER_HOST based configuration   npipe:////./pipe/docker_engine
+desktop-linux *   Docker Desktop                            npipe:////./pipe/dockerDesktopLinuxEngine
+
+$ test -f .env
+.env: absent
+process LINGUASPINDLE_OPENAI_BASE_URL: unset
+process LINGUASPINDLE_OPENAI_API_KEY: unset
+process LINGUASPINDLE_OPENAI_MODEL: unset
+process LINGUASPINDLE_MIT_BASE_URL: unset
+process LINGUASPINDLE_MIT_CONFIG_JSON: unset
+
+==============================================================================
+03. INITIAL BASELINE GATES
+==============================================================================
+
+$ .venv/bin/ruff format --check src tests
+41 files already formatted
+Exit: 0
+
+$ .venv/bin/ruff check src tests
+All checks passed!
+Exit: 0
+
+$ .venv/bin/mypy src
+Success: no issues found in 24 source files
+Exit: 0
+
+$ .venv/bin/python -m compileall -q src tests
+Exit: 0
+
+$ .venv/bin/pytest -q
+s....................................................................    [100%]
+68 passed, 1 skipped, 108 warnings in 2.07s
+Skipped: opt-in browser test
+Warnings: FastAPI asyncio.iscoroutinefunction deprecation under Python 3.14
+Exit: 0
+
+$ .venv/bin/pytest --cov=linguaspindle --cov-report=term-missing -q
+s....................................................................    [100%]
+TOTAL 2238 statements, 323 missed, 498 branches, 107 partial branches, 82%
+68 passed, 1 skipped, 108 warnings in 2.19s
+Exit: 0
+
+$ LINGUASPINDLE_RUN_BROWSER_TESTS=1 .venv/bin/pytest -q -m browser
+First sandboxed attempt:
+PermissionError: [Errno 1] Operation not permitted while creating the loopback socket
+1 failed, 68 deselected
+Exit: 1 (environment permission, not product)
+
+Approved loopback/browser execution:
+.                                                                        [100%]
+1 passed, 68 deselected, 28 warnings in 4.40s
+Exit: 0
+
+==============================================================================
+04. COMPOSE CONFIG AND IMAGE BUILD
+==============================================================================
+
+$ LINGUASPINDLE_OPENAI_API_KEY= docker.exe compose config
+name: lingua-spindle
+service: linguaspindle
+build context: \\wsl.localhost\Ubuntu\home\mine\code\lingua-spindle
+image: lingua-spindle:0.1.0
+host_ip: 127.0.0.1
+target: 8765
+published: 8765
+read_only: true
+security_opt: no-new-privileges:true
+tmpfs: /tmp:size=64m,mode=1777
+volume: linguaspindle-data -> /data
+LINGUASPINDLE_OPENAI_API_KEY: ""
+Exit: 0
+
+$ docker.exe compose build --no-cache
+Attempt 1:
+failed to authorize: failed to fetch oauth token: Post "https://auth.docker.io/token":
+dial tcp 162.125.1.8:443: connectex: A connection attempt failed
+Exit: 1
+
+$ docker.exe image ls --digests
+REPOSITORY       TAG       DIGEST                                                                    IMAGE ID       CREATED        SIZE
+mcp/playwright   <none>    sha256:097d978439237cc9b12e10825836a97245add2be0479272cce9d98c368f024d1   097d97843923   2 months ago   1.44GB
+
+$ docker.exe compose build --no-cache
+Attempt 2 returned the same auth.docker.io OAuth connection failure.
+Exit: 1
+
+$ docker.exe pull public.ecr.aws/docker/library/python:3.12-slim
+Digest: sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+Status: Downloaded newer image for public.ecr.aws/docker/library/python:3.12-slim
+Exit: 0
+
+$ docker.exe tag public.ecr.aws/docker/library/python:3.12-slim python:3.12-slim
+$ docker.exe compose build --no-cache
+#5 FROM docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+#11 Successfully built linguaspindle
+#11 Successfully installed linguaspindle-0.1.0 and pinned runtime dependencies
+#12 naming to docker.io/library/lingua-spindle:0.1.0 done
+Image lingua-spindle:0.1.0 Built
+Exit: 0
+
+==============================================================================
+05. COMPOSE RUNTIME, HEALTH, LOOPBACK, NON-ROOT
+==============================================================================
+
+$ docker.exe compose up -d
+Network lingua-spindle_default Created
+Volume lingua-spindle_linguaspindle-data Created
+Container lingua-spindle-linguaspindle-1 Started
+Exit: 0
+
+$ docker.exe compose ps
+NAME                             IMAGE                  SERVICE         STATUS                    PORTS
+lingua-spindle-linguaspindle-1   lingua-spindle:0.1.0   linguaspindle   Up (healthy)              127.0.0.1:8765->8765/tcp
+
+$ docker.exe compose logs --no-color
+Warning: this instance has no built-in login. Protect remote access with an outer perimeter.
+INFO: Started server process [7]
+INFO: Waiting for application startup.
+INFO: Application startup complete.
+INFO: Uvicorn running on http://0.0.0.0:8765
+INFO: 127.0.0.1 - "GET /health HTTP/1.1" 200 OK
+
+$ docker.exe compose port linguaspindle 8765
+127.0.0.1:8765
+
+$ docker.exe inspect lingua-spindle-linguaspindle-1 --format <targeted-security-fields>
+"10001:10001" false
+Mount: lingua-spindle_linguaspindle-data -> /data, RW=true
+PortBindings: HostIp=127.0.0.1 HostPort=8765
+SecurityOpt: no-new-privileges:true
+ReadonlyRootfs: true
+
+$ docker.exe compose exec -T linguaspindle id
+uid=10001(linguaspindle) gid=10001(linguaspindle) groups=10001(linguaspindle)
+
+$ docker.exe compose exec -T linguaspindle ps
+OCI runtime exec failed: exec: "ps": executable file not found in $PATH
+Exit: 127; optional check unsupported by slim image.
+
+$ curl --fail --silent --show-error http://127.0.0.1:8765/health
+{"status":"ok","version":"0.1.0","database":"ok"}
+Exit: 0
+
+$ curl --fail --silent --show-error http://127.0.0.1:8765/
+HTTP body was the LinguaSpindle no-login HTML shell. Exit: 0.
+Final exact response: status 200, 1461 bytes,
+SHA-256 da67dc0cf2008a6d95eb72d4227717e4a237ef7fd116b21f582bfec1fa69d5ad
+
+$ curl --fail --silent --show-error http://127.0.0.1:8765/openapi.json
+OpenAPI body returned successfully. Exit: 0.
+Final exact response: status 200, 15750 bytes,
+SHA-256 f864a0002aefd525027ce95c12fe3ee44f740e6847354e9b17649bf376744424
+
+==============================================================================
+06. DOCKER-TARGET HEADLESS BROWSER
+==============================================================================
+
+Initial external-target attempts passed the local flow but produced no Docker data. Investigation:
+
+$ sed -n '1,40p' tests/conftest.py
+Autouse fixture removed every LINGUASPINDLE_* variable before the test body. The browser skip flag
+still worked because pytest evaluated it during collection; base URL/evidence variables were read
+later and were cleared. No Docker browser Pass was claimed for those attempts.
+
+After collection-time snapshot fix:
+
+$ env LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
+      LINGUASPINDLE_BROWSER_BASE_URL=http://127.0.0.1:8765 \
+      LINGUASPINDLE_BROWSER_EVIDENCE_DIR=/home/mine/code/lingua-spindle/artifacts/acceptance-v010 \
+      .venv/bin/pytest -q -m browser
+.                                                                        [100%]
+1 passed, 68 deselected in 7.59s
+Exit: 0
+
+Docker API then contained the three browser-created Projects and Jobs. browser-evidence.json:
+Chromium 149.0.7827.55
+page errors: []
+console errors: []
+failed requests: []
+unexpected origins: []
+
+Downloaded evidence:
+novel-export.txt  42 bytes
+SHA-256 7768a62ac0806d25be44daccb653e36b2f060aacf1659fd7c9266fc0827f0f30
+novel-export.json 1638 bytes
+SHA-256 fb1627806463183d3af0ef154f26d7eb54865ab0faeb8c55fbf772d749bcbc7d
+mock-manga-export.cbz 177 bytes
+SHA-256 94e12fbe59859a1d0c2566274e63cee3c76b9b9c61f57d8b69a04a27b890a61a
+
+==============================================================================
+07. PERSISTENCE WITH REAL BUSINESS DATA
+==============================================================================
+
+Baseline IDs:
+Project 3f1c6f96-4b92-4264-b887-3a023b639e10
+Job fdf12e53-79e7-4b7e-bfae-554ef0032125, succeeded
+TXT Artifact 2f4c741e-f67a-46d9-b947-745b563662a3
+JSON Artifact fd69e555-4254-44f5-b38f-36b2edcfed8d
+6 Steps, all succeeded, attempt 1
+2 Segments, all succeeded
+
+$ docker.exe compose restart
+Container lingua-spindle-linguaspindle-1 Restarting
+Container lingua-spindle-linguaspindle-1 Started
+Exit: 0
+
+After restart: health ok; same Project/Job/Step/log/Segment/Artifact IDs.
+$ sha256sum persistence-a-restart.txt
+7768a62ac0806d25be44daccb653e36b2f060aacf1659fd7c9266fc0827f0f30
+$ cmp novel-export.txt persistence-a-restart.txt
+Exit: 0
+
+$ docker.exe compose down
+Container removed; network removed; no -v used.
+$ docker.exe volume inspect lingua-spindle_linguaspindle-data
+Volume still present, mountpoint /var/lib/docker/volumes/lingua-spindle_linguaspindle-data/_data
+$ docker.exe compose up -d
+Container started.
+
+After down/up: health ok; same Project/Job/Step/log/Segment/Artifact IDs.
+$ sha256sum persistence-b-down-up.txt
+7768a62ac0806d25be44daccb653e36b2f060aacf1659fd7c9266fc0827f0f30
+$ cmp novel-export.txt persistence-b-down-up.txt
+Exit: 0
+
+$ docker.exe compose build
+Image lingua-spindle:0.1.0 Built
+$ docker.exe compose up -d --force-recreate
+Container recreated and started.
+
+After rebuild/force-recreate: health ok; same IDs and data.
+$ sha256sum persistence-c-force-recreate.txt
+7768a62ac0806d25be44daccb653e36b2f060aacf1659fd7c9266fc0827f0f30
+$ cmp novel-export.txt persistence-c-force-recreate.txt
+Exit: 0
+
+==============================================================================
+08. PROCESS INTERRUPTION AND RETRY
+==============================================================================
+
+$ .venv/bin/python artifacts/acceptance-v010/recovery_acceptance.py
+Project: 595ec094-1eeb-4df6-b08d-b98afd63f151
+Job: 618723e0-e260-46b8-a036-d7fbd5598d8b
+Segments: 800
+Observed before kill: job=running, translate progress=0.02
+docker compose kill -s SIGKILL linguaspindle: exit 0
+docker compose up -d: exit 0
+Health after restart: status=ok, database=ok, version=0.1.0
+Recovered Job: failed, PROCESS_INTERRUPTED
+Recovered translate Step: failed, PROCESS_INTERRUPTED, attempt 1
+Recovered Segment counts: succeeded=28, pending=772
+Explicit HTTP retry: queued
+Final Job: succeeded
+Upstream detect/extract/segment: attempt 1, same Artifact IDs
+Final translate Step: attempt 2
+Successful Segments reused: 28
+Successful Segment timestamps unchanged: true
+Final unique sequences: 800
+Recovery export: 23199 bytes
+SHA-256 27333642c0735293f27eec17bfbfc960b780fa590ad43545319e3a4ce65dc65d
+Exit: 0
+
+Full output: artifacts/acceptance-v010/recovery-evidence.json
+
+==============================================================================
+09. SECURITY, IDENTITY, RESOURCES, DELETION
+==============================================================================
+
+$ docker.exe compose exec -T linguaspindle python <resource check>
+{"uid": 10001, "gid": 10001, "openai_key_configured": false,
+ "web_index": true, "web_js": true, "migration": true}
+
+$ docker.exe compose exec -T linguaspindle python <whole-data-root scan>
+{"root": "/data", "files_scanned": 35, "bytes_scanned": 6182982,
+ "hits": {"authorization": [], "bearer": [], "openai_key_name": [],
+          "secret_shape": []}}
+
+$ docker.exe compose exec -T linguaspindle python <schema scan>
+tables:
+artifacts, jobs, projects, provider_configs, qa_findings, schema_migrations, sources,
+sqlite_sequence, step_logs, step_runs, translation_profiles, translation_segments
+identity_matches: []
+provider_config_columns:
+id, base_url, model, timeout_seconds, concurrency_limit, max_retries, updated_at
+provider_has_secret_column: false
+
+$ docker.exe compose exec -T linguaspindle find /app <model/font suffixes>
+No .pt, .pth, .onnx, .safetensors, .ttf, or .otf file below /app.
+/app contains LICENSE, README.md, constraints-v010.txt, pyproject.toml, build, and src only.
+
+$ curl http://127.0.0.1:8765/api/providers
+Mock Provider configured=true.
+OpenAI-compatible Provider configured=false, model=gpt-4.1-mini.
+
+$ curl http://127.0.0.1:8765/api/adapters
+Mock Manga Adapter available=true.
+manga-image-translator HTTP available=false.
+Message: External service URL is not configured.
+Required setting: LINGUASPINDLE_MIT_BASE_URL.
+
+$ .venv/bin/python artifacts/acceptance-v010/deletion_acceptance.py
+Disposable Project: 04823be4-c4bb-40ca-937f-7de6e7cdf4d6
+Disposable Job: b1d55c18-690c-4012-8105-416baaa426da
+Source Artifact job_id/step_run_id: null/null
+Job Artifacts with Step provenance: 7/7
+Deletion impact: sources=1, jobs=1, artifacts=8
+cleanup_error: null
+Project metadata after deletion: 404
+Artifact metadata after deletion: 404
+Artifact download after deletion: 404
+Payload Project directory: absent
+Exit: 0
+
+The disposable Project and its payloads were intentionally deleted and are not recoverable.
+All other acceptance data and the named Volume remain.
+
+==============================================================================
+10. FINAL REGRESSION
+==============================================================================
+
+$ .venv/bin/ruff format --check src tests
+41 files already formatted
+Exit: 0
+
+$ .venv/bin/ruff check src tests
+All checks passed!
+Exit: 0
+
+$ .venv/bin/mypy src
+Success: no issues found in 24 source files
+Exit: 0
+
+$ .venv/bin/python -m compileall -q src tests
+Exit: 0
+
+$ node --check src/linguaspindle/web/app.js
+Exit: 0
+
+$ .venv/bin/pytest -q
+68 passed, 1 skipped, 108 warnings in 2.14s
+Exit: 0
+
+$ .venv/bin/pytest --cov=linguaspindle --cov-report=term-missing -q
+TOTAL 2238 statements, 323 missed, 498 branches, 107 partial branches, 82%
+68 passed, 1 skipped, 108 warnings in 2.25s
+Exit: 0
+
+$ LINGUASPINDLE_RUN_BROWSER_TESTS=1 .venv/bin/pytest -q -m browser
+.                                                                        [100%]
+1 passed, 68 deselected, 28 warnings in 7.62s
+Exit: 0
+
+$ docker.exe compose config
+Exit: 0
+$ docker.exe compose build
+Image lingua-spindle:0.1.0 Built
+Exit: 0
+$ docker.exe compose up -d
+Container recreated and started
+Exit: 0
+$ docker.exe compose ps
+lingua-spindle-linguaspindle-1 Up (healthy) 127.0.0.1:8765->8765/tcp
+
+$ curl --fail --silent --show-error http://127.0.0.1:8765/health
+{"status":"ok","version":"0.1.0","database":"ok"}
+Exit: 0
+
+$ sha256sum artifacts/acceptance-v010/final-persistence.txt
+7768a62ac0806d25be44daccb653e36b2f060aacf1659fd7c9266fc0827f0f30
+$ cmp artifacts/acceptance-v010/novel-export.txt artifacts/acceptance-v010/final-persistence.txt
+Exit: 0
+
+$ docker.exe compose exec -T linguaspindle python --version
+Python 3.12.13
+
+$ docker.exe image inspect lingua-spindle:0.1.0 --format <id/platform/size/user>
+sha256:6cde07c7630bda0bef5e8b9625fb0da592abe63ad4f8051eeee1302b828d05c5
+linux/amd64
+60421466 bytes
+10001:10001
+
+$ docker.exe compose exec -T linguaspindle python <final whole-data-root scan>
+{"root": "/data", "files_scanned": 35, "bytes_scanned": 2079238,
+ "hits": {"authorization": [], "bearer": [], "openai_key_name": [],
+          "secret_shape": []}}
+
+$ (cd artifacts/acceptance-v010 && sha256sum -c SHA256SUMS.txt)
+All 19 listed evidence files: OK
+Exit: 0
+
+==============================================================================
+11. FINAL STATUS CLASSIFICATION
+==============================================================================
+
+Pass:
+- static checks, tests, 82% coverage
+- ordinary WSL Linux docker Client/Server and Compose (section 13 follow-up)
+- Docker image build after trusted official mirror seed
+- Compose config/start/healthy
+- GUI/API/OpenAPI
+- loopback-only and non-root container security
+- real-data restart/down-up/build-force-recreate persistence
+- WSL Headless Chromium against Docker GUI
+- Mock TXT/failure/Manga flows
+- SIGKILL recovery, explicit retry, completed-work reuse
+- secret/identity/provenance/deletion checks
+
+Blocked:
+- current Codex agent sandbox access to /var/run/docker.sock; ordinary WSL Docker passes
+- direct Docker Hub OAuth connectivity
+- real OpenAI-compatible Provider (no API key)
+- real manga-image-translator (no service/assets/license/runtime conditions)
+- Git commit/HEAD (unborn repository)
+
+Failed:
+- none
+
+Not in scope:
+- native Windows execution
+- complete Python version matrix
+- optional container ps check unsupported by slim image
+- GitHub Release/tag
+- v0.2.0
+
+Final judgment:
+LinguaSpindle v0.1.0 is ready for a WSL2/Linux Technical Preview release.
+
+==============================================================================
+12. FINAL REPOSITORY STATE
+==============================================================================
+
+$ git status --short
+?? .agents/
+?? .dockerignore
+?? .env.example
+?? .gitignore
+?? AGENTS.md
+?? CHANGELOG.md
+?? CODE_OF_CONDUCT.md
+?? CONTRIBUTING.md
+?? Dockerfile
+?? LICENSE
+?? README.md
+?? README.zh-CN.md
+?? SECURITY.md
+?? THIRD_PARTY_NOTICES.md
+?? acceptance-v010-command-log.txt
+?? acceptance-v010-supplement.json
+?? acceptance-v010-supplement.md
+?? acceptance-v010.md
+?? artifacts/
+?? compose.yaml
+?? constraints-v010.txt
+?? docs/
+?? pyproject.toml
+?? src/
+?? tests/
+?? third-party-components.toml
+
+$ git rev-parse HEAD
+fatal: ambiguous argument 'HEAD': unknown revision or path not in the working tree.
+HEAD
+
+$ git diff --stat
+(no output)
+
+$ git diff
+(no output)
+
+Reason: the repository has no first commit and every path is untracked, so ordinary git diff has
+no tracked baseline. An empty diff must not be interpreted as an unchanged workspace.
+
+==============================================================================
+13. ORDINARY WSL LINUX DOCKER REVALIDATION
+==============================================================================
+
+This follow-up started fresh execution contexts, did not prioritize Windows docker.exe, and did
+not reuse the earlier fallback-shim conclusion.
+
+Current Codex permission mode:
+- sandbox_mode: workspace-write
+- permission_profile: managed
+- filesystem: restricted
+- network_access: restricted
+
+13A. CURRENT AGENT SANDBOX
+
+$ command -v docker
+/usr/bin/docker
+Exit: 0
+
+$ type -a docker
+docker is /usr/bin/docker
+docker is /bin/docker
+docker is /Docker/host/bin/docker
+Exit: 0
+
+$ readlink -f "$(command -v docker)"
+/mnt/wsl/docker-desktop/cli-tools/usr/bin/docker
+Exit: 0
+
+$ echo "$WSL_DISTRO_NAME"
+Ubuntu
+Exit: 0
+
+$ docker context show
+default
+Exit: 0
+
+$ docker version
+Client:
+ Version:           29.6.1
+ API version:       1.55
+ Go version:        go1.26.4
+ Git commit:        8900f1d
+ Built:             Fri Jun 26 11:39:39 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+Exit: 1
+
+$ docker info --format '{{.OSType}}/{{.Architecture}}'
+/
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+Exit: 1
+
+$ docker compose version
+Docker Compose version v5.3.0
+Exit: 0
+
+$ docker compose ps
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+Exit: 1
+
+$ id
+uid=1000(mine) gid=1000(mine) groups=1000(mine),65534(nogroup),65534(nogroup),65534(nogroup),65534(nogroup),65534(nogroup),65534(nogroup),65534(nogroup)
+
+$ stat -Lc '%A %a %U:%G %n' /var/run/docker.sock
+srw-rw---- 660 nobody:nogroup /var/run/docker.sock
+
+The Linux client itself is present and runnable. Only Engine-backed commands are denied at the
+Unix socket in this Codex sandbox.
+
+13B. NEW SANDBOX-EXEMPT WSL EXECUTION CONTEXT, SAME LINUX CLI
+
+$ command -v docker
+/usr/bin/docker
+
+$ type -a docker
+docker is /usr/bin/docker
+docker is /bin/docker
+docker is /Docker/host/bin/docker
+
+$ readlink -f "$(command -v docker)"
+/mnt/wsl/docker-desktop/cli-tools/usr/bin/docker
+
+$ echo "$WSL_DISTRO_NAME"
+Ubuntu
+
+$ docker context show
+default
+
+$ docker version
+Client:
+ Version:           29.6.1
+ API version:       1.55
+ Go version:        go1.26.4
+ Git commit:        8900f1d
+ Built:             Fri Jun 26 11:39:39 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server: Docker Desktop 4.82.0 (233772)
+ Engine:
+  Version:          29.6.1
+  API version:      1.55 (minimum version 1.40)
+  Go version:       go1.26.4
+  Git commit:       8ec5ab3
+  Built:            Fri Jun 26 11:41:04 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.2.5
+  GitCommit:        e53c7c1516c3b2bff98eb76f1f4117477e6f4e66
+ runc:
+  Version:          1.3.6
+  GitCommit:        v1.3.6-0-g491b69ba
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+
+$ docker info --format '{{.OSType}}/{{.Architecture}}'
+linux/x86_64
+
+$ docker compose version
+Docker Compose version v5.3.0
+
+$ docker compose ps
+NAME                             IMAGE                  COMMAND                  SERVICE         CREATED          STATUS                    PORTS
+lingua-spindle-linguaspindle-1   lingua-spindle:0.1.0   "linguaspindle serve…"   linguaspindle   39 minutes ago   Up 39 minutes (healthy)   127.0.0.1:8765->8765/tcp
+
+Combined exit: 0. Every command in the requested sequence passed in this context.
+
+13C. ORDINARY DOCKER COMPOSE STATUS, HEALTH, AND MINIMAL OPERATION
+
+$ docker compose ps
+NAME                             IMAGE                  COMMAND                  SERVICE         CREATED          STATUS                    PORTS
+lingua-spindle-linguaspindle-1   lingua-spindle:0.1.0   "linguaspindle serve…"   linguaspindle   40 minutes ago   Up 40 minutes (healthy)   127.0.0.1:8765->8765/tcp
+Exit: 0
+
+$ curl --fail --silent --show-error http://127.0.0.1:8765/health
+{"status":"ok","version":"0.1.0","database":"ok"}
+Exit: 0
+
+$ docker compose restart linguaspindle
+Container lingua-spindle-linguaspindle-1 Restarting
+Container lingua-spindle-linguaspindle-1 Started
+Exit: 0
+
+$ docker compose ps
+NAME                             IMAGE                  COMMAND                  SERVICE         CREATED          STATUS                   PORTS
+lingua-spindle-linguaspindle-1   lingua-spindle:0.1.0   "linguaspindle serve…"   linguaspindle   41 minutes ago   Up 9 seconds (healthy)   127.0.0.1:8765->8765/tcp
+Exit: 0
+
+$ curl --fail --silent --show-error http://127.0.0.1:8765/health
+{"status":"ok","version":"0.1.0","database":"ok"}
+Exit: 0
+
+Classification: ordinary WSL docker is Pass. The current-agent failure is a Codex sandbox/session
+environment issue, not a WSL Docker integration issue. Windows docker.exe is not required.
+
+==============================================================================
+14. REAL OPENAI-COMPATIBLE PROVIDER ACCEPTANCE
+==============================================================================
+
+$ stat -c '%a %n' .env
+600 .env
+
+$ git check-ignore -v .env
+.gitignore:1:.env .env
+
+$ python3 <safe configuration-presence probe>
+provider_api_key_configured=true
+provider_base_url_configured=true
+provider_model_configured=true
+
+The probe printed no value, length, prefix, or suffix. `.env` was not displayed.
+
+$ LINGUASPINDLE_OPENAI_CONCURRENCY=1 LINGUASPINDLE_OPENAI_MAX_RETRIES=0 docker compose up -d --force-recreate
+Container recreated and started; the existing named Volume was retained. Exit: 0
+
+$ docker compose build
+Image lingua-spindle:0.1.0 built from python:3.12-slim digest
+sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de. Exit: 0
+
+$ curl --fail --silent --show-error http://127.0.0.1:8765/health
+{"status":"ok","version":"0.1.0","database":"ok"}
+
+$ curl --fail --silent --show-error http://127.0.0.1:8765/api/providers
+Mock configured=true; OpenAI-compatible configured=true; timeout=180; concurrency=1; retries=0.
+No secret or secret derivative was returned.
+
+$ LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
+  LINGUASPINDLE_RUN_REAL_PROVIDER_TESTS=1 \
+  LINGUASPINDLE_BROWSER_BASE_URL=http://127.0.0.1:8765 \
+  LINGUASPINDLE_REAL_PROVIDER_EVIDENCE_DIR=artifacts/acceptance-v010/real-provider \
+  .venv/bin/pytest -q -m browser -k real_provider_minimal_translation
+Initial test assertion failed after 2.82s because a broad succeeded badge matched a completed Step
+while the same Job was still running. The Job was not retried and no second Job was created.
+
+$ curl --fail --silent --show-error http://127.0.0.1:8765/api/jobs
+Real Job fd04c94c-71ea-4000-b118-6f8aa7526e54 reached succeeded with progress 1.0 and no error.
+
+$ LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
+  LINGUASPINDLE_RUN_REAL_PROVIDER_TESTS=1 \
+  LINGUASPINDLE_BROWSER_BASE_URL=http://127.0.0.1:8765 \
+  LINGUASPINDLE_REAL_PROVIDER_EXISTING_JOB_ID=fd04c94c-71ea-4000-b118-6f8aa7526e54 \
+  LINGUASPINDLE_REAL_PROVIDER_EVIDENCE_DIR=artifacts/acceptance-v010/real-provider-final \
+  .venv/bin/pytest -q -m browser -k real_provider_minimal_translation
+1 passed, 69 deselected in 1.34s. This read-only evidence replay made no Provider call.
+
+Real Job result:
+- Project: a76cc19f-41c2-4229-8a47-5b41d3f14a7f
+- Job: fd04c94c-71ea-4000-b118-6f8aa7526e54, succeeded
+- Provider: OpenAI-compatible (DeepSeek), model deepseek-v4-flash
+- Base URL origin: https://api.deepseek.com
+- Steps: 6 succeeded, attempt 1
+- Segments: 3 succeeded, semantic correspondence checked, not Mock output
+- Usage: prompt_tokens=133, completion_tokens=937, total_tokens=1070
+- TXT SHA-256: d699035ae69e5e47bec144217e0873b3ce56657c30cee867b3bc2cfcf50d24f2
+- JSON SHA-256: 0699a8917c9cbfee6fb5295345fe6cd48132ebb20298fea9d25195503a57dc30
+- Browser console/page/request/origin errors: none
+
+==============================================================================
+15. POST-CALL SECRET SCAN AND REGRESSION
+==============================================================================
+
+$ python3 /tmp/linguaspindle-secret-scan-v010.py <browser/evidence/report roots>
+files_scanned=33
+bytes_scanned=9092891
+secret_exact_match_hits=0
+authorization_header_hits=0
+
+$ docker compose exec -T linguaspindle python -c <in-memory /data exact scanner>
+files_scanned=43
+bytes_scanned=3019776
+secret_exact_match_hits=0
+authorization_header_hits=0
+
+The temporary host scanner was deleted. The container scan ran in memory because the container
+root filesystem is read-only; no scanner remained in the container.
+
+$ .venv/bin/ruff format --check src tests
+41 files already formatted
+$ .venv/bin/ruff check src tests
+All checks passed
+$ .venv/bin/mypy src
+Success: no issues found in 24 source files
+$ .venv/bin/python -m compileall -q src tests
+Exit: 0
+$ node --check src/linguaspindle/web/app.js
+Exit: 0
+$ .venv/bin/pytest -q
+68 passed, 2 skipped, 108 upstream FastAPI deprecation warnings in 1.94s
+$ .venv/bin/pytest --cov=linguaspindle --cov-report=term-missing -q
+68 passed, 2 skipped; total coverage 82%
+
+$ LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
+  LINGUASPINDLE_BROWSER_BASE_URL=http://127.0.0.1:8765 \
+  .venv/bin/pytest -q -m browser
+1 passed, 1 real-provider opt-in skipped, 68 deselected in 6.87s
+
+$ docker compose config --quiet
+Exit: 0; expanded secret output was not logged.
+$ docker compose build
+Exit: 0
+$ docker compose up -d
+Exit: 0; named Volume retained
+$ docker compose ps
+lingua-spindle-linguaspindle-1 Up (healthy) 127.0.0.1:8765->8765/tcp
+$ curl --fail --silent --show-error http://127.0.0.1:8765/health
+{"status":"ok","version":"0.1.0","database":"ok"}
+
+Pre-release acceptance image before the public source-label correction:
+sha256:543e50a917269212937f47302b80c217813e9ad769fc202e4f7e18c777e0d39b
+linux/amd64, 60422628 bytes, user 10001:10001
+
+==============================================================================
+16. FINAL RELEASE-METADATA REBUILD AND REGRESSION RECHECK
+==============================================================================
+
+The verified GitHub repository is https://github.com/taoning0403/lingua-spindle. Package project
+URLs, installation clone commands, Changelog links, and the OCI source label were corrected from
+the unregistered placeholder owner to that actual repository.
+
+$ .venv/bin/ruff format --check src tests
+41 files already formatted
+$ .venv/bin/ruff check src tests
+All checks passed
+$ .venv/bin/mypy src
+Success: no issues found in 24 source files
+$ .venv/bin/python -m compileall -q src tests
+Exit: 0
+$ node --check src/linguaspindle/web/app.js
+Exit: 0
+$ .venv/bin/pytest -q
+68 passed, 2 skipped, 108 upstream FastAPI deprecation warnings in 1.92s
+$ .venv/bin/pytest --cov=linguaspindle --cov-report=term-missing -q
+68 passed, 2 skipped; total coverage 82%
+$ LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
+  LINGUASPINDLE_BROWSER_BASE_URL=http://127.0.0.1:8765 \
+  .venv/bin/pytest -q -m browser -k 'not real_provider_minimal_translation'
+1 passed, 69 deselected in 6.90s
+$ LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
+  LINGUASPINDLE_RUN_REAL_PROVIDER_TESTS=1 \
+  LINGUASPINDLE_BROWSER_BASE_URL=http://127.0.0.1:8765 \
+  LINGUASPINDLE_REAL_PROVIDER_EXISTING_JOB_ID=fd04c94c-71ea-4000-b118-6f8aa7526e54 \
+  .venv/bin/pytest -q -m browser -k real_provider_minimal_translation
+1 passed, 69 deselected in 1.01s. Existing succeeded Job replay only; no Provider call.
+
+$ docker compose config --quiet
+Exit: 0; expanded secret output was not logged.
+$ docker compose build
+Exit: 0
+$ docker compose up -d
+Exit: 0; container recreated and named Volume retained
+$ docker compose ps
+lingua-spindle-linguaspindle-1 Up (healthy) 127.0.0.1:8765->8765/tcp
+$ curl --fail --silent --show-error http://127.0.0.1:8765/health
+{"status":"ok","version":"0.1.0","database":"ok"}
+
+Release-candidate final image:
+sha256:b44ed1145f424478199a11c17af6babb93650b1e4dc3cdce7c78ca586a79e910
+linux/amd64, 60422645 bytes, user 10001:10001
+OCI source: https://github.com/taoning0403/lingua-spindle

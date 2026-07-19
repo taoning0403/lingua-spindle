@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "product": "LinguaSpindle",
+  "version": "0.1.0",
+  "acceptance_date": "2026-07-19",
+  "timezone": "Asia/Shanghai",
+  "scope": "v0.1.0 supplemental release acceptance",
+  "overall_status": "Pass",
+  "release_judgment": "LinguaSpindle v0.1.0 is ready for a WSL2/Linux Technical Preview release.",
+  "native_windows": {
+    "status": "Not in scope",
+    "detail": "Native Windows execution: Not in scope for this supplemental acceptance."
+  },
+  "git": {
+    "status": "Pending",
+    "branch": "main",
+    "commit": null,
+    "detail": "Real Provider and regression gates passed; the first audited baseline commit is pending."
+  },
+  "environment": {
+    "wsl": {
+      "status": "Pass",
+      "kernel": "6.18.33.1-microsoft-standard-WSL2",
+      "distribution": "Ubuntu 26.04 LTS",
+      "architecture": "x86_64"
+    },
+    "host_python": "3.14.4",
+    "container_python": "3.12.13",
+    "docker_desktop": "4.82.0 (233772)",
+    "docker_client": "29.6.1 linux/amd64",
+    "docker_server": "29.6.1 linux/amd64",
+    "docker_cli_path": "/usr/bin/docker",
+    "docker_cli_resolved_path": "/mnt/wsl/docker-desktop/cli-tools/usr/bin/docker",
+    "docker_context": "default",
+    "docker_compose": "5.3.0",
+    "final_image": {
+      "id": "sha256:b44ed1145f424478199a11c17af6babb93650b1e4dc3cdce7c78ca586a79e910",
+      "size_bytes": 60422645,
+      "platform": "linux/amd64",
+      "user": "10001:10001",
+      "source": "https://github.com/taoning0403/lingua-spindle"
+    },
+    "playwright": "1.61.0",
+    "chromium": "149.0.7827.55",
+    "node": "18.20.7"
+  },
+  "results": [
+    {
+      "id": "wsl_native_docker_command",
+      "status": "Pass",
+      "detail": "Ordinary /usr/bin/docker resolves to the Docker Desktop WSL Linux CLI and reaches Client/Server 29.6.1 in the default context."
+    },
+    {
+      "id": "codex_agent_sandbox_docker_socket",
+      "status": "Blocked",
+      "detail": "The current workspace-write, managed/restricted Codex sandbox resolves and runs the Linux client but Engine-backed commands fail with permission denied at unix:///var/run/docker.sock; the same CLI passes outside the sandbox, so this is not a WSL integration failure."
+    },
+    {
+      "id": "docker_engine_linux_containers",
+      "status": "Pass",
+      "detail": "Ordinary WSL Linux docker shows Client and Linux Server 29.6.1, Docker Desktop 4.82.0, and linux/x86_64 Engine info without invoking Windows docker.exe."
+    },
+    {
+      "id": "docker_hub_direct_pull",
+      "status": "Blocked",
+      "detail": "Two auth.docker.io OAuth requests timed out."
+    },
+    {
+      "id": "docker_image_build",
+      "status": "Pass",
+      "detail": "AWS Public ECR Docker Official Image mirror seeded python:3.12-slim digest sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de; original no-cache Dockerfile build then passed."
+    },
+    {
+      "id": "compose_config_start_health",
+      "status": "Pass",
+      "detail": "Compose parses, starts, becomes healthy, and reports application/database ok at version 0.1.0; ordinary Linux docker compose restart and post-restart ps/health also pass."
+    },
+    {
+      "id": "loopback_only",
+      "status": "Pass",
+      "detail": "127.0.0.1:8765->8765/tcp"
+    },
+    {
+      "id": "non_root_container_security",
+      "status": "Pass",
+      "detail": "UID/GID 10001, privileged=false, read-only root, no-new-privileges, one rw /data Volume, no Docker socket."
+    },
+    {
+      "id": "runtime_resources",
+      "status": "Pass",
+      "detail": "Web assets and SQL migration are installed; no model/font asset suffixes found below /app."
+    },
+    {
+      "id": "volume_persistence_restart",
+      "status": "Pass",
+      "detail": "Same Project, Job, Steps, logs, Segments, Artifact IDs, and TXT SHA-256 after compose restart."
+    },
+    {
+      "id": "volume_persistence_down_up",
+      "status": "Pass",
+      "detail": "Container/network removed and recreated without -v; named Volume and business data retained."
+    },
+    {
+      "id": "volume_persistence_force_recreate",
+      "status": "Pass",
+      "detail": "Image rebuild and force-recreate retained data and Artifact bytes."
+    },
+    {
+      "id": "docker_headless_gui",
+      "status": "Pass",
+      "detail": "WSL Chromium 149.0.7827.55 targeted the Docker GUI; Mock and opt-in real Provider flows passed."
+    },
+    {
+      "id": "mock_txt_browser_flow",
+      "status": "Pass",
+      "detail": "Create/upload/run/poll/Steps/logs/results/QA/TXT/JSON/failure flow passed."
+    },
+    {
+      "id": "mock_manga_browser_flow",
+      "status": "Pass",
+      "detail": "Single image, translated/raw Artifacts, CBZ download and member validation passed."
+    },
+    {
+      "id": "real_openai_compatible_provider",
+      "status": "Pass",
+      "detail": "A three-Segment novel Job used the Docker GUI, ApplicationService, durable Job runner, and DeepSeek OpenAI-compatible endpoint; all six Steps, QA, TXT/JSON exports, usage capture, and secret scans passed."
+    },
+    {
+      "id": "real_manga_image_translator",
+      "status": "Blocked",
+      "detail": "No service URL/models/fonts/license/runtime conditions; GUI and Job show unavailable and ADAPTER_UNAVAILABLE."
+    },
+    {
+      "id": "process_interruption_recovery",
+      "status": "Pass",
+      "detail": "800-Segment Job recovered from SIGKILL as PROCESS_INTERRUPTED; explicit retry reused 3 upstream Steps and 28 succeeded Segments, then produced 800 unique successful Segments."
+    },
+    {
+      "id": "secret_and_identity_boundary",
+      "status": "Pass",
+      "detail": "Post-call scans covered 43 Docker /data files (3019776 bytes) and 33 browser/evidence/report files (9092891 bytes), with zero exact-secret or Authorization/Bearer hits; no identity schema or Provider secret column exists."
+    },
+    {
+      "id": "artifact_provenance_and_deletion",
+      "status": "Pass",
+      "detail": "Job Artifacts had Step provenance; disposable Project cleanup removed metadata and payload and returned 404 afterwards."
+    },
+    {
+      "id": "static_tests_coverage",
+      "status": "Pass",
+      "detail": "Ruff format/check, strict mypy, compileall, 68 default tests, 82% coverage, Mock Docker browser, and opt-in real Provider browser passed."
+    },
+    {
+      "id": "container_ps",
+      "status": "Not in scope",
+      "detail": "Optional check unsupported because the slim image has no ps executable."
+    },
+    {
+      "id": "python_version_matrix",
+      "status": "Not in scope",
+      "detail": "Only actual host and container versions were required."
+    }
+  ],
+  "persistence": {
+    "project_id": "3f1c6f96-4b92-4264-b887-3a023b639e10",
+    "job_id": "fdf12e53-79e7-4b7e-bfae-554ef0032125",
+    "txt_artifact_id": "2f4c741e-f67a-46d9-b947-745b563662a3",
+    "json_artifact_id": "fd69e555-4254-44f5-b38f-36b2edcfed8d",
+    "txt_sha256": "7768a62ac0806d25be44daccb653e36b2f060aacf1659fd7c9266fc0827f0f30",
+    "json_sha256": "fb1627806463183d3af0ef154f26d7eb54865ab0faeb8c55fbf772d749bcbc7d"
+  },
+  "recovery": {
+    "project_id": "595ec094-1eeb-4df6-b08d-b98afd63f151",
+    "job_id": "618723e0-e260-46b8-a036-d7fbd5598d8b",
+    "segments": 800,
+    "succeeded_before_interruption": 28,
+    "upstream_steps_reused": 3,
+    "translate_attempts": 2,
+    "final_unique_sequences": 800,
+    "export_sha256": "27333642c0735293f27eec17bfbfc960b780fa590ad43545319e3a4ce65dc65d"
+  },
+  "real_provider": {
+    "status": "Pass",
+    "provider_type": "OpenAI-compatible (DeepSeek)",
+    "base_url_origin": "https://api.deepseek.com",
+    "model": "deepseek-v4-flash",
+    "project_id": "a76cc19f-41c2-4229-8a47-5b41d3f14a7f",
+    "job_id": "fd04c94c-71ea-4000-b118-6f8aa7526e54",
+    "job_status": "succeeded",
+    "step_count": 6,
+    "segment_count": 3,
+    "usage": {
+      "prompt_tokens": 133,
+      "completion_tokens": 937,
+      "total_tokens": 1070
+    },
+    "txt_sha256": "d699035ae69e5e47bec144217e0873b3ce56657c30cee867b3bc2cfcf50d24f2",
+    "json_sha256": "0699a8917c9cbfee6fb5295345fe6cd48132ebb20298fea9d25195503a57dc30",
+    "browser_errors": [],
+    "console_errors": [],
+    "failed_requests": [],
+    "unexpected_origins": [],
+    "secret_scan": {
+      "docker_data_files": 43,
+      "docker_data_bytes": 3019776,
+      "browser_evidence_files": 33,
+      "browser_evidence_bytes": 9092891,
+      "secret_exact_match_hits": 0,
+      "authorization_header_hits": 0
+    },
+    "limitations": "Long documents, concurrency, rate limits, and long-term stability were not validated."
+  },
+  "docker_revalidation": {
+    "status": "Pass",
+    "ordinary_wsl_docker_status": "Pass",
+    "linux_cli": "/usr/bin/docker",
+    "resolved_linux_cli": "/mnt/wsl/docker-desktop/cli-tools/usr/bin/docker",
+    "context": "default",
+    "client": "29.6.1 linux/amd64",
+    "server": "29.6.1 linux/amd64",
+    "engine_info": "linux/x86_64",
+    "compose": "5.3.0",
+    "codex_sandbox": {
+      "status": "Blocked",
+      "sandbox_mode": "workspace-write",
+      "permission_profile": "managed",
+      "filesystem": "restricted",
+      "network_access": "restricted",
+      "identity": "uid=1000(mine) gid=1000(mine), member of nogroup",
+      "socket": "srw-rw---- 660 nobody:nogroup /var/run/docker.sock",
+      "failed_commands": {
+        "docker version": 1,
+        "docker info --format '{{.OSType}}/{{.Architecture}}'": 1,
+        "docker compose ps": 1
+      },
+      "error": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    },
+    "outside_sandbox": {
+      "status": "Pass",
+      "initial_compose_ps": "Up (healthy)",
+      "initial_health": {
+        "status": "ok",
+        "version": "0.1.0",
+        "database": "ok"
+      },
+      "minimal_compose_operation": "docker compose restart linguaspindle",
+      "post_restart_compose_ps": "Up 9 seconds (healthy)",
+      "post_restart_health": {
+        "status": "ok",
+        "version": "0.1.0",
+        "database": "ok"
+      }
+    },
+    "classification": "Codex sandbox/session environment issue, not a WSL Docker integration issue; Windows docker.exe is not required."
+  },
+  "browser": {
+    "console_errors": [],
+    "page_errors": [],
+    "failed_requests": [],
+    "unexpected_origins": [],
+    "trace": "artifacts/acceptance-v010/browser-trace.zip",
+    "evidence": "artifacts/acceptance-v010/browser-evidence.json",
+    "real_provider_trace": "artifacts/acceptance-v010/real-provider-final/real-provider-trace.zip",
+    "real_provider_evidence": "artifacts/acceptance-v010/real-provider-final/real-provider-evidence.json"
+  },
+  "code_changes": {
+    "product_code_changed": true,
+    "schema_changed": false,
+    "docker_delivery_changed": true,
+    "browser_acceptance_changed": true,
+    "context_refreshed": true,
+    "docker_revalidation_report_refreshed": true,
+    "detail": "The existing Playwright framework gained an explicit paid-test opt-in and existing-Job evidence mode; Provider results capture standard token usage in redacted Step logs; Compose now forwards its existing timeout/concurrency/retry settings; public repository metadata points to taoning0403/lingua-spindle. Schema and API contracts did not change."
+  },
+  "failed_items": [],
+  "blocked_items": [
+    "Current Codex agent sandbox access to /var/run/docker.sock (ordinary WSL Docker passes)",
+    "Direct Docker Hub OAuth connectivity",
+    "Real manga-image-translator service",
+    "Git HEAD/commit"
+  ],
+  "volume_preserved": true,
+  "github_release_created": false,
+  "tag_created": false,
+  "v020_started": false
+}

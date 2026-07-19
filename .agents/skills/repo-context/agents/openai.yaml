@@ -1,0 +1,4 @@
+interface:
+  display_name: "LinguaSpindle Repository Context"
+  short_description: "Orient work using LinguaSpindle repository context"
+  default_prompt: "Use $repo-context to orient yourself in LinguaSpindle before working on my request."

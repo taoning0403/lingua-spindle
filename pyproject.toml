@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linguaspindle"
+version = "0.1.0"
+description = "Open-source translation orchestration for novels and manga"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [{name = "LinguaSpindle contributors"}]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+  "charset-normalizer>=3.4,<4",
+  "fastapi>=0.115.6,<0.116",
+  "httpx>=0.27,<1",
+  "platformdirs>=4.3,<5",
+  "pydantic>=2.10,<3",
+  "python-multipart>=0.0.18,<1",
+  "sqlalchemy>=2.0,<3",
+  "typer>=0.15,<0.16",
+  "uvicorn>=0.32,<0.35",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.14,<2",
+  "playwright>=1.49,<2",
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<7",
+  "ruff>=0.9,<1",
+]
+
+[project.scripts]
+linguaspindle = "linguaspindle.interfaces.cli:app"
+
+[project.urls]
+Documentation = "https://github.com/taoning0403/lingua-spindle#readme"
+Issues = "https://github.com/taoning0403/lingua-spindle/issues"
+Source = "https://github.com/taoning0403/lingua-spindle"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+linguaspindle = ["migrations/*.sql", "web/*.html", "web/*.js", "web/*.css"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+markers = [
+  "browser: real Chromium browser acceptance against a live local server",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["linguaspindle"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "ASYNC"]
+ignore = ["S101"]
+
+[tool.mypy]
+python_version = "3.11"
+plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
+strict = true
+packages = ["linguaspindle"]

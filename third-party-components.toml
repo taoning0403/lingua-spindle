@@ -1,0 +1,134 @@
+schema_version = 1
+reviewed_on = "2026-07-19"
+
+[[component]]
+name = "FastAPI"
+upstream = "https://github.com/fastapi/fastapi"
+version = "0.115.14"
+license = "MIT"
+integration = "runtime Python dependency"
+modified = false
+model_weights = "not applicable"
+fonts = "not applicable"
+redistributed = false
+
+[[component]]
+name = "Uvicorn"
+upstream = "https://github.com/encode/uvicorn"
+version = "0.34.3"
+license = "BSD-3-Clause"
+integration = "runtime Python dependency"
+modified = false
+model_weights = "not applicable"
+fonts = "not applicable"
+redistributed = false
+
+[[component]]
+name = "Typer"
+upstream = "https://github.com/fastapi/typer"
+version = "0.15.4"
+license = "MIT"
+integration = "runtime Python dependency"
+modified = false
+model_weights = "not applicable"
+fonts = "not applicable"
+redistributed = false
+
+[[component]]
+name = "SQLAlchemy"
+upstream = "https://github.com/sqlalchemy/sqlalchemy"
+version = "2.0.51"
+license = "MIT"
+integration = "runtime Python dependency"
+modified = false
+model_weights = "not applicable"
+fonts = "not applicable"
+redistributed = false
+
+[[component]]
+name = "HTTPX"
+upstream = "https://github.com/encode/httpx"
+version = "0.28.1"
+license = "BSD-3-Clause"
+integration = "runtime Python dependency"
+modified = false
+model_weights = "not applicable"
+fonts = "not applicable"
+redistributed = false
+
+[[component]]
+name = "Pydantic"
+upstream = "https://github.com/pydantic/pydantic"
+version = "2.13.4"
+license = "MIT"
+integration = "runtime Python dependency"
+modified = false
+model_weights = "not applicable"
+fonts = "not applicable"
+redistributed = false
+
+[[component]]
+name = "charset-normalizer"
+upstream = "https://github.com/jawah/charset_normalizer"
+version = "3.4.9"
+license = "MIT"
+integration = "runtime Python dependency"
+modified = false
+model_weights = "not applicable"
+fonts = "not applicable"
+redistributed = false
+
+[[component]]
+name = "python-multipart"
+upstream = "https://github.com/Kludex/python-multipart"
+version = "0.0.32"
+license = "Apache-2.0"
+integration = "runtime Python dependency"
+modified = false
+model_weights = "not applicable"
+fonts = "not applicable"
+redistributed = false
+
+[[component]]
+name = "platformdirs"
+upstream = "https://github.com/tox-dev/platformdirs"
+version = "4.10.1"
+license = "MIT"
+integration = "runtime Python dependency"
+modified = false
+model_weights = "not applicable"
+fonts = "not applicable"
+redistributed = false
+
+[[component]]
+name = "manga-image-translator"
+upstream = "https://github.com/zyddnys/manga-image-translator"
+version = "efdc229de8aa0f3d4051ad97664adc62dd5ac605"
+license = "GPL-3.0-only"
+integration = "operator-managed external HTTP service; protocol-only Adapter"
+modified = false
+model_weights = "upstream downloads multiple weights; per-weight redistribution terms were not completely documented in the inspected snapshot"
+fonts = "upstream bundles/uses fonts without a complete per-font license inventory in the inspected snapshot"
+redistributed = false
+
+[[component]]
+name = "Playwright for Python"
+upstream = "https://github.com/microsoft/playwright-python"
+version = "1.61.0"
+license = "Apache-2.0"
+integration = "development-only browser acceptance dependency"
+modified = false
+model_weights = "not applicable"
+fonts = "browser/system fonts are not redistributed by LinguaSpindle"
+redistributed = false
+
+[[component]]
+name = "setuptools"
+upstream = "https://github.com/pypa/setuptools"
+version = "83.0.0"
+license = "MIT"
+integration = "build backend only"
+modified = false
+model_weights = "not applicable"
+fonts = "not applicable"
+redistributed = false

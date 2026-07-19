@@ -1,0 +1,43 @@
+services:
+  linguaspindle:
+    build:
+      context: .
+    image: lingua-spindle:0.1.0
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LINGUASPINDLE_PORT:-8765}:8765"
+    environment:
+      LINGUASPINDLE_DATA_DIR: /data
+      LINGUASPINDLE_LOG_LEVEL: ${LINGUASPINDLE_LOG_LEVEL:-INFO}
+      LINGUASPINDLE_OPENAI_BASE_URL: ${LINGUASPINDLE_OPENAI_BASE_URL:-https://api.openai.com/v1}
+      LINGUASPINDLE_OPENAI_API_KEY: ${LINGUASPINDLE_OPENAI_API_KEY:-}
+      LINGUASPINDLE_OPENAI_MODEL: ${LINGUASPINDLE_OPENAI_MODEL:-gpt-4.1-mini}
+      LINGUASPINDLE_OPENAI_TIMEOUT_SECONDS: ${LINGUASPINDLE_OPENAI_TIMEOUT_SECONDS:-60}
+      LINGUASPINDLE_OPENAI_CONCURRENCY: ${LINGUASPINDLE_OPENAI_CONCURRENCY:-2}
+      LINGUASPINDLE_OPENAI_MAX_RETRIES: ${LINGUASPINDLE_OPENAI_MAX_RETRIES:-3}
+      LINGUASPINDLE_MIT_BASE_URL: ${LINGUASPINDLE_MIT_BASE_URL:-}
+      LINGUASPINDLE_MIT_TIMEOUT_SECONDS: ${LINGUASPINDLE_MIT_TIMEOUT_SECONDS:-600}
+      LINGUASPINDLE_MIT_CONFIG_JSON: ${LINGUASPINDLE_MIT_CONFIG_JSON:-{}}
+    volumes:
+      - linguaspindle-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8765/health', timeout=2).read()
+      interval: 15s
+      timeout: 3s
+      start_period: 10s
+      retries: 5
+
+volumes:
+  linguaspindle-data:

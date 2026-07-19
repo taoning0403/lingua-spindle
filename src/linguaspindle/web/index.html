@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="description" content="LinguaSpindle translation orchestration" />
+    <title>LinguaSpindle</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="#/">
+          <span class="brand-mark" aria-hidden="true">LS</span>
+          <span><strong>LinguaSpindle</strong><small>translation orchestration</small></span>
+        </a>
+        <nav aria-label="Primary navigation">
+          <a data-nav="dashboard" href="#/">Dashboard</a>
+          <a data-nav="projects" href="#/projects">Projects</a>
+          <a data-nav="new" href="#/projects/new">New project</a>
+          <a data-nav="settings" href="#/settings">Adapters &amp; Providers</a>
+          <a href="/docs" target="_blank" rel="noreferrer">API docs ↗</a>
+        </nav>
+        <div class="trust-note">
+          <span class="status-dot"></span>
+          Single-instance tool<br />No login · loopback first
+        </div>
+      </aside>
+      <main id="app" tabindex="-1">
+        <div class="loading-card">Loading LinguaSpindle…</div>
+      </main>
+    </div>
+    <div id="toast-region" aria-live="polite"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
