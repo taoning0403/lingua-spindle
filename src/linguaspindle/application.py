@@ -8,12 +8,14 @@ import mimetypes
 import platform
 import shutil
 import socket
+import stat
 import subprocess
 import tempfile
+import unicodedata
 import zipfile
 from datetime import datetime
 from pathlib import Path, PurePosixPath
-from typing import Any, BinaryIO
+from typing import IO, Any, BinaryIO
 
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import selectinload
@@ -22,7 +24,7 @@ from . import __version__
 from .adapters import AdapterRegistry, MangaImageTranslatorHttpAdapter, MockMangaAdapter
 from .config import Settings
 from .database import Database
-from .epub import inspect_epub
+from .epub import inspect_epub, is_bcp47_language_tag
 from .errors import ErrorCode, LinguaError
 from .models import (
     Artifact,
@@ -40,6 +42,7 @@ from .models import (
 )
 from .orchestration.pipelines import PIPELINES, default_pipeline, get_pipeline
 from .orchestration.state import (
+    TERMINAL_JOB_STATUSES,
     JobStatus,
     StepStatus,
     ensure_job_transition,
@@ -50,6 +53,18 @@ from .security import redact, redact_text
 from .storage import ArtifactStore
 
 _IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+_CONTENT_ARTIFACT_KINDS = {
+    "epub_package_manifest",
+    "epub_segments",
+    "epub_translations",
+    "manga_manifest",
+    "novel_export_json",
+    "novel_export_txt",
+    "novel_segments",
+    "novel_text_extracted",
+    "novel_translations",
+}
+_ARCHIVE_ARTIFACT_KINDS = {"manga_export_cbz", "novel_export_epub"}
 
 
 def _loads(value: str | None, fallback: Any) -> Any:
@@ -94,10 +109,35 @@ class ApplicationService:
     def _redact_text(self, value: str) -> str:
         return redact_text(value, [self.settings.openai_api_key or ""])
 
-    def _sanitize_artifact_payload(self, payload: bytes, media_type: str) -> bytes:
+    def _redact_content_text(self, value: str) -> str:
+        """Remove only the active runtime key without rewriting user-authored prose."""
+
+        secret = self.settings.openai_api_key
+        return value.replace(secret, "[REDACTED]") if secret else value
+
+    def _redact_content_value(self, value: Any) -> Any:
+        if isinstance(value, str):
+            return self._redact_content_text(value)
+        if isinstance(value, dict):
+            return {str(key): self._redact_content_value(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [self._redact_content_value(item) for item in value]
+        return value
+
+    def _reject_runtime_secret_fields(self, *values: str) -> None:
+        secret = self.settings.openai_api_key
+        if secret and any(secret in value for value in values):
+            raise LinguaError(
+                ErrorCode.CONFIGURATION,
+                "Imported Project fields contain the runtime Provider secret; "
+                "remove it before import",
+            )
+
+    def _sanitize_artifact_payload(self, payload: bytes, media_type: str, kind: str) -> bytes:
         base_type = media_type.partition(";")[0].strip().lower()
         is_json = base_type == "application/json" or base_type.endswith("+json")
         is_text = base_type.startswith("text/") or is_json
+        content_payload = kind in _CONTENT_ARTIFACT_KINDS
         if is_text:
             try:
                 text = payload.decode("utf-8")
@@ -110,18 +150,40 @@ class ApplicationService:
                     except json.JSONDecodeError:
                         pass
                     else:
+                        sanitized = (
+                            self._redact_content_value(structured)
+                            if content_payload
+                            else self.redact_for_persistence(structured)
+                        )
                         return json.dumps(
-                            self.redact_for_persistence(structured),
+                            sanitized,
                             ensure_ascii=False,
                             indent=2,
                         ).encode()
-                return self._redact_text(text).encode()
+                sanitizer = self._redact_content_text if content_payload else self._redact_text
+                return sanitizer(text).encode()
         secret = self.settings.openai_api_key
         if secret and secret.encode() in payload:
             raise LinguaError(
                 ErrorCode.STORAGE,
                 "Refusing to persist a binary Artifact containing the runtime Provider secret",
             )
+        if secret and kind in _ARCHIVE_ARTIFACT_KINDS:
+            try:
+                with zipfile.ZipFile(io.BytesIO(payload), "r") as archive:
+                    if self._archive_contains(archive, secret.encode()):
+                        raise LinguaError(
+                            ErrorCode.STORAGE,
+                            "Refusing to persist an archive Artifact containing the runtime "
+                            "Provider secret",
+                        )
+            except LinguaError:
+                raise
+            except zipfile.BadZipFile as exc:
+                raise LinguaError(
+                    ErrorCode.INVALID_FORMAT,
+                    "Generated archive Artifact is not a valid ZIP file",
+                ) from exc
         return payload
 
     def _sync_provider_configs(self) -> None:
@@ -183,7 +245,7 @@ class ApplicationService:
             return "image"
         raise LinguaError(
             ErrorCode.INVALID_FORMAT,
-            "v0.1.0 manga sources must be CBZ/ZIP or PNG/JPEG/WebP",
+            "Manga sources must be CBZ/ZIP or PNG/JPEG/WebP",
         )
 
     def create_project(
@@ -208,17 +270,116 @@ class ApplicationService:
         )
 
     @staticmethod
-    def _path_contains(path: Path, needle: bytes) -> bool:
+    def _stream_contains(source: IO[bytes], needle: bytes) -> bool:
         if not needle:
             return False
+        needles: tuple[bytes, ...]
+        try:
+            text_needle = needle.decode("utf-8")
+        except UnicodeDecodeError:
+            needles = (needle,)
+        else:
+            needles = tuple(
+                dict.fromkeys(
+                    (
+                        needle,
+                        text_needle.encode("utf-16-le"),
+                        text_needle.encode("utf-16-be"),
+                        text_needle.encode("utf-32-le"),
+                        text_needle.encode("utf-32-be"),
+                    )
+                )
+            )
         overlap = b""
+        while chunk := source.read(1024 * 1024):
+            candidate = overlap + chunk
+            if any(encoded in candidate for encoded in needles):
+                return True
+            overlap_size = max(max(map(len, needles)) - 1, 0)
+            overlap = candidate[-overlap_size:] if overlap_size else b""
+        return False
+
+    @classmethod
+    def _path_contains(cls, path: Path, needle: bytes) -> bool:
         with path.open("rb") as handle:
-            while chunk := handle.read(1024 * 1024):
-                candidate = overlap + chunk
-                if needle in candidate:
-                    return True
-                overlap_size = max(len(needle) - 1, 0)
-                overlap = candidate[-overlap_size:] if overlap_size else b""
+            return cls._stream_contains(handle, needle)
+
+    def _archive_contains(self, archive: zipfile.ZipFile, needle: bytes) -> bool:
+        """Bounded scan of expanded ZIP members for one exact runtime secret."""
+
+        members = archive.infolist()
+        if len(members) > self.settings.max_archive_files:
+            raise LinguaError(
+                ErrorCode.ARCHIVE_LIMIT_EXCEEDED,
+                "Archive contains too many members",
+                {"member_count": len(members), "limit": self.settings.max_archive_files},
+            )
+        total = 0
+        portable_names: set[str] = set()
+        for member in members:
+            safe_member = self.validate_archive_member(member.filename)
+            portable_name = unicodedata.normalize("NFC", str(safe_member)).casefold()
+            if portable_name in portable_names:
+                raise LinguaError(
+                    ErrorCode.ARCHIVE_UNSAFE,
+                    "Archive contains duplicate or ambiguous paths",
+                    {
+                        "member": "[REDACTED]"
+                        if needle and needle in member.filename.encode()
+                        else member.filename
+                    },
+                )
+            portable_names.add(portable_name)
+            if member.flag_bits & 0x41:
+                raise LinguaError(ErrorCode.INVALID_FORMAT, "Encrypted archives are not supported")
+            unix_mode = member.external_attr >> 16
+            if member.create_system == 3 and stat.S_IFMT(unix_mode) == stat.S_IFLNK:
+                raise LinguaError(ErrorCode.ARCHIVE_UNSAFE, "Archive cannot contain symbolic links")
+            if member.compress_type not in {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}:
+                raise LinguaError(
+                    ErrorCode.INVALID_FORMAT, "Archive uses an unsupported compression method"
+                )
+            if member.file_size > self.settings.max_archive_member_bytes:
+                raise LinguaError(
+                    ErrorCode.ARCHIVE_LIMIT_EXCEEDED,
+                    "Archive member exceeds the configured size limit",
+                    {
+                        "expanded_bytes": member.file_size,
+                        "limit": self.settings.max_archive_member_bytes,
+                    },
+                )
+            total += member.file_size
+            if total > self.settings.max_archive_uncompressed_bytes:
+                raise LinguaError(
+                    ErrorCode.ARCHIVE_LIMIT_EXCEEDED,
+                    "Archive expands beyond the configured limit",
+                    {
+                        "expanded_bytes": total,
+                        "limit": self.settings.max_archive_uncompressed_bytes,
+                    },
+                )
+            ratio = (
+                member.file_size / member.compress_size
+                if member.compress_size > 0
+                else (float("inf") if member.file_size else 0.0)
+            )
+            if ratio > self.settings.max_archive_compression_ratio:
+                raise LinguaError(
+                    ErrorCode.ARCHIVE_LIMIT_EXCEEDED,
+                    "Archive member exceeds the configured compression ratio",
+                    {"limit": self.settings.max_archive_compression_ratio},
+                )
+        if not needle:
+            return False
+        try:
+            for member in members:
+                if member.is_dir():
+                    continue
+                with archive.open(member, "r") as expanded:
+                    if self._stream_contains(expanded, needle):
+                        return True
+        except (OSError, RuntimeError, zipfile.BadZipFile) as exc:
+            raise LinguaError(ErrorCode.INVALID_FORMAT, "Archive member could not be read") from exc
         return False
 
     def create_project_from_stream(
@@ -234,17 +395,25 @@ class ApplicationService:
     ) -> dict[str, Any]:
         """Validate and atomically publish an imported Source from a bounded stream."""
 
-        name, kind, source_language, target_language = self._validate_project_fields(
-            self._redact_text(name),
-            kind,
-            self._redact_text(source_language),
-            self._redact_text(target_language),
+        self._reject_runtime_secret_fields(
+            name, kind, source_language, target_language, source_name, media_type or ""
         )
-        source_name = self._redact_text(source_name)
+        name, kind, source_language, target_language = self._validate_project_fields(
+            name,
+            kind,
+            source_language,
+            target_language,
+        )
+        source_name = source_name.strip()
         source_kind = self._source_kind(kind, source_name)
+        if source_kind == "epub" and not is_bcp47_language_tag(target_language):
+            raise LinguaError(
+                ErrorCode.CONFIGURATION,
+                "EPUB target language must be a plausible BCP 47 language tag",
+            )
         project_id = new_id()
         artifact_id = new_id()
-        guessed_type = self._redact_text(
+        guessed_type = self._redact_content_text(
             media_type or mimetypes.guess_type(source_name)[0] or "application/octet-stream"
         )
         try:
@@ -267,6 +436,14 @@ class ApplicationService:
             source_metadata: dict[str, Any] = {}
             if source_kind == "epub":
                 inspection = inspect_epub(stored_path, self.settings)
+                if secret:
+                    with zipfile.ZipFile(stored_path, "r") as archive:
+                        if self._archive_contains(archive, secret.encode()):
+                            raise LinguaError(
+                                ErrorCode.CONFIGURATION,
+                                "Imported source contains the runtime Provider secret; "
+                                "remove it before import",
+                            )
                 metadata = inspection.get("metadata", {})
                 validation = inspection.get("validation", {})
                 titles = list(metadata.get("titles", []))
@@ -292,6 +469,20 @@ class ApplicationService:
                     "navigation_documents": inspection.get("navigation_documents", []),
                 }
                 guessed_type = "application/epub+zip"
+            elif source_kind == "cbz" and secret:
+                try:
+                    with zipfile.ZipFile(stored_path, "r") as archive:
+                        contains_secret = self._archive_contains(archive, secret.encode())
+                except zipfile.BadZipFile as exc:
+                    raise LinguaError(
+                        ErrorCode.INVALID_FORMAT, "Manga source is not a valid CBZ/ZIP archive"
+                    ) from exc
+                if contains_secret:
+                    raise LinguaError(
+                        ErrorCode.CONFIGURATION,
+                        "Imported source contains the runtime Provider secret; "
+                        "remove it before import",
+                    )
             with self.database.session() as session:
                 project = Project(
                     id=project_id,
@@ -505,6 +696,22 @@ class ApplicationService:
             project = session.get(Project, project_id)
             if project is None:
                 raise LinguaError(ErrorCode.NOT_FOUND, "Project not found")
+            active_jobs = session.execute(
+                select(Job.id, Job.status).where(
+                    Job.project_id == project_id,
+                    Job.status.not_in(TERMINAL_JOB_STATUSES),
+                )
+            ).all()
+            if active_jobs:
+                raise LinguaError(
+                    ErrorCode.INVALID_STATE,
+                    "Project cannot be deleted while it has active Jobs; cancel them first",
+                    {
+                        "active_jobs": [
+                            {"id": job_id, "status": str(status)} for job_id, status in active_jobs
+                        ]
+                    },
+                )
             session.delete(project)
         cleanup_error = None
         try:
@@ -527,18 +734,18 @@ class ApplicationService:
         batch_size: int = 8,
         model_parameters: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        cleaned_name = self._redact_text(name).strip()
-        cleaned_source = self._redact_text(source_language).strip()
-        cleaned_target = self._redact_text(target_language).strip()
-        cleaned_style = self._redact_text(style).strip()
-        cleaned_prompt = self._redact_text(
+        cleaned_name = self._redact_content_text(name).strip()
+        cleaned_source = self._redact_content_text(source_language).strip()
+        cleaned_target = self._redact_content_text(target_language).strip()
+        cleaned_style = self._redact_content_text(style).strip()
+        cleaned_prompt = self._redact_content_text(
             prompt_template
             or (
                 "Translate from {source_language} to {target_language}. "
                 "Style guidance: {style}. Preserve dialogue and paragraph structure.\n\n{text}"
             )
         )
-        cleaned_version = self._redact_text(prompt_version).strip()
+        cleaned_version = self._redact_content_text(prompt_version).strip()
         if not cleaned_name or len(cleaned_name) > 120:
             raise LinguaError(ErrorCode.CONFIGURATION, "Profile name must be 1-120 characters")
         if not cleaned_source or not cleaned_target:
@@ -1053,9 +1260,9 @@ class ApplicationService:
         metadata: dict[str, Any] | None = None,
     ) -> Artifact:
         artifact_id = new_id()
-        filename = self._redact_text(filename)
-        media_type = self._redact_text(media_type)
-        payload = self._sanitize_artifact_payload(payload, media_type)
+        filename = self._redact_content_text(filename)
+        media_type = self._redact_content_text(media_type)
+        payload = self._sanitize_artifact_payload(payload, media_type, kind)
         stored = self.store.write_bytes(
             project_id=project_id,
             artifact_id=artifact_id,
@@ -1074,7 +1281,10 @@ class ApplicationService:
             checksum=stored.checksum,
             storage_key=stored.storage_key,
             metadata_json=json.dumps(
-                self.redact_for_persistence(metadata or {}), ensure_ascii=False
+                self._redact_content_value(metadata or {})
+                if kind in _CONTENT_ARTIFACT_KINDS
+                else self.redact_for_persistence(metadata or {}),
+                ensure_ascii=False,
             ),
         )
         try:
@@ -1100,14 +1310,30 @@ class ApplicationService:
         """Publish a generated file without materializing it as one in-memory byte string."""
 
         artifact_id = new_id()
-        filename = self._redact_text(filename)
-        media_type = self._redact_text(media_type)
+        filename = self._redact_content_text(filename)
+        media_type = self._redact_content_text(media_type)
         secret = self.settings.openai_api_key
         if secret and self._path_contains(source_path, secret.encode()):
             raise LinguaError(
                 ErrorCode.STORAGE,
                 "Refusing to persist an Artifact containing the runtime Provider secret",
             )
+        if secret and kind in _ARCHIVE_ARTIFACT_KINDS:
+            try:
+                with zipfile.ZipFile(source_path, "r") as archive:
+                    if self._archive_contains(archive, secret.encode()):
+                        raise LinguaError(
+                            ErrorCode.STORAGE,
+                            "Refusing to persist an archive Artifact containing the runtime "
+                            "Provider secret",
+                        )
+            except LinguaError:
+                raise
+            except zipfile.BadZipFile as exc:
+                raise LinguaError(
+                    ErrorCode.INVALID_FORMAT,
+                    "Generated archive Artifact is not a valid ZIP file",
+                ) from exc
         stored = self.store.write_file(
             project_id=project_id,
             artifact_id=artifact_id,
@@ -1126,7 +1352,10 @@ class ApplicationService:
             checksum=stored.checksum,
             storage_key=stored.storage_key,
             metadata_json=json.dumps(
-                self.redact_for_persistence(metadata or {}), ensure_ascii=False
+                self._redact_content_value(metadata or {})
+                if kind in _CONTENT_ARTIFACT_KINDS
+                else self.redact_for_persistence(metadata or {}),
+                ensure_ascii=False,
             ),
         )
         try:
@@ -1359,7 +1588,7 @@ class ApplicationService:
                 raise LinguaError(ErrorCode.NOT_FOUND, "Translation segment not found")
             segment.status = status
             segment.translated_text = (
-                self._redact_text(translated_text) if translated_text is not None else None
+                self._redact_content_text(translated_text) if translated_text is not None else None
             )
             segment.model = self._redact_text(model) if model is not None else None
             segment.error_code = error.code if error else None
@@ -1842,7 +2071,12 @@ class ApplicationService:
         }
 
     def validate_archive_member(self, name: str) -> PurePosixPath:
-        if not name or "\x00" in name or "\\" in name:
+        if (
+            not name
+            or "\x00" in name
+            or "\\" in name
+            or any(ord(character) < 32 or 127 <= ord(character) <= 159 for character in name)
+        ):
             raise LinguaError(ErrorCode.INVALID_FORMAT, "Archive contains an unsafe path")
         member = PurePosixPath(name)
         if (

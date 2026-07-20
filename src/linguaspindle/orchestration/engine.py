@@ -1,4 +1,4 @@
-"""Restart-aware sequential Pipeline runner and v0.1.0 Step implementations."""
+"""Restart-aware sequential Pipeline runner and built-in Step implementations."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ import stat
 import tempfile
 import threading
 import time
+import unicodedata
 import zipfile
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -173,7 +174,12 @@ class JobRunner:
 
     def _loop(self) -> None:
         while not self._stop.is_set():
-            worked = self.run_once()
+            try:
+                worked = self.run_once()
+            except Exception:
+                # A concurrent destructive filesystem/database event must not permanently
+                # disable later queued Jobs. Per-Job failures are persisted by ``_execute``.
+                worked = False
             if not worked:
                 self._stop.wait(self.service.settings.worker_poll_seconds)
 
@@ -323,18 +329,31 @@ class JobRunner:
             else:
                 self.service.finish_job(job_id, status=JobStatus.SUCCEEDED)
         except LinguaError as exc:
-            current = self.service.get_job(job_id)
-            if current["status"] in {JobStatus.RUNNING, JobStatus.CANCELLING}:
-                self.service.finish_job(job_id, status=JobStatus.FAILED, error=exc)
+            self._finish_active_job_if_present(job_id, exc)
         except Exception as exc:
             normalized = LinguaError(
                 ErrorCode.UNKNOWN,
                 "Unexpected Pipeline failure",
                 {"exception_type": type(exc).__name__},
             )
+            self._finish_active_job_if_present(job_id, normalized)
+
+    def _finish_active_job_if_present(self, job_id: str, error: LinguaError) -> None:
+        """Best-effort failure publication that tolerates a concurrently removed record."""
+
+        try:
             current = self.service.get_job(job_id)
-            if current["status"] in {JobStatus.RUNNING, JobStatus.CANCELLING}:
-                self.service.finish_job(job_id, status=JobStatus.FAILED, error=normalized)
+        except LinguaError as lookup_error:
+            if lookup_error.code == ErrorCode.NOT_FOUND:
+                return
+            raise
+        if current["status"] not in {JobStatus.RUNNING, JobStatus.CANCELLING}:
+            return
+        try:
+            self.service.finish_job(job_id, status=JobStatus.FAILED, error=error)
+        except LinguaError as finish_error:
+            if finish_error.code != ErrorCode.NOT_FOUND:
+                raise
 
     def _step_outputs(self, steps: list[StepRun], key: str) -> list[str]:
         step = next((candidate for candidate in steps if candidate.step_key == key), None)
@@ -906,12 +925,12 @@ class JobRunner:
                 raise LinguaError(
                     ErrorCode.INVALID_FORMAT, "Manga archive is not a valid CBZ"
                 ) from exc
-            members = [item for item in archive.infolist() if not item.is_dir()]
+            members = archive.infolist()
             settings = self.service.settings
             if len(members) > settings.max_archive_files:
                 raise LinguaError(
                     ErrorCode.ARCHIVE_LIMIT_EXCEEDED,
-                    "Manga archive contains too many files",
+                    "Manga archive contains too many members",
                     {"member_count": len(members), "limit": settings.max_archive_files},
                 )
             total = 0
@@ -919,7 +938,7 @@ class JobRunner:
             image_members = []
             for member in members:
                 safe_member = self.service.validate_archive_member(member.filename)
-                portable_name = str(safe_member).casefold()
+                portable_name = unicodedata.normalize("NFC", str(safe_member)).casefold()
                 if portable_name in portable_names:
                     raise LinguaError(
                         ErrorCode.ARCHIVE_UNSAFE,
@@ -981,11 +1000,13 @@ class JobRunner:
                             "limit": settings.max_archive_compression_ratio,
                         },
                     )
-                if safe_member.suffix.lower() in _IMAGE_SUFFIXES:
+                if not member.is_dir() and safe_member.suffix.lower() in _IMAGE_SUFFIXES:
                     image_members.append((member, safe_member))
             if not image_members:
                 raise LinguaError(ErrorCode.INVALID_FORMAT, "Manga archive contains no images")
-            image_members.sort(key=lambda item: str(item[1]).casefold())
+            image_members.sort(
+                key=lambda item: unicodedata.normalize("NFC", str(item[1])).casefold()
+            )
             for index, (member, safe_member) in enumerate(image_members, start=1):
                 context.checkpoint()
                 image = archive.read(member)

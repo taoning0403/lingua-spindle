@@ -264,6 +264,13 @@ function scheduleJobPoll(id) {
   pollTimer = window.setTimeout(() => jobDetail(id).catch(showError), delay);
 }
 
+function jobLogLine(log) {
+  const currentDocument = log.details && typeof log.details.document === "string"
+    ? `<span class="current-document"> · document ${escapeHtml(log.details.document)}</span>`
+    : "";
+  return `<div class="${log.level === "ERROR" ? "log-error" : ""}">${escapeHtml(log.created_at)} ${escapeHtml(log.level)} ${escapeHtml(log.message)}${currentDocument}</div>`;
+}
+
 async function jobDetail(id) {
   if (pollTimer) window.clearTimeout(pollTimer);
   pollTimer = null;
@@ -274,7 +281,7 @@ async function jobDetail(id) {
   root.innerHTML = `${pageHead(isEpub ? "Persistent EPUB Job" : "Persistent Job", pipelineNames[job.pipeline_key] || job.pipeline_key, `Requested ${date(job.requested_at)} · ${job.pipeline_key}`, actions)}
     ${job.error ? `<div class="error-card"><strong>${escapeHtml(job.error.code)}</strong><br />${escapeHtml(job.error.message)}</div>` : ""}
     <section class="card"><div class="card-head"><div><h2>${escapeHtml(words(job.status))}</h2><p class="muted">${Math.round(job.progress * 100)}% complete</p></div>${badge(job.status)}</div><div class="progress"><span style="width:${Math.round(job.progress * 100)}%"></span></div></section>
-    <section class="card"><div class="card-head"><h2>Steps</h2><span class="muted">Attempts, Artifact links, and durable logs</span></div>${job.steps.map((step) => `<article class="step ${escapeHtml(step.status)}"><div class="card-head"><div><h3>${escapeHtml(words(step.key))}</h3><div class="meta"><span class="mono">${escapeHtml(step.key)}</span><span>${escapeHtml(step.capability)}</span><span>attempt ${step.attempt_count}</span><span>${Math.round(step.progress * 100)}%</span></div></div>${badge(step.status)}</div><div class="artifact-links"><div><small>Input Artifacts</small>${step.input_artifact_ids.length ? step.input_artifact_ids.map((value) => `<span class="mono">${escapeHtml(value)}</span>`).join("") : '<span class="muted">none yet</span>'}</div><div><small>Output Artifacts</small>${step.output_artifact_ids.length ? step.output_artifact_ids.map((value) => `<span class="mono">${escapeHtml(value)}</span>`).join("") : '<span class="muted">none yet</span>'}</div></div>${step.error ? `<div class="error-card"><span class="mono">${escapeHtml(step.error.code)}</span> ${escapeHtml(step.error.message)}</div>` : ""}${step.logs.length ? `<div class="logs">${step.logs.map((log) => `<div class="${log.level === "ERROR" ? "log-error" : ""}">${escapeHtml(log.created_at)} ${escapeHtml(log.level)} ${escapeHtml(log.message)}</div>`).join("")}</div>` : ""}</article>`).join("")}</section>
+    <section class="card"><div class="card-head"><h2>Steps</h2><span class="muted">Attempts, Artifact links, and durable logs</span></div>${job.steps.map((step) => `<article class="step ${escapeHtml(step.status)}"><div class="card-head"><div><h3>${escapeHtml(words(step.key))}</h3><div class="meta"><span class="mono">${escapeHtml(step.key)}</span><span>${escapeHtml(step.capability)}</span><span>attempt ${step.attempt_count}</span><span>${Math.round(step.progress * 100)}%</span></div></div>${badge(step.status)}</div><div class="artifact-links"><div><small>Input Artifacts</small>${step.input_artifact_ids.length ? step.input_artifact_ids.map((value) => `<span class="mono">${escapeHtml(value)}</span>`).join("") : '<span class="muted">none yet</span>'}</div><div><small>Output Artifacts</small>${step.output_artifact_ids.length ? step.output_artifact_ids.map((value) => `<span class="mono">${escapeHtml(value)}</span>`).join("") : '<span class="muted">none yet</span>'}</div></div>${step.error ? `<div class="error-card"><span class="mono">${escapeHtml(step.error.code)}</span> ${escapeHtml(step.error.message)}</div>` : ""}${step.logs.length ? `<div class="logs">${step.logs.map(jobLogLine).join("")}</div>` : ""}</article>`).join("")}</section>
     <section class="card"><div class="card-head"><h2>Job Artifacts</h2>${isEpub ? '<span class="muted">Package manifest → segments → translated EPUB → validation</span>' : ""}</div>${artifactList(job.artifacts, "Artifacts appear as Steps complete.")}</section>`;
   root.querySelectorAll("[data-action]").forEach((button) => button.addEventListener("click", async () => {
     button.disabled = true;

@@ -28,6 +28,7 @@ from ..application import ApplicationService
 from ..config import Settings
 from ..errors import ErrorCode, LinguaError
 from ..orchestration.engine import JobRunner
+from ..orchestration.state import JobStatus, StepStatus
 from ..security import redact, redact_text
 
 
@@ -53,6 +54,152 @@ class CreateProfileRequest(StrictRequest):
     prompt_version: str = "v1"
     batch_size: int = Field(default=8, ge=1, le=100)
     model_parameters: dict[str, Any] = Field(default_factory=dict)
+
+
+class ErrorResponse(BaseModel):
+    """Stable public application-error payload."""
+
+    code: ErrorCode
+    message: str
+    details: dict[str, Any]
+    retryable: bool
+
+
+class ErrorEnvelope(BaseModel):
+    error: ErrorResponse
+
+
+class RecordedError(BaseModel):
+    """Persisted Job or Step error, which has no retryability field."""
+
+    code: ErrorCode
+    message: str
+    details: dict[str, Any]
+
+
+class ArtifactResponse(BaseModel):
+    id: str
+    project_id: str
+    job_id: str | None
+    step_run_id: str | None
+    kind: str
+    filename: str
+    media_type: str
+    size: int
+    checksum: str
+    metadata: dict[str, Any]
+    created_at: str
+    download_url: str
+
+
+class SourceResponse(BaseModel):
+    id: str
+    kind: str
+    original_name: str
+    media_type: str
+    size: int
+    checksum: str
+    artifact_id: str
+    metadata: dict[str, Any]
+    created_at: str
+
+
+class StepLogResponse(BaseModel):
+    id: int
+    level: str
+    message: str
+    details: dict[str, Any]
+    created_at: str
+
+
+class StepResponse(BaseModel):
+    id: str
+    key: str
+    order: int
+    capability: str
+    executor_type: str
+    executor_id: str | None
+    status: StepStatus
+    attempt_count: int
+    progress: float
+    started_at: str | None
+    ended_at: str | None
+    input_artifact_ids: list[str]
+    output_artifact_ids: list[str]
+    config_snapshot: dict[str, Any]
+    error: RecordedError | None
+    logs: list[StepLogResponse]
+
+
+class JobSummaryResponse(BaseModel):
+    id: str
+    project_id: str
+    pipeline_key: str
+    provider_id: str
+    adapter_id: str | None
+    status: JobStatus
+    progress: float
+    control_request: Literal["pause", "cancel"] | None
+    requested_at: str
+    started_at: str | None
+    ended_at: str | None
+    error: RecordedError | None
+
+
+class JobResponse(JobSummaryResponse):
+    profile_snapshot: dict[str, Any]
+    steps: list[StepResponse]
+    artifacts: list[ArtifactResponse]
+
+
+class ProjectSummaryResponse(BaseModel):
+    id: str
+    name: str
+    kind: Literal["novel", "manga"]
+    source_language: str
+    target_language: str
+    created_at: str
+    updated_at: str
+    latest_job: JobSummaryResponse | None
+
+
+class ProjectResponse(ProjectSummaryResponse):
+    sources: list[SourceResponse]
+    jobs: list[JobSummaryResponse]
+    artifacts: list[ArtifactResponse]
+
+
+class ProjectDeletionImpact(BaseModel):
+    sources: int
+    jobs: int
+    artifacts: int
+
+
+class ProjectDeletionResponse(BaseModel):
+    deleted: str
+    impact: ProjectDeletionImpact
+    cleanup_error: str | None
+
+
+_STABLE_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    400: {
+        "model": ErrorEnvelope,
+        "description": "Invalid input or another normalized application error",
+    },
+    404: {"model": ErrorEnvelope, "description": "Requested resource was not found"},
+    409: {
+        "model": ErrorEnvelope,
+        "description": "Requested operation conflicts with the current durable state",
+    },
+    413: {
+        "model": ErrorEnvelope,
+        "description": "Upload or expanded archive exceeds a configured resource limit",
+    },
+    422: {
+        "model": ErrorEnvelope,
+        "description": "Request validation failed before the application operation ran",
+    },
+}
 
 
 class UploadBodyLimitMiddleware:
@@ -245,7 +392,13 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
     async def create_profile(request: Request, body: CreateProfileRequest) -> dict[str, Any]:
         return _service(request).create_profile(**body.model_dump())
 
-    @app.post("/api/projects", tags=["projects"], status_code=201)
+    @app.post(
+        "/api/projects",
+        tags=["projects"],
+        status_code=201,
+        response_model=ProjectResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def create_project(
         request: Request,
         name: Annotated[str, Form(min_length=1, max_length=200)],
@@ -269,15 +422,30 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
             media_type=source.content_type,
         )
 
-    @app.get("/api/projects", tags=["projects"])
+    @app.get(
+        "/api/projects",
+        tags=["projects"],
+        response_model=list[ProjectSummaryResponse],
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def list_projects(request: Request) -> list[dict[str, Any]]:
         return _service(request).list_projects()
 
-    @app.get("/api/projects/{project_id}", tags=["projects"])
+    @app.get(
+        "/api/projects/{project_id}",
+        tags=["projects"],
+        response_model=ProjectResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def get_project(request: Request, project_id: str) -> dict[str, Any]:
         return _service(request).get_project(project_id)
 
-    @app.delete("/api/projects/{project_id}", tags=["projects"])
+    @app.delete(
+        "/api/projects/{project_id}",
+        tags=["projects"],
+        response_model=ProjectDeletionResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def delete_project(
         request: Request,
         project_id: str,
@@ -287,13 +455,24 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
     ) -> dict[str, Any]:
         return _service(request).delete_project(project_id, confirmed=confirmed)
 
-    @app.post("/api/projects/{project_id}/jobs", tags=["jobs"], status_code=202)
+    @app.post(
+        "/api/projects/{project_id}/jobs",
+        tags=["jobs"],
+        status_code=202,
+        response_model=JobResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def create_job(
         request: Request, project_id: str, body: CreateJobRequest
     ) -> dict[str, Any]:
         return _service(request).create_job(project_id=project_id, **body.model_dump())
 
-    @app.get("/api/jobs", tags=["jobs"])
+    @app.get(
+        "/api/jobs",
+        tags=["jobs"],
+        response_model=list[JobSummaryResponse],
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def list_jobs(
         request: Request,
         project_id: str | None = None,
@@ -301,33 +480,68 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
     ) -> list[dict[str, Any]]:
         return _service(request).list_jobs(project_id=project_id, status=status)
 
-    @app.get("/api/jobs/{job_id}", tags=["jobs"])
+    @app.get(
+        "/api/jobs/{job_id}",
+        tags=["jobs"],
+        response_model=JobResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def get_job(request: Request, job_id: str) -> dict[str, Any]:
         return _service(request).get_job(job_id)
 
-    @app.post("/api/jobs/{job_id}/pause", tags=["jobs"])
+    @app.post(
+        "/api/jobs/{job_id}/pause",
+        tags=["jobs"],
+        response_model=JobResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def pause_job(request: Request, job_id: str) -> dict[str, Any]:
         return _service(request).pause_job(job_id)
 
-    @app.post("/api/jobs/{job_id}/resume", tags=["jobs"])
+    @app.post(
+        "/api/jobs/{job_id}/resume",
+        tags=["jobs"],
+        response_model=JobResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def resume_job(request: Request, job_id: str) -> dict[str, Any]:
         return _service(request).resume_job(job_id)
 
-    @app.post("/api/jobs/{job_id}/cancel", tags=["jobs"])
+    @app.post(
+        "/api/jobs/{job_id}/cancel",
+        tags=["jobs"],
+        response_model=JobResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def cancel_job(request: Request, job_id: str) -> dict[str, Any]:
         return _service(request).cancel_job(job_id)
 
-    @app.post("/api/jobs/{job_id}/retry", tags=["jobs"])
+    @app.post(
+        "/api/jobs/{job_id}/retry",
+        tags=["jobs"],
+        response_model=JobResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def retry_job(request: Request, job_id: str) -> dict[str, Any]:
         return _service(request).retry_job(job_id)
 
-    @app.get("/api/projects/{project_id}/artifacts", tags=["artifacts"])
+    @app.get(
+        "/api/projects/{project_id}/artifacts",
+        tags=["artifacts"],
+        response_model=list[ArtifactResponse],
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def list_artifacts(
         request: Request, project_id: str, job_id: str | None = None
     ) -> list[dict[str, Any]]:
         return _service(request).list_artifacts(project_id=project_id, job_id=job_id)
 
-    @app.get("/api/artifacts/{artifact_id}", tags=["artifacts"])
+    @app.get(
+        "/api/artifacts/{artifact_id}",
+        tags=["artifacts"],
+        response_model=ArtifactResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def get_artifact(request: Request, artifact_id: str) -> dict[str, Any]:
         return _service(request).get_artifact(artifact_id)
 
@@ -341,7 +555,18 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
                 "content": {
                     "application/octet-stream": {"schema": {"type": "string", "format": "binary"}}
                 },
-            }
+                "headers": {
+                    "Content-Disposition": {
+                        "description": "Attachment filename derived from Artifact metadata",
+                        "schema": {"type": "string"},
+                    },
+                    "X-Content-Type-Options": {
+                        "description": "Always nosniff",
+                        "schema": {"type": "string", "enum": ["nosniff"]},
+                    },
+                },
+            },
+            **_STABLE_ERROR_RESPONSES,
         },
     )
     async def download_artifact(request: Request, artifact_id: str) -> FileResponse:
@@ -355,7 +580,12 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
             },
         )
 
-    @app.post("/api/projects/{project_id}/exports", tags=["artifacts"])
+    @app.post(
+        "/api/projects/{project_id}/exports",
+        tags=["artifacts"],
+        response_model=list[ArtifactResponse],
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def export_project(
         request: Request, project_id: str, format_name: str | None = None
     ) -> list[dict[str, Any]]:

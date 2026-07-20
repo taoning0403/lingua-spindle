@@ -54,6 +54,19 @@ _CSS_URL_RE = re.compile(
     re.IGNORECASE,
 )
 _LEADING_TRAILING_RE = re.compile(r"^(\s*)(.*?)(\s*)$", re.DOTALL)
+_SAFE_DOCTYPE_RE = re.compile(
+    rb"""
+    <!DOCTYPE\s+[A-Z_:][A-Z0-9_.:-]*
+    (?:
+        \s+SYSTEM\s+(?:"[^"<>\[\]]*"|'[^'<>\[\]]*')
+        |
+        \s+PUBLIC\s+(?:"[^"<>\[\]]*"|'[^'<>\[\]]*')
+        \s+(?:"[^"<>\[\]]*"|'[^'<>\[\]]*')
+    )?
+    \s*>
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
 _DEFAULT_MAX_FILES = 2_000
 _DEFAULT_MAX_TOTAL_BYTES = 1_000 * 1024 * 1024
@@ -65,9 +78,10 @@ _MAX_TEXT_UNIT_CHARS = 1_800
 _SENTENCE_ENDINGS = frozenset(".!?。！？；;")
 
 _DC_NAMESPACE = "http://purl.org/dc/elements/1.1/"
+_EPUB_NAMESPACE = "http://www.idpf.org/2007/ops"
 _KNOWN_NAMESPACES = {
     "dc": _DC_NAMESPACE,
-    "epub": "http://www.idpf.org/2007/ops",
+    "epub": _EPUB_NAMESPACE,
     "ncx": "http://www.daisy.org/z3986/2005/ncx/",
     "opf": "http://www.idpf.org/2007/opf",
     "xhtml": "http://www.w3.org/1999/xhtml",
@@ -153,10 +167,14 @@ def _limits(settings: Settings | None) -> dict[str, int | float]:
     }
 
 
+def _contains_control_character(value: str) -> bool:
+    return any(ord(character) < 0x20 or 0x7F <= ord(character) <= 0x9F for character in value)
+
+
 def _canonical_member_name(name: str, max_depth: int) -> str:
     if not name or "\x00" in name or "\\" in name:
         _unsafe_archive("EPUB contains an unsafe ZIP member path", {"member": name})
-    if any(ord(character) < 32 for character in name):
+    if _contains_control_character(name):
         _unsafe_archive("EPUB contains a control character in a ZIP member path", {"member": name})
     raw_parts = name.split("/")
     if name.endswith("/"):
@@ -348,9 +366,19 @@ def _read_member(
 def _reject_xml_declarations(payload: bytes, document_path: str) -> None:
     # Removing NUL bytes makes the ASCII tokens visible in UTF-16/UTF-32 documents as well.
     flattened = payload.replace(b"\x00", b"").upper()
-    if b"<!DOCTYPE" in flattened or b"<!ENTITY" in flattened:
+    if b"<!ENTITY" in flattened:
         _invalid(
-            "EPUB XML documents cannot contain DTD or ENTITY declarations",
+            "EPUB XML documents cannot contain ENTITY declarations",
+            {"document_path": document_path},
+        )
+    doctype_positions = [match.start() for match in re.finditer(re.escape(b"<!DOCTYPE"), flattened)]
+    doctype_matches = list(_SAFE_DOCTYPE_RE.finditer(flattened))
+    if (
+        len(doctype_positions) > 1
+        or [match.start() for match in doctype_matches] != doctype_positions
+    ):
+        _invalid(
+            "EPUB XML documents cannot contain internal or malformed DTD declarations",
             {"document_path": document_path},
         )
 
@@ -390,6 +418,15 @@ def _first_child(root: ET.Element, local_name: str) -> ET.Element | None:
     )
 
 
+def _has_epub_toc_navigation(root: ET.Element) -> bool:
+    attribute = f"{{{_EPUB_NAMESPACE}}}type"
+    return any(
+        _local_name(element.tag) == "nav"
+        and "toc" in element.attrib.get(attribute, "").casefold().split()
+        for element in root.iter()
+    )
+
+
 def _resolve_archive_reference(base_path: str, reference: str, context: str) -> str | None:
     value = reference.strip()
     if not value or value.startswith("#"):
@@ -414,7 +451,7 @@ def _resolve_archive_reference(base_path: str, reference: str, context: str) -> 
         _invalid("EPUB contains an invalid encoded resource reference", {"context": context})
     if not decoded:
         return None
-    if "\\" in decoded or "\x00" in decoded or decoded.startswith("/"):
+    if "\\" in decoded or _contains_control_character(decoded) or decoded.startswith("/"):
         _unsafe_archive("EPUB contains an unsafe resource reference", {"context": context})
     raw_parts = PurePosixPath(decoded).parts
     if any(part == ".." for part in raw_parts):
@@ -870,8 +907,11 @@ def inspect_epub(
             for manifest_item in manifest_items
             if manifest_item["media_type"] == _NCX_MEDIA_TYPE
         ]
-        if version.startswith("3") and not nav_items:
-            _invalid("EPUB 3 package is missing its navigation document")
+        if version.startswith("3"):
+            if len(nav_items) != 1:
+                _invalid("EPUB 3 package must declare exactly one navigation document")
+            if nav_items[0]["media_type"] != "application/xhtml+xml":
+                _invalid("EPUB 3 navigation document must use application/xhtml+xml")
         if version.startswith("2"):
             toc_id = spine_element.attrib.get("toc", "").strip()
             if not toc_id or toc_id not in item_by_id:
@@ -929,6 +969,15 @@ def inspect_epub(
                 )
             parsed_documents[document_path] = root
             document_type = "nav" if "nav" in document_item["properties"] else "xhtml"
+            if (
+                version.startswith("3")
+                and document_type == "nav"
+                and not _has_epub_toc_navigation(root)
+            ):
+                _invalid(
+                    "EPUB 3 navigation document must contain nav with epub:type toc",
+                    {"document_path": document_path},
+                )
             units = _extract_xhtml_units(root, document_path, document_order, document_type)
             start = len(text_units)
             text_units.extend(units)
@@ -1076,7 +1125,7 @@ def _normalize_translation(value: object) -> str | None:
         return None
     if not isinstance(value, str) or not value.strip():
         return None
-    return value
+    return value.strip()
 
 
 def _translation_values(
@@ -1331,6 +1380,67 @@ def _assert_manifest_matches(
     return inspected_units
 
 
+def is_bcp47_language_tag(value: str) -> bool:
+    """Validate the common structural subset of BCP 47 without a registry dependency."""
+
+    if not value or len(value) > 255:
+        return False
+    subtags = value.split("-")
+    if any(
+        not subtag or len(subtag) > 8 or not subtag.isascii() or not subtag.isalnum()
+        for subtag in subtags
+    ):
+        return False
+    if subtags[0].casefold() == "x":
+        return len(subtags) > 1
+    if not (2 <= len(subtags[0]) <= 3 and subtags[0].isalpha()):
+        return False
+
+    index = 1
+    extlang_count = 0
+    while (
+        index < len(subtags)
+        and len(subtags[index]) == 3
+        and subtags[index].isalpha()
+        and extlang_count < 3
+    ):
+        index += 1
+        extlang_count += 1
+    if index < len(subtags) and len(subtags[index]) == 4 and subtags[index].isalpha():
+        index += 1
+    if index < len(subtags) and (
+        (len(subtags[index]) == 2 and subtags[index].isalpha())
+        or (len(subtags[index]) == 3 and subtags[index].isdigit())
+    ):
+        index += 1
+    while index < len(subtags) and (
+        5 <= len(subtags[index]) <= 8 or (len(subtags[index]) == 4 and subtags[index][0].isdigit())
+    ):
+        index += 1
+
+    extension_singletons: set[str] = set()
+    while index < len(subtags) and len(subtags[index]) == 1 and subtags[index].casefold() != "x":
+        singleton = subtags[index].casefold()
+        if singleton in extension_singletons:
+            return False
+        extension_singletons.add(singleton)
+        index += 1
+        extension_start = index
+        while index < len(subtags) and 2 <= len(subtags[index]) <= 8:
+            index += 1
+        if index == extension_start:
+            return False
+
+    if index < len(subtags) and subtags[index].casefold() == "x":
+        index += 1
+        private_start = index
+        while index < len(subtags) and 1 <= len(subtags[index]) <= 8:
+            index += 1
+        if index == private_start:
+            return False
+    return index == len(subtags)
+
+
 def build_translated_epub(
     source_path: str | os.PathLike[str],
     output_path: str | os.PathLike[str],
@@ -1351,8 +1461,8 @@ def build_translated_epub(
     if source.resolve() == output.resolve():
         _invalid("Translated EPUB output must not overwrite the immutable source")
     language = target_language.strip()
-    if not language or any(character.isspace() for character in language):
-        _invalid("Target language must be a non-empty language tag")
+    if not is_bcp47_language_tag(language):
+        _invalid("Target language must be a plausible BCP 47 language tag")
 
     inspected = inspect_epub(source, settings)
     units = _assert_manifest_matches(manifest, inspected)
@@ -1433,7 +1543,6 @@ def build_translated_epub(
 
     return {
         "valid": True,
-        "output_path": str(output),
         "output_sha256": output_sha256,
         "target_language": language,
         "text_unit_count": len(units),
@@ -1454,4 +1563,9 @@ def build_translated_epub(
     }
 
 
-__all__ = ["build_translated_epub", "inspect_epub", "validate_epub"]
+__all__ = [
+    "build_translated_epub",
+    "inspect_epub",
+    "is_bcp47_language_tag",
+    "validate_epub",
+]
