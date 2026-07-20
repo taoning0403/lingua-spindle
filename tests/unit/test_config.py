@@ -11,6 +11,9 @@ def test_defaults_are_loopback_local_and_runtime_secret_is_not_repr(tmp_path) ->
     assert settings.port == 8765
     assert settings.openai_api_key is None
     assert settings.data_dir == (tmp_path / "data").resolve()
+    assert settings.max_archive_member_bytes == 100 * 1024 * 1024
+    assert settings.max_archive_compression_ratio == 100.0
+    assert settings.max_archive_path_depth == 20
 
     settings.openai_api_key = "sk-repr-secret"
     assert "sk-repr-secret" not in repr(settings)
@@ -30,6 +33,12 @@ def test_defaults_are_loopback_local_and_runtime_secret_is_not_repr(tmp_path) ->
         ("LINGUASPINDLE_OPENAI_TIMEOUT_SECONDS", "inf"),
         ("LINGUASPINDLE_LOG_LEVEL", "verbose"),
         ("LINGUASPINDLE_OPENAI_MODEL", "   "),
+        ("LINGUASPINDLE_MAX_ARCHIVE_MEMBER_BYTES", "0"),
+        ("LINGUASPINDLE_MAX_ARCHIVE_MEMBER_BYTES", str(16 * 1024**3 + 1)),
+        ("LINGUASPINDLE_MAX_ARCHIVE_COMPRESSION_RATIO", "0.99"),
+        ("LINGUASPINDLE_MAX_ARCHIVE_COMPRESSION_RATIO", "10000.01"),
+        ("LINGUASPINDLE_MAX_ARCHIVE_PATH_DEPTH", "0"),
+        ("LINGUASPINDLE_MAX_ARCHIVE_PATH_DEPTH", "1001"),
     ],
 )
 def test_invalid_scalar_configuration_is_rejected(
@@ -76,3 +85,17 @@ def test_valid_local_provider_and_adapter_urls_are_normalized(
     settings = Settings.from_env(tmp_path / "data")
     assert settings.openai_base_url == "http://127.0.0.1:8080/v1"
     assert settings.mit_base_url == "http://localhost:5003"
+
+
+def test_archive_limits_are_loaded_from_the_environment(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("LINGUASPINDLE_MAX_ARCHIVE_MEMBER_BYTES", "123456")
+    monkeypatch.setenv("LINGUASPINDLE_MAX_ARCHIVE_COMPRESSION_RATIO", "42.5")
+    monkeypatch.setenv("LINGUASPINDLE_MAX_ARCHIVE_PATH_DEPTH", "12")
+
+    settings = Settings.from_env(tmp_path / "data")
+
+    assert settings.max_archive_member_bytes == 123456
+    assert settings.max_archive_compression_ratio == 42.5
+    assert settings.max_archive_path_depth == 12

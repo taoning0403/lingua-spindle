@@ -46,15 +46,37 @@ class Database:
                 version = int(version_text)
                 if version in applied:
                     continue
-                connection.executescript(item.read_text(encoding="utf-8"))
-                connection.execute(
-                    "INSERT INTO schema_migrations(version, name, applied_at) "
-                    "VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
-                    (version, name),
+                Database._apply_migration(
+                    connection,
+                    version=version,
+                    name=name,
+                    sql=item.read_text(encoding="utf-8"),
                 )
-                connection.commit()
+                applied.add(version)
         finally:
             connection.close()
+
+    @staticmethod
+    def _apply_migration(
+        connection: sqlite3.Connection, *, version: int, name: str, sql: str
+    ) -> None:
+        """Apply schema SQL and its version marker in one SQLite transaction."""
+
+        escaped_name = name.replace("'", "''")
+        script = (
+            "BEGIN IMMEDIATE;\n"
+            f"{sql.rstrip()}\n"
+            "INSERT INTO schema_migrations(version, name, applied_at) "
+            f"VALUES ({version}, '{escaped_name}', "
+            "strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));\n"
+            "COMMIT;"
+        )
+        try:
+            connection.executescript(script)
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
 
     @staticmethod
     def _create_engine(path: Path) -> Engine:

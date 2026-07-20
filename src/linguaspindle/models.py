@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -84,6 +84,7 @@ class Source(Base):
     size: Mapped[int] = mapped_column(Integer)
     checksum: Mapped[str] = mapped_column(String(64))
     artifact_id: Mapped[str] = mapped_column(ForeignKey("artifacts.id", ondelete="RESTRICT"))
+    metadata_json: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     project: Mapped[Project] = relationship(back_populates="sources")
@@ -214,13 +215,33 @@ class StepLog(Base):
 
 class TranslationSegment(Base):
     __tablename__ = "translation_segments"
-    __table_args__ = (UniqueConstraint("job_id", "sequence", name="uq_segment_job_sequence"),)
+    __table_args__ = (
+        UniqueConstraint("job_id", "sequence", name="uq_segment_job_sequence"),
+        Index(
+            "ix_segments_project_input_hash",
+            "project_id",
+            "translation_input_hash",
+            "status",
+        ),
+        Index("ix_segments_job_document", "job_id", "source_document", "sequence"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"), index=True
     )
     job_id: Mapped[str] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"), index=True)
+    source_artifact_id: Mapped[str | None] = mapped_column(
+        ForeignKey("artifacts.id", ondelete="SET NULL"), nullable=True
+    )
+    source_document: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content_role: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    locator_json: Mapped[str] = mapped_column(Text, default="{}")
+    source_text_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    translation_input_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    reused_from_segment_id: Mapped[str | None] = mapped_column(
+        ForeignKey("translation_segments.id", ondelete="SET NULL"), nullable=True
+    )
     sequence: Mapped[int] = mapped_column(Integer)
     source_text: Mapped[str] = mapped_column(Text)
     translated_text: Mapped[str | None] = mapped_column(Text, nullable=True)

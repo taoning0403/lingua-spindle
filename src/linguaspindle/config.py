@@ -35,7 +35,9 @@ def _env_int(name: str, default: int, minimum: int = 0, maximum: int | None = No
     return value
 
 
-def _env_float(name: str, default: float, minimum: float = 0.0) -> float:
+def _env_float(
+    name: str, default: float, minimum: float = 0.0, maximum: float | None = None
+) -> float:
     raw = os.getenv(name)
     if raw is None or raw == "":
         return default
@@ -47,6 +49,8 @@ def _env_float(name: str, default: float, minimum: float = 0.0) -> float:
         raise ConfigurationError(f"{name} must be finite")
     if value < minimum:
         raise ConfigurationError(f"{name} must be at least {minimum}")
+    if maximum is not None and value > maximum:
+        raise ConfigurationError(f"{name} must be at most {maximum}")
     return value
 
 
@@ -80,6 +84,9 @@ class Settings:
     max_upload_bytes: int = 100 * 1024 * 1024
     max_archive_files: int = 2_000
     max_archive_uncompressed_bytes: int = 1_000 * 1024 * 1024
+    max_archive_member_bytes: int = 100 * 1024 * 1024
+    max_archive_compression_ratio: float = 100.0
+    max_archive_path_depth: int = 20
     openai_base_url: str = "https://api.openai.com/v1"
     openai_api_key: str | None = field(default=None, repr=False)
     openai_model: str = "gpt-4.1-mini"
@@ -135,6 +142,16 @@ class Settings:
             max_archive_uncompressed_bytes=_env_int(
                 "LINGUASPINDLE_MAX_ARCHIVE_BYTES", 1_000 * 1024 * 1024, 1
             ),
+            max_archive_member_bytes=_env_int(
+                "LINGUASPINDLE_MAX_ARCHIVE_MEMBER_BYTES",
+                100 * 1024 * 1024,
+                1,
+                16 * 1024 * 1024 * 1024,
+            ),
+            max_archive_compression_ratio=_env_float(
+                "LINGUASPINDLE_MAX_ARCHIVE_COMPRESSION_RATIO", 100.0, 1.0, 10_000.0
+            ),
+            max_archive_path_depth=_env_int("LINGUASPINDLE_MAX_ARCHIVE_PATH_DEPTH", 20, 1, 1_000),
             openai_base_url=base_url,
             openai_api_key=os.getenv("LINGUASPINDLE_OPENAI_API_KEY") or None,
             openai_model=openai_model,
