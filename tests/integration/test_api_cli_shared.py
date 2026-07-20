@@ -228,6 +228,24 @@ async def _bounded_upload_and_streaming_download_flow(data_dir) -> None:
     async with application.router.lifespan_context(application):
         transport = httpx.ASGITransport(app=application)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+
+            async def oversized_chunks():
+                yield (
+                    b"--bounded-upload\r\n"
+                    b'Content-Disposition: form-data; name="source"; filename="large.txt"\r\n'
+                    b"Content-Type: text/plain\r\n\r\n" + b"x" * 600_000
+                )
+                yield b"y" * 600_000
+                yield b"\r\n--bounded-upload--\r\n"
+
+            guarded = await client.post(
+                "/api/projects",
+                headers={"content-type": "multipart/form-data; boundary=bounded-upload"},
+                content=oversized_chunks(),
+            )
+            assert guarded.status_code == 413
+            assert guarded.json()["error"]["code"] == "UPLOAD_TOO_LARGE"
+
             oversized = await client.post(
                 "/api/projects",
                 data={

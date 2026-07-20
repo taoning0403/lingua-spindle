@@ -81,29 +81,34 @@ class UploadBodyLimitMiddleware:
                 return
 
         received = 0
-        response_started = False
+        too_large = False
+        buffered_response: list[Message] = []
 
         async def limited_receive() -> Message:
-            nonlocal received
+            nonlocal received, too_large
+            if too_large:
+                return {"type": "http.disconnect"}
             message = await receive()
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
                 if received > self.maximum_bytes:
-                    raise _UploadBodyTooLarge
+                    too_large = True
+                    return {"type": "http.disconnect"}
             return message
 
-        async def tracked_send(message: Message) -> None:
-            nonlocal response_started
-            if message["type"] == "http.response.start":
-                response_started = True
-            await send(message)
+        async def buffered_send(message: Message) -> None:
+            buffered_response.append(message)
 
         try:
-            await self.app(scope, limited_receive, tracked_send)
-        except _UploadBodyTooLarge:
-            if response_started:
+            await self.app(scope, limited_receive, buffered_send)
+        except Exception:
+            if not too_large:
                 raise
+        if too_large:
             await self._reject(scope, receive, send)
+            return
+        for message in buffered_response:
+            await send(message)
 
     async def _reject(self, scope: Scope, receive: Receive, send: Send) -> None:
         response = JSONResponse(
@@ -118,10 +123,6 @@ class UploadBodyLimitMiddleware:
             },
         )
         await response(scope, receive, send)
-
-
-class _UploadBodyTooLarge(Exception):
-    pass
 
 
 def _service(request: Request) -> ApplicationService:
