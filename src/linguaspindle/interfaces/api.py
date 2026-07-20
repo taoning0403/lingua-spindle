@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from importlib import resources
 from pathlib import Path
@@ -18,8 +18,10 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
+from starlette.concurrency import run_in_threadpool
+from starlette.types import Message, Receive, Scope, Send
 
 from .. import __version__
 from ..application import ApplicationService
@@ -53,6 +55,75 @@ class CreateProfileRequest(StrictRequest):
     model_parameters: dict[str, Any] = Field(default_factory=dict)
 
 
+class UploadBodyLimitMiddleware:
+    """Bound the multipart request before FastAPI parses it into an UploadFile."""
+
+    def __init__(self, app: Callable[..., Awaitable[None]], *, maximum_bytes: int) -> None:
+        self.app = app
+        self.maximum_bytes = maximum_bytes
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or not (
+            scope.get("method") == "POST" and scope.get("path") == "/api/projects"
+        ):
+            await self.app(scope, receive, send)
+            return
+
+        headers = {key.lower(): value for key, value in scope.get("headers", [])}
+        raw_content_length = headers.get(b"content-length")
+        if raw_content_length is not None:
+            try:
+                content_length = int(raw_content_length)
+            except ValueError:
+                content_length = None
+            if content_length is not None and content_length > self.maximum_bytes:
+                await self._reject(scope, receive, send)
+                return
+
+        received = 0
+        response_started = False
+
+        async def limited_receive() -> Message:
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > self.maximum_bytes:
+                    raise _UploadBodyTooLarge
+            return message
+
+        async def tracked_send(message: Message) -> None:
+            nonlocal response_started
+            if message["type"] == "http.response.start":
+                response_started = True
+            await send(message)
+
+        try:
+            await self.app(scope, limited_receive, tracked_send)
+        except _UploadBodyTooLarge:
+            if response_started:
+                raise
+            await self._reject(scope, receive, send)
+
+    async def _reject(self, scope: Scope, receive: Receive, send: Send) -> None:
+        response = JSONResponse(
+            status_code=413,
+            content={
+                "error": {
+                    "code": ErrorCode.UPLOAD_TOO_LARGE,
+                    "message": "Upload request exceeds the configured size limit",
+                    "details": {"maximum_request_bytes": self.maximum_bytes},
+                    "retryable": False,
+                }
+            },
+        )
+        await response(scope, receive, send)
+
+
+class _UploadBodyTooLarge(Exception):
+    pass
+
+
 def _service(request: Request) -> ApplicationService:
     return cast(ApplicationService, request.app.state.service)
 
@@ -65,6 +136,8 @@ def _status_for_error(error: LinguaError) -> int:
         ErrorCode.TIMEOUT: 504,
         ErrorCode.MODEL_API: 502,
         ErrorCode.RATE_LIMIT: 429,
+        ErrorCode.UPLOAD_TOO_LARGE: 413,
+        ErrorCode.ARCHIVE_LIMIT_EXCEEDED: 413,
         ErrorCode.UNKNOWN: 500,
     }.get(error.code, 400)
 
@@ -100,6 +173,12 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
             {"name": "jobs", "description": "Persistent asynchronous Jobs and controls"},
             {"name": "artifacts", "description": "Artifact metadata and payload downloads"},
         ],
+    )
+    # Multipart framing adds a small amount to the source payload. The application layer still
+    # enforces the exact source-file limit while this outer guard prevents unbounded parser I/O.
+    app.add_middleware(
+        UploadBodyLimitMiddleware,
+        maximum_bytes=runtime_settings.max_upload_bytes + 1024 * 1024,
     )
 
     @app.exception_handler(LinguaError)
@@ -172,17 +251,20 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
         kind: Annotated[Literal["novel", "manga"], Form()],
         source_language: Annotated[str, Form(min_length=1, max_length=40)],
         target_language: Annotated[str, Form(min_length=1, max_length=40)],
-        source: Annotated[UploadFile, File(description="TXT, CBZ/ZIP, or one image")],
+        source: Annotated[
+            UploadFile,
+            File(description="TXT, EPUB 2/3, CBZ/ZIP, or one PNG/JPEG/WebP image"),
+        ],
     ) -> dict[str, Any]:
         service = _service(request)
-        payload = await source.read(service.settings.max_upload_bytes + 1)
-        return service.create_project(
+        return await run_in_threadpool(
+            service.create_project_from_stream,
             name=name,
             kind=kind,
             source_language=source_language,
             target_language=target_language,
             source_name=source.filename or "source.bin",
-            source_bytes=payload,
+            source=source.file,
             media_type=source.content_type,
         )
 
@@ -251,7 +333,7 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
     @app.get(
         "/api/artifacts/{artifact_id}/download",
         tags=["artifacts"],
-        response_class=Response,
+        response_class=FileResponse,
         responses={
             200: {
                 "description": "Immutable Artifact payload",
@@ -261,13 +343,13 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
             }
         },
     )
-    async def download_artifact(request: Request, artifact_id: str) -> Response:
-        metadata, payload = _service(request).read_artifact(artifact_id)
-        return Response(
-            content=payload,
+    async def download_artifact(request: Request, artifact_id: str) -> FileResponse:
+        metadata, path = _service(request).artifact_path(artifact_id)
+        return FileResponse(
+            path=path,
             media_type=metadata["media_type"],
+            filename=metadata["filename"],
             headers={
-                "Content-Disposition": f'attachment; filename="{metadata["filename"]}"',
                 "X-Content-Type-Options": "nosniff",
             },
         )

@@ -14,7 +14,7 @@ import uvicorn
 from .. import __version__
 from ..application import ApplicationService
 from ..config import ConfigurationError, Settings
-from ..errors import LinguaError
+from ..errors import ErrorCode, LinguaError
 from ..orchestration.engine import JobRunner
 from .api import create_app
 
@@ -192,6 +192,7 @@ def projects_delete(
 @app.command()
 def run(
     project_id: str,
+    pipeline: Annotated[str | None, typer.Option(help="Explicit Pipeline preset key.")] = None,
     provider: Annotated[str | None, typer.Option()] = None,
     adapter: Annotated[str | None, typer.Option()] = None,
     profile_id: Annotated[str | None, typer.Option()] = None,
@@ -203,6 +204,7 @@ def run(
     with _service(data_dir) as service:
         job = service.create_job(
             project_id=project_id,
+            pipeline_key=pipeline,
             provider_id=provider,
             adapter_id=adapter,
             profile_id=profile_id,
@@ -277,10 +279,37 @@ def artifacts_list(
 def export(
     project_id: str,
     format_name: Annotated[str | None, typer.Option("--format")] = None,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Copy one matching Artifact to this path."),
+    ] = None,
+    overwrite: Annotated[
+        bool,
+        typer.Option("--overwrite", help="Replace an existing output file."),
+    ] = False,
     data_dir: DataDir = None,
 ) -> None:
     with _service(data_dir) as service:
-        _print(service.export_project(project_id, format_name=format_name))
+        artifacts = service.export_project(project_id, format_name=format_name)
+        if output is None:
+            _print(artifacts)
+            return
+        if len(artifacts) != 1:
+            raise LinguaError(
+                code=ErrorCode.INVALID_STATE,
+                message="--output requires exactly one matching export; specify --format",
+            )
+        destination = output.expanduser()
+        if destination.is_dir():
+            destination = destination / artifacts[0]["filename"]
+        if destination.exists() and not overwrite:
+            raise LinguaError(
+                code=ErrorCode.INVALID_STATE,
+                message="Output path already exists; pass --overwrite to replace it",
+                details={"output": str(destination)},
+            )
+        artifact, copied_path = service.copy_artifact(artifacts[0]["id"], destination)
+        _print({"artifact": artifact, "output": str(copied_path)})
 
 
 @adapters_app.command("list")
