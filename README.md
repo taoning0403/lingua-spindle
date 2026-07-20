@@ -171,7 +171,7 @@ LINGUASPINDLE_RUN_BROWSER_TESTS=1 pytest -q -m browser
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), the factual
-[v0.1.0 acceptance report](acceptance-v010.md), and the current
+[v0.1.0 acceptance archive](acceptance/v0.1.0/README.md), and the current
 [project state](docs/PROJECT_STATE.md).
 
 ## Architecture and licensing

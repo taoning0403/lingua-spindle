@@ -260,7 +260,7 @@ logs; tests/static checks/build pass; open-source licensing and third-party noti
 loopback is the default; public-deployment warnings are explicit; and basic Windows plus
 Linux/Docker execution is verified.
 
-The final repository must include `acceptance-v010.md` with actual commands and results, final
+The final repository must include `acceptance/v0.1.0/` with actual commands and results, final
 stack and structure, architecture decisions, tool research and Adapter rationale, local/Docker/
 CLI/API usage, GUI summary, Windows and Linux/Docker evidence, known limits, and next-version
 recommendations. Stop after all feasible v0.1.0 work; do not begin v0.2.0 automatically.

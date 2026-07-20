@@ -1,8 +1,11 @@
 # LinguaSpindle v0.1.0 acceptance report
 
-> Supplemental Docker/WSL runtime evidence from the same date is recorded in
-> `acceptance-v010-supplement.md`. It supersedes this report's original Docker environment blocker
-> while preserving the original command history and other findings.
+> **Final v0.1.0 status: Pass for the WSL2/Linux Technical Preview.** Supplemental Docker/WSL
+> runtime evidence from the same date is recorded in
+> [`supplemental-docker-wsl-report.md`](supplemental-docker-wsl-report.md). It supersedes this
+> report's original Docker environment blocker while preserving the initial command history and
+> all other findings. Any Docker `Blocked` result below is explicitly an initial-run result, not
+> the final v0.1.0 conclusion.
 
 - Report date: 2026-07-19 (Asia/Shanghai)
 - Version: `0.1.0`
@@ -249,7 +252,7 @@ The wheel was installed with `--no-deps --target /tmp/linguaspindle-wheel-instal
 probe printed `0.1.0`, `True` for packaged `web/index.html`, `True` for `0001_initial.sql`, and
 `LinguaSpindle API` for the factory title.
 
-### Docker
+### Docker — initial run (historical; later passed)
 
 Executed both:
 
@@ -265,9 +268,11 @@ The command 'docker' could not be found in this WSL 2 distro.
 We recommend to activate the WSL integration in Docker Desktop settings.
 ```
 
-The Windows Docker shim is present but the Engine/Compose integration is not functional. A real
-image build, Compose health, volume-restart persistence, and container non-root inspection could
-not be executed here. Docker acceptance is **blocked**, not passed.
+The Windows Docker shim was present but the Engine/Compose integration was not functional in this
+initial execution context. A real image build, Compose health, volume-restart persistence, and
+container non-root inspection could not be executed in that run, so its result was **Blocked**.
+The later supplemental run executed those checks successfully; the final Docker result is
+**Pass**. See the linked supplemental report for the superseding evidence.
 
 ### Windows and Linux
 
@@ -276,11 +281,12 @@ not be executed here. Docker acceptance is **blocked**, not passed.
   are documented; cross-platform Python path handling and CLI tests pass on WSL, but native
   Windows startup is **not executed and not claimed**.
 
-### Real external services
+### Real external services — initial run and final status
 
-- OpenAI-compatible Provider: real production implementation exists; fake HTTP contract covers
-  Authorization, success, 400, 429, 5xx, timeout, retry, missing output, and redaction. No paid key
-  was provided, so no live billable call is claimed.
+- OpenAI-compatible Provider: the initial run had no paid key and validated only the real
+  implementation plus fake HTTP contracts for Authorization, success, 400, 429, 5xx, timeout,
+  retry, missing output, and redaction. The later supplemental run completed one deliberately
+  small real OpenAI-compatible Job; its final external-Provider result is **Pass (limited)**.
 - manga-image-translator: real HTTP Adapter exists; fake HTTP and orchestration contracts cover
   health, config/language mapping, image output, timeout, HTTP failure, raw Artifacts, partial
   pages, logs, and page-boundary cancellation. The heavyweight upstream was not installed and no
@@ -291,12 +297,12 @@ not be executed here. Docker acceptance is **blocked**, not passed.
 | # | Requirement | Result |
 | --- | --- | --- |
 | 1 | README clean start | Pass for local package/wheel/live server; native clean OS not separately provisioned. |
-| 2 | Compose starts GUI/API | **Blocked:** Docker WSL integration unavailable. |
+| 2 | Compose starts GUI/API | **Initial Blocked; final Pass:** later ordinary-WSL supplemental execution built and started Compose successfully. |
 | 3 | GUI without registration/login | Pass, live Chromium. |
 | 4 | No user/tenant/permission model | Pass, source/schema/OpenAPI tests and final scan. |
 | 5 | GUI creates TXT Project | Pass, live Chromium. |
 | 6 | Mock end-to-end translation | Pass through core/API/CLI/GUI. |
-| 7 | OpenAI-compatible configuration | Pass implementation/contract; no paid live call. |
+| 7 | OpenAI-compatible configuration | Pass implementation/contract; later supplemental run also passed one limited three-Segment live call. |
 | 8 | CLI creates/runs same Project | Pass, CLI→API and API→CLI integration. |
 | 9 | HTTP API creates async Job | Pass (`202`, polling). |
 | 10 | GUI/CLI/API share services/data | Pass, cross-interface tests. |
@@ -309,7 +315,7 @@ not be executed here. Docker acceptance is **blocked**, not passed.
 | 17 | Missing Adapter clear in GUI/CLI | Pass status/doctor and stable `ADAPTER_UNAVAILABLE`. |
 | 18 | Core acceptance without API Key | Pass; all default automation uses mocks. |
 | 19 | Logs do not leak key | Pass whole-data-root synthetic-key scan. |
-| 20 | Tests/static/build pass | Pass for code/wheel/browser; Docker runtime separately blocked. |
+| 20 | Tests/static/build pass | Pass for code/wheel/browser; Docker was initially Blocked and later passed in the supplemental run. |
 | 21 | License and third-party declarations | Pass repository surface/inventory; upstream asset caveat explicit. |
 | 22 | Loopback default | Pass config/live server; Compose host mapping loopback. |
 | 23 | Public deployment warning | Pass English/Chinese/install/Docker/security docs. |
@@ -323,15 +329,16 @@ not be executed here. Docker acceptance is **blocked**, not passed.
 - Real manga Adapter has page-boundary cancellation and no streaming progress in v0.1.0.
 - Basic QA/result view only, not a professional editor.
 - Artifact HTTP responses currently read bounded payloads into application memory.
-- Docker and native Windows require execution in a capable external environment before a release
-  can claim those two runtime acceptances.
+- Native Windows requires execution in a capable environment before a release can claim that
+  runtime acceptance. Docker passed later supplemental WSL2 execution; the Codex sandbox socket
+  restriction remains an environment limitation rather than a product failure.
 - Real Provider/upstream model runs require operator credentials/assets/license validation.
 - Observed project/package/image names remain unreserved until registered.
 
 ## Next-version recommendations (not implemented)
 
-1. Run a release matrix on native Windows, Ubuntu, and a functional Docker Engine; capture Compose
-   volume/restart/non-root evidence.
+1. Run a native Windows release matrix and continue regression checks on the already accepted
+   WSL2/Docker path.
 2. Revalidate a pinned manga upstream release plus every selected model/font license, then run one
    opt-in live CPU fixture without redistributing assets.
 3. Add streamed file responses and measured large-document resource limits.

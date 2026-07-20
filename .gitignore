@@ -16,4 +16,7 @@ dist/
 data/
 playwright-report/
 test-results/
-artifacts/acceptance-v010/
+acceptance/*/artifacts/**/browser-trace*.zip
+acceptance/*/artifacts/**/*.whl
+acceptance/*/artifacts/**/*.tar.gz
+acceptance/*/artifacts/**/*.sqlite3*

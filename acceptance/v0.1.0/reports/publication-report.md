@@ -66,12 +66,15 @@ payload.
 
 ## Git and modified surface
 
-The remote default branch is `main`. Remote `main` and the peeled annotated `v0.1.0` tag both
-resolve to `90439f66d2d2ddf656174bc33a34ffdacee2b41d`. No force push, tag overwrite, registry publish,
-or Docker Volume deletion occurred.
+At publication, the remote default branch `main` and the peeled annotated `v0.1.0` tag both
+resolved to `90439f66d2d2ddf656174bc33a34ffdacee2b41d`. The tag remains immutable; later maintenance
+commits advanced `main`. No force push, tag overwrite, registry publish, or Docker Volume deletion
+occurred during publication.
 
 Because the repository began on an unborn `main`, the first audited baseline established 87
-publishable files. The exact tag tree is listed in `release-v010-report.json`. Changes made after
+publishable files. The exact tag tree is preserved in
+[`../evidence/publication-report.json`](../evidence/publication-report.json), originally named
+`release-v010-report.json`. Changes made after
 that baseline were limited to:
 
 - `CHANGELOG.md`

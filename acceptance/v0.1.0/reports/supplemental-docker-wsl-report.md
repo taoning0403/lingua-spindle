@@ -1,5 +1,9 @@
 # LinguaSpindle v0.1.0 补充发布验收报告
 
+> 本报告形成于 tag 和 GitHub Release 创建之前；其中 `tag_created=false` 与
+> `github_release_created=false` 是当时事实。后续发布状态由
+> [publication-report.md](publication-report.md) 记录并取代，不应解释为当前未发布。
+
 - 验收日期：2026-07-19（Asia/Shanghai）
 - 验收范围：仅 v0.1.0
 - 宿主：Ubuntu 26.04 LTS on WSL2，x86_64

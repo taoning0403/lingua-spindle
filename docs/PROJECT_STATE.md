@@ -82,8 +82,9 @@ Executed in WSL2 Linux with Python 3.14.4 and Node 18.20.7:
   `/data` files (3,019,776 bytes) or 33 browser-evidence/report files (9,092,891 bytes), including
   SQLite/WAL, logs, Artifacts, exports, screenshots, and expanded Playwright trace members.
 
-Original acceptance evidence is in `acceptance-v010.md`; the Docker/WSL supplemental run and exact
-commands are in `acceptance-v010-supplement.md` and `acceptance-v010-command-log.txt`.
+Original acceptance evidence is indexed in `acceptance/v0.1.0/README.md`; the Docker/WSL
+supplemental run and exact commands are under that version's `reports/` and `evidence/`
+directories.
 
 ## Environment-limited acceptance
 
@@ -143,4 +144,4 @@ requires a new superseding ADR.
 
 Update this file when capability, verification, deployment evidence, limitation, or milestone
 state changes. Put exact requirements in `PRODUCT_SPEC.md`, durable rationale in ADRs, navigation
-in `MODULE_MAP.md`, and command transcripts in `acceptance-v010.md`.
+in `MODULE_MAP.md`, and versioned command transcripts under `acceptance/`.

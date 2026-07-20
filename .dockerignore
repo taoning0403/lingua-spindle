@@ -18,7 +18,7 @@ playwright-report
 test-results
 tests
 docs
-acceptance-v010.md
+acceptance
 .env
 .env.local
 .env.*.local

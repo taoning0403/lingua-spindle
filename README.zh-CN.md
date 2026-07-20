@@ -154,6 +154,6 @@ playwright install chromium
 LINGUASPINDLE_RUN_BROWSER_TESTS=1 pytest -q -m browser
 ```
 
-实际执行结果见 [acceptance-v010.md](acceptance-v010.md)。核心代码采用
+实际执行结果见 [v0.1.0 验收归档](acceptance/v0.1.0/README.md)。核心代码采用
 [Apache-2.0](LICENSE)；外部服务与依赖保留各自许可证，详见
 [结构化第三方清单](third-party-components.toml)和[第三方声明](THIRD_PARTY_NOTICES.md)。

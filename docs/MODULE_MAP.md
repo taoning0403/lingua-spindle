@@ -13,10 +13,9 @@ migration, tests, generated OpenAPI, and runtime evidence.
 | `docs/architecture.md`, `docs/data-model.md` | Consolidated implemented boundaries and invariants. |
 | `docs/DECISIONS.md`, `docs/adr/` | Durable decisions and rationale. |
 | `docs/research/` | Name/tool/license evidence captured before selection. |
-| `acceptance-v010.md` | Commands and factual v0.1.0 acceptance outcomes. |
-| `acceptance-v010-supplement.*`, `acceptance-v010-command-log.txt` | Docker/WSL supplemental matrix, machine-readable outcome, and executed-command transcript. |
+| `acceptance/v0.1.0/` | Indexed v0.1.0 reports, Docker/WSL supplemental matrix, machine-readable evidence, command transcript, and Release checksums. |
 | `docs/releases/v0.1.0.md` | Technical Preview highlights, verified surface, limitations, security, and installation notes. |
-| `artifacts/acceptance-v010/` | Browser screenshots/trace/downloads plus persistence, recovery, deletion, and checksum evidence. |
+| `acceptance/*/artifacts/` | Versioned acceptance fixtures and generated outputs; large/private runtime artifacts remain Release-only or checksum-only. |
 
 ## Application modules
 
@@ -80,7 +79,7 @@ node --check src/linguaspindle/web/app.js
 LINGUASPINDLE_RUN_BROWSER_TESTS=1 .venv/bin/pytest -q -m browser
 LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
   LINGUASPINDLE_BROWSER_BASE_URL=http://127.0.0.1:8765 \
-  LINGUASPINDLE_BROWSER_EVIDENCE_DIR=artifacts/acceptance-v010 \
+  LINGUASPINDLE_BROWSER_EVIDENCE_DIR=acceptance/v0.1.0/artifacts \
   .venv/bin/pytest -q -m browser
 LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
   LINGUASPINDLE_RUN_REAL_PROVIDER_TESTS=1 \
