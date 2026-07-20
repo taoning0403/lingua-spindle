@@ -3,7 +3,10 @@ from __future__ import annotations
 import io
 import zipfile
 
+import pytest
+
 from linguaspindle.application import ApplicationService
+from linguaspindle.errors import ErrorCode
 from linguaspindle.orchestration.engine import JobRunner
 
 
@@ -82,3 +85,46 @@ def test_nested_image_directory_is_normalized_to_a_cbz(
     job = service.create_job(project_id=project["id"], adapter_id="mock-manga")
     assert JobRunner(service).run_once() is True
     assert service.get_job(job["id"])["status"] == "succeeded"
+
+
+@pytest.mark.parametrize(
+    ("variation", "expected_code"),
+    [
+        ("member_size", ErrorCode.ARCHIVE_LIMIT_EXCEEDED),
+        ("compression_ratio", ErrorCode.ARCHIVE_LIMIT_EXCEEDED),
+        ("path_depth", ErrorCode.ARCHIVE_LIMIT_EXCEEDED),
+        ("ambiguous_name", ErrorCode.ARCHIVE_UNSAFE),
+    ],
+)
+def test_manga_archives_share_bounded_zip_security_rules(
+    service: ApplicationService, variation: str, expected_code: ErrorCode
+) -> None:
+    source = io.BytesIO()
+    with zipfile.ZipFile(source, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        if variation == "member_size":
+            service.settings.max_archive_member_bytes = 16
+            archive.writestr("page.png", b"x" * 32)
+        elif variation == "compression_ratio":
+            service.settings.max_archive_compression_ratio = 2
+            archive.writestr("page.png", b"0" * 10_000)
+        elif variation == "path_depth":
+            service.settings.max_archive_path_depth = 3
+            archive.writestr("a/b/c/page.png", b"image")
+        else:
+            archive.writestr("Page.PNG", b"one")
+            archive.writestr("page.png", b"two")
+    project = service.create_project(
+        name=f"Bounded manga {variation}",
+        kind="manga",
+        source_language="ja",
+        target_language="en",
+        source_name="bounded.cbz",
+        source_bytes=source.getvalue(),
+    )
+    job = service.create_job(project_id=project["id"], adapter_id="mock-manga")
+
+    JobRunner(service).run_once()
+
+    failed = service.get_job(job["id"])
+    assert failed["status"] == "failed"
+    assert failed["error"]["code"] == expected_code

@@ -169,6 +169,106 @@ def test_cli_create_and_run_are_immediately_visible_to_api(tmp_path) -> None:
     asyncio.run(_read_cli_data_through_api(data_dir, project_id))
 
 
+def test_cli_export_streams_one_selected_artifact_to_output(tmp_path) -> None:
+    data_dir = tmp_path / "cli-export-data"
+    source = tmp_path / "export-source.txt"
+    output = tmp_path / "translated.txt"
+    source.write_text("Export this paragraph.", encoding="utf-8")
+    runner = CliRunner()
+    created = runner.invoke(
+        cli_app,
+        [
+            "projects",
+            "create",
+            "--name",
+            "CLI export",
+            "--kind",
+            "novel",
+            "--source-language",
+            "en",
+            "--target-language",
+            "fr",
+            "--source",
+            str(source),
+            "--data-dir",
+            str(data_dir),
+        ],
+    )
+    assert created.exit_code == 0, created.output
+    project_id = json.loads(created.output)["id"]
+    completed = runner.invoke(
+        cli_app,
+        ["run", project_id, "--provider", "mock", "--data-dir", str(data_dir)],
+    )
+    assert completed.exit_code == 0, completed.output
+
+    exported = runner.invoke(
+        cli_app,
+        [
+            "export",
+            project_id,
+            "--format",
+            "txt",
+            "--output",
+            str(output),
+            "--data-dir",
+            str(data_dir),
+        ],
+    )
+
+    assert exported.exit_code == 0, exported.output
+    assert output.read_text(encoding="utf-8") == "[fr] Export this paragraph.\n"
+    assert json.loads(exported.output)["output"] == str(output.resolve())
+
+
+async def _bounded_upload_and_streaming_download_flow(data_dir) -> None:
+    settings = Settings.from_env(data_dir)
+    settings.max_upload_bytes = 32
+    application = create_app(settings, start_worker=False)
+    async with application.router.lifespan_context(application):
+        transport = httpx.ASGITransport(app=application)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            oversized = await client.post(
+                "/api/projects",
+                data={
+                    "name": "Too large",
+                    "kind": "novel",
+                    "source_language": "en",
+                    "target_language": "fr",
+                },
+                files={"source": ("large.txt", b"x" * 33, "text/plain")},
+            )
+            assert oversized.status_code == 413
+            assert oversized.json()["error"]["code"] == "UPLOAD_TOO_LARGE"
+            assert (await client.get("/api/projects")).json() == []
+
+            accepted = await client.post(
+                "/api/projects",
+                data={
+                    "name": "Streamed",
+                    "kind": "novel",
+                    "source_language": "en",
+                    "target_language": "fr",
+                },
+                files={"source": ("small.txt", b"small payload", "text/plain")},
+            )
+            assert accepted.status_code == 201
+            source_artifact = accepted.json()["artifacts"][0]
+
+            def forbidden_read(_storage_key: str) -> bytes:
+                raise AssertionError("download must not call read_bytes")
+
+            application.state.service.store.read_bytes = forbidden_read
+            downloaded = await client.get(source_artifact["download_url"])
+            assert downloaded.status_code == 200
+            assert downloaded.content == b"small payload"
+            assert downloaded.headers["x-content-type-options"] == "nosniff"
+
+
+def test_api_bounds_source_payload_and_downloads_without_read_bytes(tmp_path) -> None:
+    asyncio.run(_bounded_upload_and_streaming_download_flow(tmp_path / "bounded-api-data"))
+
+
 async def _validation_redaction_flow(data_dir) -> None:
     runtime_value = "sk-" + "validation-response-secret"
     settings = Settings(data_dir=data_dir, openai_api_key=runtime_value)

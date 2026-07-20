@@ -108,6 +108,14 @@ def _unsupported_format(message: str, details: dict[str, Any] | None = None) -> 
     raise LinguaError(_error_code("EPUB_UNSUPPORTED"), message, details)
 
 
+def _validation_failed(details: dict[str, Any] | None = None) -> NoReturn:
+    raise LinguaError(
+        _error_code("EPUB_VALIDATION_FAILED"),
+        "Translated EPUB failed independent validation",
+        details,
+    )
+
+
 def _setting_number(settings: Settings | None, name: str, default: int | float) -> int | float:
     value = getattr(settings, name, default) if settings is not None else default
     if isinstance(default, float):
@@ -1404,9 +1412,12 @@ def build_translated_epub(
                 )
                 output_archive.writestr(clone, payload)
 
-        verified_non_text = _verify_unchanged_payloads(source, temporary_path, modified_paths)
-        validation = validate_epub(temporary_path, settings)
-        reinspection = inspect_epub(temporary_path, settings)
+        try:
+            verified_non_text = _verify_unchanged_payloads(source, temporary_path, modified_paths)
+            validation = validate_epub(temporary_path, settings)
+            reinspection = inspect_epub(temporary_path, settings)
+        except LinguaError as exc:
+            _validation_failed({"cause_code": exc.code})
         output_sha256 = str(reinspection["archive_sha256"])
         os.replace(temporary_path, output)
     except LinguaError:

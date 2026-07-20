@@ -10,6 +10,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 
+import linguaspindle.epub as epub_module
 from linguaspindle.epub import build_translated_epub, inspect_epub, validate_epub
 from linguaspindle.errors import ErrorCode, LinguaError
 
@@ -446,3 +447,25 @@ def test_build_rejects_stale_manifest_and_source_overwrite(tmp_path: Path) -> No
         build_translated_epub(other, tmp_path / "out.epub", manifest, [], "fr")
     with pytest.raises(LinguaError):
         build_translated_epub(source, source, manifest, [], "fr")
+
+
+def test_build_maps_independent_output_rejection_to_validation_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "source.epub"
+    output = tmp_path / "translated.epub"
+    _write_epub(source)
+    manifest = inspect_epub(source)
+
+    def reject_output(_path: Path, _settings: object | None = None) -> dict[str, object]:
+        raise LinguaError(ErrorCode.EPUB_INVALID, "synthetic output rejection")
+
+    monkeypatch.setattr(epub_module, "validate_epub", reject_output)
+
+    with pytest.raises(LinguaError) as caught:
+        build_translated_epub(source, output, manifest, [], "fr")
+
+    assert caught.value.code == ErrorCode.EPUB_VALIDATION_FAILED
+    assert caught.value.details == {"cause_code": ErrorCode.EPUB_INVALID}
+    assert not output.exists()
+    assert list(tmp_path.glob(".translated.epub.*.tmp")) == []
