@@ -1,0 +1,549 @@
+{
+  "schema_version": 1,
+  "product": "LinguaSpindle",
+  "version": "0.2.0",
+  "acceptance_date": "2026-07-20",
+  "timezone": "Asia/Shanghai",
+  "branch": "codex/v0.2.0-epub",
+  "candidate_sha": "f662c4844bd7990b3197f39314841b9c903deae1",
+  "overall_status": "Pass",
+  "release_state": "release pending",
+  "required_status_counts": {
+    "Pass": 23,
+    "Fail": 0,
+    "Blocked": 0,
+    "Not executed": 0
+  },
+  "optional_external_status_counts": {
+    "Pass": 0,
+    "Fail": 0,
+    "Blocked": 0,
+    "Not executed": 4
+  },
+  "results": [
+    {
+      "id": "A01",
+      "category": "Required",
+      "requirement": "Archive v0.1.0 acceptance without rewriting its tag",
+      "status": "Pass",
+      "command": "shasum -a 256 -c acceptance/v0.1.0/evidence/checksums.sha256",
+      "evidence": "acceptance/v0.1.0/evidence/checksums.sha256",
+      "detail": "Six of six checksums verify; v0.1.0 resolves to 90439f66d2d2ddf656174bc33a34ffdacee2b41d."
+    },
+    {
+      "id": "A02",
+      "category": "Required",
+      "requirement": "Apply forward-only EPUB schema migration while preserving v0.1.0 rows",
+      "status": "Pass",
+      "command": "pytest coverage suite",
+      "evidence": "tests/integration/test_database_migrations.py",
+      "detail": "Migration 0001 followed by 0002 retains existing Project, Source, Job, Step, Segment, QA, and Artifact data."
+    },
+    {
+      "id": "A03",
+      "category": "Required",
+      "requirement": "Inspect common valid EPUB 2 and EPUB 3 packages",
+      "status": "Pass",
+      "command": "pytest coverage suite",
+      "evidence": "tests/unit/test_epub.py; tests/integration/test_epub_pipeline.py",
+      "detail": "Container, OPF, manifest, spine, EPUB3 navigation, EPUB2 NCX, metadata, cover, resources, references, and safe external DOCTYPE behavior pass."
+    },
+    {
+      "id": "A04",
+      "category": "Required",
+      "requirement": "Select visible text and persist bounded stable locators",
+      "status": "Pass",
+      "command": "pytest coverage suite",
+      "evidence": "tests/unit/test_epub.py; tests/integration/test_epub_pipeline.py",
+      "detail": "Visible XHTML/nav/NCX/metadata policy, nested exclusions, Ruby handling, 1800-character parts, exact joiners, hashes, source documents, and locators pass."
+    },
+    {
+      "id": "A05",
+      "category": "Required",
+      "requirement": "Complete offline Mock EPUB Pipeline with Artifact lineage",
+      "status": "Pass",
+      "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python tools/generate_v020_acceptance.py",
+      "evidence": "acceptance/v0.2.0/artifacts/sample-run-summary.json",
+      "detail": "novel_epub_v1 succeeded with five ordered Steps, seven Artifacts, and source/job/manifest lineage."
+    },
+    {
+      "id": "A06",
+      "category": "Required",
+      "requirement": "Rebuild, reopen, and re-import a structure-preserving EPUB",
+      "status": "Pass",
+      "command": "acceptance generator plus pytest coverage suite",
+      "evidence": "acceptance/v0.2.0/artifacts/samples/epub/validation-report.json",
+      "detail": "EPUB3 sample translated 26 of 26 selected units, preserved six unchanged payloads byte-for-byte, retained a four-document reading order and nine resources, and reopened in target language en; separate EPUB2 round-trip tests pass."
+    },
+    {
+      "id": "A07",
+      "category": "Required",
+      "requirement": "Keep imported Sources immutable",
+      "status": "Pass",
+      "command": "pytest coverage suite",
+      "evidence": "tests/unit/test_epub.py; tests/integration/test_epub_pipeline.py; tests/integration/test_artifacts_and_secrets.py",
+      "detail": "Original source bytes/checksums remain unchanged and overwrite or stale-manifest paths are rejected."
+    },
+    {
+      "id": "A08",
+      "category": "Required",
+      "requirement": "Pause, resume, cancel, retry, recover interruption, and reuse successful Segments",
+      "status": "Pass",
+      "command": "pytest coverage suite",
+      "evidence": "tests/integration/test_epub_controls.py; tests/integration/test_job_controls.py; tests/integration/test_recovery.py",
+      "detail": "EPUB-specific and retained v0.1.0 controls pass; completed Segments are not retransmitted and locator lineage survives retry/recovery."
+    },
+    {
+      "id": "A09",
+      "category": "Required",
+      "requirement": "Handle Provider failure with stable errors, logs, fallback, and retained successes",
+      "status": "Pass",
+      "command": "pytest coverage suite",
+      "evidence": "tests/integration/test_epub_pipeline.py; tests/unit/test_provider.py; tests/integration/test_epub_controls.py",
+      "detail": "Deterministic failures produce normalized partial results, source-text fallback, QA evidence, and retry only failed work."
+    },
+    {
+      "id": "A10",
+      "category": "Required",
+      "requirement": "Reject malformed, protected, unsafe, and ambiguous archives",
+      "status": "Pass",
+      "command": "pytest coverage suite",
+      "evidence": "tests/unit/test_epub.py; tests/integration/test_epub_pipeline.py; tests/integration/test_manga_pipeline.py",
+      "detail": "Non-ZIP, malformed XML, encryption, internal entities, traversal, duplicates, unsafe flags, control characters, NFC/casefold conflicts, and invalid EPUB navigation/language are rejected."
+    },
+    {
+      "id": "A11",
+      "category": "Required",
+      "requirement": "Enforce upload and archive resource limits",
+      "status": "Pass",
+      "command": "pytest coverage suite and resource measurement",
+      "evidence": "acceptance/v0.2.0/evidence/resource-measurements.json",
+      "detail": "Upload bytes, member count, total/per-member expansion, compression ratio, path depth, chunked requests, and compressed-key inspection are covered."
+    },
+    {
+      "id": "A12",
+      "category": "Required",
+      "requirement": "Use bounded streaming upload, HTTP download, and CLI copies",
+      "status": "Pass",
+      "command": "pytest coverage suite and Compose HTTP download",
+      "evidence": "tests/unit/test_storage.py; tests/integration/test_api_cli_shared.py",
+      "detail": "Chunked publication, multipart guard, file-based responses, atomic CLI copies, and matching HTTP Artifact checksums pass."
+    },
+    {
+      "id": "A13",
+      "category": "Required",
+      "requirement": "Share one application core and data store across GUI, CLI, and API",
+      "status": "Pass",
+      "command": "pytest coverage suite",
+      "evidence": "tests/integration/test_api_cli_shared.py; tests/integration/test_openapi_contract.py",
+      "detail": "Cross-interface durable data, typed models, OpenAPI routes, and stable 400/404/409/413/422 error envelopes pass."
+    },
+    {
+      "id": "A14",
+      "category": "Required",
+      "requirement": "Retain TXT workflow",
+      "status": "Pass",
+      "command": "acceptance generator and real-browser rerun",
+      "evidence": "acceptance/v0.2.0/artifacts/samples/txt; acceptance/v0.2.0/artifacts/browser",
+      "detail": "TXT Mock translation, QA, TXT/JSON export, checksum, download, and browser flow pass."
+    },
+    {
+      "id": "A15",
+      "category": "Required",
+      "requirement": "Retain manga workflow",
+      "status": "Pass",
+      "command": "acceptance generator, pytest coverage suite, and real-browser rerun",
+      "evidence": "acceptance/v0.2.0/artifacts/samples/manga; acceptance/v0.2.0/artifacts/browser",
+      "detail": "Deterministic Mock CBZ generation, archive safety, unconfigured external Adapter behavior, and browser flow pass."
+    },
+    {
+      "id": "A16",
+      "category": "Required",
+      "requirement": "Keep runtime Provider keys out of persistent and public data",
+      "status": "Pass",
+      "command": "pytest coverage suite plus acceptance generator active-key guard",
+      "evidence": "tests/integration/test_artifacts_and_secrets.py; tests/integration/test_epub_pipeline.py",
+      "detail": "Whole-test-data-root scans are clean after deliberate leaks; raw, UTF-16/32, and compressed EPUB imports containing the active key are rejected; generated acceptance is clean."
+    },
+    {
+      "id": "A17",
+      "category": "Required",
+      "requirement": "Build and smoke-test an installed Wheel with Web and migration resources",
+      "status": "Pass",
+      "command": "Wheel build, no-deps target install, and installed-package resource/TestClient probe",
+      "evidence": "acceptance/v0.2.0/artifacts/wheel/linguaspindle-0.2.0-py3-none-any.whl",
+      "detail": "Version 0.2.0, Web index, migrations 0001/0002, root page, and health response pass."
+    },
+    {
+      "id": "A18",
+      "category": "Required",
+      "requirement": "Pass real-Chromium GUI tests",
+      "status": "Pass",
+      "command": "LINGUASPINDLE_RUN_BROWSER_TESTS=1 LINGUASPINDLE_BROWSER_EVIDENCE_DIR=acceptance/v0.2.0/artifacts/browser PYTHONDONTWRITEBYTECODE=1 .venv/bin/pytest -q -p no:cacheprovider -m browser",
+      "evidence": "acceptance/v0.2.0/artifacts/browser/browser-evidence.json; tests/integration/test_web_epub_gui.py",
+      "detail": "Two browser tests passed; the paid-Provider test alone skipped. Retained screenshots document TXT/manga, while the separate passing EPUB browser test provides EPUB GUI evidence."
+    },
+    {
+      "id": "A19",
+      "category": "Required",
+      "requirement": "Measure a representative larger EPUB within configured limits",
+      "status": "Pass",
+      "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/python tools/generate_v020_acceptance.py",
+      "evidence": "acceptance/v0.2.0/evidence/resource-measurements.json",
+      "detail": "A 25307593-byte synthetic EPUB with 505 members inspected successfully; this is inspection-only observational evidence, not translation throughput or a compression-bomb test."
+    },
+    {
+      "id": "A20",
+      "category": "Required",
+      "requirement": "Build Docker image and prove isolated Compose health, security, download, and restart persistence",
+      "status": "Pass",
+      "command": "docker build, isolated docker compose up, loopback HTTP flow, restart, and down --volumes",
+      "evidence": "acceptance/v0.2.0/evidence/command-log.txt",
+      "detail": "Linux/arm64 image 0.2.0 ran as 10001:10001 with read-only root and loopback port; Mock Job succeeded, HTTP hash matched before/after restart, and the test-only volume was removed."
+    },
+    {
+      "id": "A21",
+      "category": "Required",
+      "requirement": "Pass formatting, lint, strict typing, Python compile, and JavaScript syntax gates",
+      "status": "Pass",
+      "command": "Ruff format/check, mypy, compileall, and node --check",
+      "evidence": "acceptance/v0.2.0/evidence/command-log.txt",
+      "detail": "All commands exited zero."
+    },
+    {
+      "id": "A22",
+      "category": "Required",
+      "requirement": "Pass complete automated suite with recorded coverage",
+      "status": "Pass",
+      "command": "PYTHONDONTWRITEBYTECODE=1 .venv/bin/pytest -q -p no:cacheprovider --cov=linguaspindle --cov-branch --cov-report=term-missing",
+      "evidence": "acceptance/v0.2.0/evidence/command-log.txt",
+      "detail": "149 passed, 3 skipped, 83 percent total branch-aware coverage."
+    },
+    {
+      "id": "A23",
+      "category": "Required",
+      "requirement": "Preserve product boundaries and update maintained documentation",
+      "status": "Pass",
+      "command": "repository tests and final diff inspection",
+      "evidence": "docs/PROJECT_STATE.md; docs/MODULE_MAP.md; docs/architecture.md; docs/data-model.md; docs/epub.md",
+      "detail": "No user/auth/tenant model, standalone shared-core boundaries, immutable Sources, Artifact identities, capability-selected Adapters, loopback default, and runtime-only secrets remain intact."
+    }
+  ],
+  "test_summary": {
+    "full_suite": {
+      "status": "Pass",
+      "passed": 149,
+      "skipped": 3,
+      "coverage_percent": 83,
+      "coverage_mode": "branch-aware",
+      "skip_detail": [
+        "generic browser test unless browser mode is enabled",
+        "EPUB browser test unless browser mode is enabled",
+        "real paid Provider test unless explicitly enabled"
+      ]
+    },
+    "browser_suite": {
+      "status": "Pass",
+      "passed": 2,
+      "skipped": 1,
+      "deselected": 149,
+      "browser": "Chromium 149.0.7827.55",
+      "remaining_skip": "real paid Provider test"
+    }
+  },
+  "environment": {
+    "host_os": "Darwin 25.4.0",
+    "host_architecture": "arm64",
+    "python": "3.12.11",
+    "pytest": "8.4.2",
+    "ruff": "0.15.22",
+    "mypy": "1.20.2",
+    "node": "18.20.8",
+    "docker_client": "29.6.1",
+    "docker_server": "29.6.1",
+    "docker_platform": "linux/arm64",
+    "docker_compose": "5.3.0"
+  },
+  "wheel": {
+    "status": "Pass",
+    "path": "acceptance/v0.2.0/artifacts/wheel/linguaspindle-0.2.0-py3-none-any.whl",
+    "bytes": 95860,
+    "sha256": "6f0a6abb6333f8c842edc76d453e283c60d578e1f2acc8ab66721437244bba42",
+    "tag": "py3-none-any",
+    "resources_verified": [
+      "linguaspindle/web/index.html",
+      "linguaspindle/migrations/0001_initial.sql",
+      "linguaspindle/migrations/0002_epub.sql"
+    ],
+    "web_smoke": "Pass"
+  },
+  "docker": {
+    "status": "Pass",
+    "image": "lingua-spindle:0.2.0",
+    "image_id": "sha256:db74fc61608b9899a8c48414adefd4cf246f4cfff3ec941cd62baab92c6113c0",
+    "bytes": 60771978,
+    "platform": "linux/arm64",
+    "version": "0.2.0",
+    "user": "10001:10001",
+    "read_only_root": true,
+    "no_new_privileges": true,
+    "published_host": "127.0.0.1",
+    "provider_key_present": false,
+    "compose_health": "healthy",
+    "mock_job_status": "succeeded",
+    "persistent_source_count": 1,
+    "persistent_job_count": 1,
+    "persistent_artifact_count": 8,
+    "download_sha256_before_restart": "eff82d60199192d8ce2a989954023741ea23781ce7aa11e74d399f73f975c0ad",
+    "download_sha256_after_restart": "eff82d60199192d8ce2a989954023741ea23781ce7aa11e74d399f73f975c0ad",
+    "test_container_removed": true,
+    "test_network_removed": true,
+    "test_volume_removed": true,
+    "image_retained": true
+  },
+  "browser": {
+    "status": "Pass",
+    "browser": "Chromium 149.0.7827.55",
+    "browser_errors": 0,
+    "console_errors": 0,
+    "failed_requests": 0,
+    "unexpected_origins": 0,
+    "screenshot_scope": "Synthetic TXT and manga GUI flow; EPUB is covered by a separate passing Chromium test without retained screenshots."
+  },
+  "resource_measurement": {
+    "status": "Pass",
+    "evidence": "acceptance/v0.2.0/evidence/resource-measurements.json",
+    "fixture_bytes": 25307593,
+    "fixture_sha256": "5bede6bd858a4b0f60e47b49185713e0aad0e3164adf63ce5a4c790c51147088",
+    "fixture_committed": false,
+    "member_count": 505,
+    "expanded_bytes": 25309480,
+    "largest_member_bytes": 25165824,
+    "maximum_compression_ratio": 13.03204134366925,
+    "maximum_path_depth": 3,
+    "text_unit_count": 523,
+    "elapsed_seconds": 0.028224,
+    "process_peak_rss_bytes": 65355776,
+    "limitation": "One cold macOS subprocess inspection; no Provider translation, reader rendering, or compression-bomb workload."
+  },
+  "secret_scan": {
+    "status": "Pass",
+    "whole_test_data_root_scanned": true,
+    "raw_active_key_import_rejected": true,
+    "wide_text_active_key_import_rejected": true,
+    "compressed_epub_active_key_import_rejected": true,
+    "generated_acceptance_scanned_against_local_active_key": true,
+    "provider_key_values_recorded": false,
+    "compose_provider_key_present": false
+  },
+  "artifacts": [
+    {
+      "path": "acceptance/v0.2.0/artifacts/browser/01-runtime-capabilities.png",
+      "bytes": 168918,
+      "sha256": "d687dd4411c3503b3b0c9571403dd0d926398febaf89e81b781b0c2ae0a89070",
+      "provenance": "real Chromium synthetic GUI acceptance",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/browser/02-novel-job-succeeded.png",
+      "bytes": 376372,
+      "sha256": "2e5dfcac0fb449e97ab95ac6ba1137047cf33ff536e229bc0eef0d08504a5984",
+      "provenance": "real Chromium synthetic TXT GUI acceptance",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/browser/03-expected-failure.png",
+      "bytes": 402437,
+      "sha256": "6e57a41a4786ae591ece0549d5721ed837cef5f75fc0d6145331356067ec1815",
+      "provenance": "real Chromium synthetic normalized-failure GUI acceptance",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/browser/04-mock-manga-project.png",
+      "bytes": 165278,
+      "sha256": "237882030b02d2a1dd838116ff15cdd355828d572fa8b3baef6f904aa21aa889",
+      "provenance": "real Chromium synthetic Mock manga GUI acceptance",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/browser/05-unconfigured-manga-adapter.png",
+      "bytes": 204761,
+      "sha256": "ade0e5ff100262300e44509447df17e9331a5084b15e96a1b3b0a6e63db17c23",
+      "provenance": "real Chromium unconfigured external Adapter state",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/browser/browser-evidence.json",
+      "bytes": 29753,
+      "sha256": "632377f3972637fd8e594669be2db3e8d0761d3658333bab12ec197f6c009f3f",
+      "provenance": "real Chromium synthetic TXT and manga flow",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/browser/mock-manga-export.cbz",
+      "bytes": 177,
+      "sha256": "802a893aee2a481187c284cdf8778e8a94610103e77232213d82753c3cba3fda",
+      "provenance": "real Chromium Mock manga download",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/browser/novel-export.json",
+      "bytes": 2082,
+      "sha256": "30649851c0b53e1ab620554c19f140d1ee056a5894010dde04baa679b17d5668",
+      "provenance": "real Chromium Mock TXT JSON download",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/browser/novel-export.txt",
+      "bytes": 42,
+      "sha256": "7768a62ac0806d25be44daccb653e36b2f060aacf1659fd7c9266fc0827f0f30",
+      "provenance": "real Chromium Mock TXT download",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/sample-run-summary.json",
+      "bytes": 31318,
+      "sha256": "c1df53c92c2ef2504aa70de07c42e45f6ba6f7af13c87181e6b8038db015baad",
+      "provenance": "deterministic offline EPUB3, TXT, and manga generator",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/samples/epub/source-multichapter.epub",
+      "bytes": 4587,
+      "sha256": "b37e462e7381a8685481a0c81901f6827a073cb36bebd9954bb3c33ef3db0fae",
+      "provenance": "deterministic representative EPUB3 source",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/samples/epub/translated-multichapter.epub",
+      "bytes": 4682,
+      "sha256": "e7f6e5f96cbe1dcd8c9ce749331e7f103ca2c1a90e57bec53fd16b74306face2",
+      "provenance": "deterministic Mock translated EPUB3",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/samples/epub/validation-report.json",
+      "bytes": 1345,
+      "sha256": "f5c86e2ec145723ee54a7b840de6e1ce03e65b131b6c4e7b00742ff8327fd6a3",
+      "provenance": "built-in EPUB reopen/reference/resource validation",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/samples/manga/source.cbz",
+      "bytes": 493,
+      "sha256": "00fc3314ee31c3229f6141450dd1d9a6f796acce3e112d102c7fb074ea658f9a",
+      "provenance": "deterministic synthetic manga source",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/samples/manga/translated.cbz",
+      "bytes": 473,
+      "sha256": "f064b62f988f744d36d10ca7ec8582d75261f35427a13082bdcec0342dd38857",
+      "provenance": "deterministic built-in Mock manga output",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/samples/txt/source.txt",
+      "bytes": 191,
+      "sha256": "de810c9af217a7ebd41309990c72c4fbea5ae889abea7a8bdfec14ea9f56d0f6",
+      "provenance": "deterministic synthetic TXT source",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/samples/txt/translated.json",
+      "bytes": 4043,
+      "sha256": "92c0b8cf5e724cc3982429fc23973fa5b65ddafdd0d226ef87f9d87200b644f3",
+      "provenance": "deterministic Mock TXT JSON output",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/samples/txt/translated.txt",
+      "bytes": 216,
+      "sha256": "d36a739eec2208f105235f37cf59f585c4d2aecc17655c2c022782bfdbfd189c",
+      "provenance": "deterministic Mock TXT output",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/artifacts/wheel/linguaspindle-0.2.0-py3-none-any.whl",
+      "bytes": 95860,
+      "sha256": "6f0a6abb6333f8c842edc76d453e283c60d578e1f2acc8ab66721437244bba42",
+      "provenance": "source candidate Wheel build",
+      "tracked": true
+    },
+    {
+      "path": "acceptance/v0.2.0/evidence/resource-measurements.json",
+      "bytes": 2134,
+      "sha256": "191dd9376d32c030f37963d0cb7e2c3b044b4235ba620d209bea25381356e1d0",
+      "provenance": "fresh-subprocess synthetic larger EPUB inspection",
+      "tracked": true
+    }
+  ],
+  "checksum_only_artifacts": [
+    {
+      "name": "Playwright browser trace",
+      "bytes": 1439086,
+      "sha256": "0b11037e3e1becbfa3610b4b7a43932769b5aba65059d4ea273c51a79cb6c16a",
+      "committed": false,
+      "removed": true,
+      "provenance": "final real-Chromium browser rerun"
+    },
+    {
+      "name": "Synthetic representative larger EPUB",
+      "bytes": 25307593,
+      "sha256": "5bede6bd858a4b0f60e47b49185713e0aad0e3164adf63ce5a4c790c51147088",
+      "committed": false,
+      "removed": true,
+      "provenance": "deterministic temporary fixture generated by tools/generate_v020_acceptance.py"
+    }
+  ],
+  "optional_external_tests": [
+    {
+      "category": "Optional external test",
+      "name": "Real paid OpenAI-compatible Provider",
+      "status": "Not executed",
+      "reason": "No paid credential or cost was authorized."
+    },
+    {
+      "category": "Optional external test",
+      "name": "Real manga-image-translator model/service",
+      "status": "Not executed",
+      "reason": "The external model, GPU runtime, and fonts are operator-managed and intentionally not bundled."
+    },
+    {
+      "category": "Optional external test",
+      "name": "External epubcheck",
+      "status": "Not executed",
+      "reason": "Built-in structural/reference validation is required; the external validator is optional."
+    },
+    {
+      "category": "Optional external test",
+      "name": "Native Windows and WSL2 runtime",
+      "status": "Not executed",
+      "reason": "This run covered macOS arm64 and Linux/arm64 Docker."
+    }
+  ],
+  "failures": [],
+  "blockers": [],
+  "not_executed": [
+    "real paid OpenAI-compatible Provider",
+    "real manga-image-translator model/service",
+    "external epubcheck",
+    "native Windows and WSL2 runtime",
+    "v0.2.0 tag creation",
+    "remote push",
+    "GitHub Release publication"
+  ],
+  "limitations": [
+    "The retained representative sample is EPUB3; EPUB2 support is established by separate automated fixtures.",
+    "Browser screenshots document synthetic TXT and manga flows; EPUB browser coverage is a separate passing Chromium test without retained screenshots.",
+    "Built-in EPUB validation is structural/reference-oriented and does not claim reader rendering equivalence.",
+    "The larger EPUB measurement is one cold-process inspection sample, not Provider throughput or a compression-bomb benchmark.",
+    "No native Windows/WSL2, real paid Provider, real manga model, or external epubcheck run was performed."
+  ],
+  "publication": {
+    "tag_created": false,
+    "pushed": false,
+    "release_published": false,
+    "reason": "Not executed by instruction."
+  }
+}

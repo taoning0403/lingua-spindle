@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "project": {
+    "id": "312d8f02-6712-4b41-a324-977be32be3ef",
+    "name": "Docker browser novel",
+    "source_language": "en",
+    "target_language": "fr"
+  },
+  "job_id": "21cda29f-f2ee-4bcd-9164-40820eb3ea6e",
+  "profile": {
+    "id": "57e16e7a-811b-4fc4-8051-e45f54e1f991",
+    "name": "Job profile en → fr",
+    "source_language": "en",
+    "target_language": "fr",
+    "provider_id": "mock",
+    "model": "mock-v1",
+    "style": "Preserve tone and paragraph structure.",
+    "context_strategy": "independent-segments",
+    "prompt_template": "Translate from {source_language} to {target_language}. Preserve dialogue, paragraph structure, names, and punctuation.\n\n{text}",
+    "prompt_version": "v1",
+    "batch_size": 8,
+    "model_parameters": {},
+    "created_at": "2026-07-20T08:33:48.937837+00:00",
+    "updated_at": "2026-07-20T08:33:48.937838+00:00"
+  },
+  "segments": [
+    {
+      "id": "0c880a96-d8f5-4519-af54-02fab054324e",
+      "job_id": "21cda29f-f2ee-4bcd-9164-40820eb3ea6e",
+      "sequence": 0,
+      "source_artifact_id": null,
+      "source_document": null,
+      "content_role": null,
+      "locator": {},
+      "source_text_hash": null,
+      "translation_input_hash": null,
+      "reused_from_segment_id": null,
+      "source_text": "Browser first.",
+      "translated_text": "[fr] Browser first.",
+      "status": "succeeded",
+      "model": "mock-v1",
+      "prompt_version": "v1",
+      "error": null,
+      "qa_findings": []
+    },
+    {
+      "id": "53add2e1-70b7-4b35-a654-10d3d376f152",
+      "job_id": "21cda29f-f2ee-4bcd-9164-40820eb3ea6e",
+      "sequence": 1,
+      "source_artifact_id": null,
+      "source_document": null,
+      "content_role": null,
+      "locator": {},
+      "source_text_hash": null,
+      "translation_input_hash": null,
+      "reused_from_segment_id": null,
+      "source_text": "Browser second.",
+      "translated_text": "[fr] Browser second.",
+      "status": "succeeded",
+      "model": "mock-v1",
+      "prompt_version": "v1",
+      "error": null,
+      "qa_findings": []
+    }
+  ]
+}

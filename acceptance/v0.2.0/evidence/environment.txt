@@ -1,0 +1,51 @@
+LinguaSpindle v0.2.0 acceptance environment
+Recorded: 2026-07-20, Asia/Shanghai (UTC+08:00)
+
+Source and Git
+  branch: codex/v0.2.0-epub
+  source candidate: f662c4844bd7990b3197f39314841b9c903deae1
+  package version: 0.2.0
+  repository-local user.name: taoning0403
+  repository-local user.email: alnemark0403@gmail.com
+  global Git configuration modified: false
+  v0.1.0 tag target: 90439f66d2d2ddf656174bc33a34ffdacee2b41d
+  v0.2.0 tag present: false
+
+Host
+  operating system: Darwin 25.4.0
+  architecture: arm64
+  timezone: Asia/Shanghai
+  Python: 3.12.11 (CPython)
+  pytest: 8.4.2
+  Ruff: 0.15.22
+  mypy: 1.20.2 (compiled)
+  Node.js: 18.20.8
+  browser: Chromium 149.0.7827.55
+
+Container tooling
+  Docker client: 29.6.1
+  Docker server: 29.6.1
+  Docker server platform: Linux/arm64
+  Docker Compose: 5.3.0
+  image tag: lingua-spindle:0.2.0
+  image ID: sha256:db74fc61608b9899a8c48414adefd4cf246f4cfff3ec941cd62baab92c6113c0
+  image size: 60771978 bytes
+  image OS/architecture: linux/arm64
+  image application version label: 0.2.0
+  image user: 10001:10001
+  image working directory: /app
+  acceptance container read-only root: true
+  acceptance container security option: no-new-privileges:true
+  acceptance publish address: 127.0.0.1 only
+  acceptance Provider key present: false
+
+Package artifact
+  filename: linguaspindle-0.2.0-py3-none-any.whl
+  size: 95860 bytes
+  SHA-256: 6f0a6abb6333f8c842edc76d453e283c60d578e1f2acc8ab66721437244bba42
+  build backend recorded in Wheel: setuptools 83.0.0
+
+Sanitization
+  This whitelist record intentionally omits host usernames, machine-specific checkout and
+  temporary-directory paths, full environment dumps, Docker Compose rendered configuration, and
+  all Provider key values.

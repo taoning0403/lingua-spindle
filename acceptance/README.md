@@ -24,5 +24,5 @@ original result remains visible and the later evidence is linked.
 ## Versions
 
 - [v0.1.0](v0.1.0/README.md) — accepted and published WSL2/Linux Technical Preview.
-- `v0.2.0/` — created by the v0.2.0 acceptance run; candidate evidence must remain separate from
-  v0.1.0.
+- [v0.2.0](v0.2.0/README.md) — source candidate accepted on macOS and Linux/arm64 Docker;
+  publication remains pending and no v0.2.0 tag was created.

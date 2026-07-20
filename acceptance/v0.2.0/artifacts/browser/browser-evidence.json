@@ -1,0 +1,932 @@
+{
+  "base_url": "http://127.0.0.1:51353",
+  "browser": "Chromium 149.0.7827.55",
+  "projects": {
+    "novel": "312d8f02-6712-4b41-a324-977be32be3ef",
+    "manga": "b576788d-4dcf-4a22-be37-ae8d62e7fc79"
+  },
+  "jobs": {
+    "novel": {
+      "id": "21cda29f-f2ee-4bcd-9164-40820eb3ea6e",
+      "project_id": "312d8f02-6712-4b41-a324-977be32be3ef",
+      "status": "succeeded",
+      "error": null,
+      "steps": [
+        {
+          "id": "f98077ff-0ee1-44a1-a78b-9461197a142d",
+          "key": "detect_encoding",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "370e1fd2-2e53-4877-af11-3370bcc53b58"
+          ],
+          "output_artifact_ids": [
+            "b36f8e5e-7d3d-4aa2-8845-4343dc7840b5"
+          ],
+          "logs": [
+            {
+              "id": 1,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "novel_parse",
+                "input_artifact_ids": [
+                  "370e1fd2-2e53-4877-af11-3370bcc53b58"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.959609Z"
+            },
+            {
+              "id": 2,
+              "level": "INFO",
+              "message": "Source encoding detected",
+              "details": {
+                "encoding": "ascii"
+              },
+              "created_at": "2026-07-20T08:33:48.961232Z"
+            },
+            {
+              "id": 3,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "b36f8e5e-7d3d-4aa2-8845-4343dc7840b5"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.961928Z"
+            }
+          ]
+        },
+        {
+          "id": "c6defca5-260f-4e8a-88ef-6d598389df97",
+          "key": "extract_text",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "370e1fd2-2e53-4877-af11-3370bcc53b58",
+            "b36f8e5e-7d3d-4aa2-8845-4343dc7840b5"
+          ],
+          "output_artifact_ids": [
+            "f5dcc279-c0b2-4499-aa09-015277aa7272"
+          ],
+          "logs": [
+            {
+              "id": 4,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "novel_parse",
+                "input_artifact_ids": [
+                  "370e1fd2-2e53-4877-af11-3370bcc53b58",
+                  "b36f8e5e-7d3d-4aa2-8845-4343dc7840b5"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.964113Z"
+            },
+            {
+              "id": 5,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "f5dcc279-c0b2-4499-aa09-015277aa7272"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.965341Z"
+            }
+          ]
+        },
+        {
+          "id": "9d425283-4d98-4801-bc42-19b6f9c06b4b",
+          "key": "segment_text",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "f5dcc279-c0b2-4499-aa09-015277aa7272"
+          ],
+          "output_artifact_ids": [
+            "c5d78d5c-23b9-47b2-94f5-a39c5a2d8bcd"
+          ],
+          "logs": [
+            {
+              "id": 6,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "text_segment",
+                "input_artifact_ids": [
+                  "f5dcc279-c0b2-4499-aa09-015277aa7272"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.967191Z"
+            },
+            {
+              "id": 7,
+              "level": "INFO",
+              "message": "TXT was segmented",
+              "details": {
+                "segments": 2
+              },
+              "created_at": "2026-07-20T08:33:48.969576Z"
+            },
+            {
+              "id": 8,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "c5d78d5c-23b9-47b2-94f5-a39c5a2d8bcd"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.971144Z"
+            }
+          ]
+        },
+        {
+          "id": "07fc76d2-2bda-4672-b980-30887b7327b2",
+          "key": "translate_text",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "c5d78d5c-23b9-47b2-94f5-a39c5a2d8bcd"
+          ],
+          "output_artifact_ids": [
+            "d5a1dfc1-8278-4f58-ae13-4accb43be197"
+          ],
+          "logs": [
+            {
+              "id": 9,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "text_translate",
+                "input_artifact_ids": [
+                  "c5d78d5c-23b9-47b2-94f5-a39c5a2d8bcd"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.974397Z"
+            },
+            {
+              "id": 10,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "d5a1dfc1-8278-4f58-ae13-4accb43be197"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.980731Z"
+            }
+          ]
+        },
+        {
+          "id": "5e7681d9-9603-4c60-907a-dc85d3966afa",
+          "key": "quality_check",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "d5a1dfc1-8278-4f58-ae13-4accb43be197"
+          ],
+          "output_artifact_ids": [
+            "bfb07715-b043-41a6-bdeb-7d370ad10603"
+          ],
+          "logs": [
+            {
+              "id": 11,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "translation_qa",
+                "input_artifact_ids": [
+                  "d5a1dfc1-8278-4f58-ae13-4accb43be197"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.982625Z"
+            },
+            {
+              "id": 12,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "bfb07715-b043-41a6-bdeb-7d370ad10603"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.984027Z"
+            }
+          ]
+        },
+        {
+          "id": "c0809e02-17aa-4bee-aad8-97fdb8aade65",
+          "key": "export_novel",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "d5a1dfc1-8278-4f58-ae13-4accb43be197",
+            "bfb07715-b043-41a6-bdeb-7d370ad10603"
+          ],
+          "output_artifact_ids": [
+            "55dbc35f-9e57-404e-b618-e39f3909796e",
+            "aed007b3-1c0f-4dce-88a8-3a98c4f4f6cf"
+          ],
+          "logs": [
+            {
+              "id": 13,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "novel_export",
+                "input_artifact_ids": [
+                  "d5a1dfc1-8278-4f58-ae13-4accb43be197",
+                  "bfb07715-b043-41a6-bdeb-7d370ad10603"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.985731Z"
+            },
+            {
+              "id": 14,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "55dbc35f-9e57-404e-b618-e39f3909796e",
+                  "aed007b3-1c0f-4dce-88a8-3a98c4f4f6cf"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:48.987527Z"
+            }
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "b36f8e5e-7d3d-4aa2-8845-4343dc7840b5",
+          "kind": "novel_encoding",
+          "checksum": "83cec224b9d35a78a7a6d342269f236fc8ebda4db9aa62e5a552f4140015915a",
+          "size": 109
+        },
+        {
+          "id": "f5dcc279-c0b2-4499-aa09-015277aa7272",
+          "kind": "novel_text_extracted",
+          "checksum": "5e3abdaa98587e38f3ee47b3ed6899805b13bc1bb3cc331637109a31e0e64d6c",
+          "size": 31
+        },
+        {
+          "id": "c5d78d5c-23b9-47b2-94f5-a39c5a2d8bcd",
+          "kind": "novel_segments",
+          "checksum": "07b248b3a41ee68849ef7d82dd72b23e779a9b49800cb40f9551e75383654097",
+          "size": 247
+        },
+        {
+          "id": "d5a1dfc1-8278-4f58-ae13-4accb43be197",
+          "kind": "novel_translations",
+          "checksum": "296688df983ada419c1c3686b2ee6fcdea7939778b0e38f43a2a8ceb2b4b108f",
+          "size": 1885
+        },
+        {
+          "id": "bfb07715-b043-41a6-bdeb-7d370ad10603",
+          "kind": "qa_report",
+          "checksum": "d8f61fe7341b140339eb7b51706fdd672fecf97db085989b78eee32fc562488b",
+          "size": 36
+        },
+        {
+          "id": "55dbc35f-9e57-404e-b618-e39f3909796e",
+          "kind": "novel_export_txt",
+          "checksum": "7768a62ac0806d25be44daccb653e36b2f060aacf1659fd7c9266fc0827f0f30",
+          "size": 42
+        },
+        {
+          "id": "aed007b3-1c0f-4dce-88a8-3a98c4f4f6cf",
+          "kind": "novel_export_json",
+          "checksum": "30649851c0b53e1ab620554c19f140d1ee056a5894010dde04baa679b17d5668",
+          "size": 2082
+        }
+      ]
+    },
+    "expected_failure": {
+      "id": "c1d3a911-6c9f-479e-82fa-d37144efa21a",
+      "project_id": "cb88fbc5-3544-4ecc-8ec0-22cdcd72c020",
+      "status": "partially_succeeded",
+      "error": {
+        "code": "MODEL_API_ERROR",
+        "message": "1 of 1 segments failed translation",
+        "details": {
+          "failed_segments": 1,
+          "total_segments": 1
+        }
+      },
+      "steps": [
+        {
+          "id": "4a1c1eb1-5785-48fc-8168-3411de96eb1b",
+          "key": "detect_encoding",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "22f9d530-f5ed-416f-a3f7-d0488074572d"
+          ],
+          "output_artifact_ids": [
+            "54ab9f11-7301-47f6-90b6-3ab77889607b"
+          ],
+          "logs": [
+            {
+              "id": 15,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "novel_parse",
+                "input_artifact_ids": [
+                  "22f9d530-f5ed-416f-a3f7-d0488074572d"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:51.192950Z"
+            },
+            {
+              "id": 16,
+              "level": "INFO",
+              "message": "Source encoding detected",
+              "details": {
+                "encoding": "ascii"
+              },
+              "created_at": "2026-07-20T08:33:51.194136Z"
+            },
+            {
+              "id": 17,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "54ab9f11-7301-47f6-90b6-3ab77889607b"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:51.194819Z"
+            }
+          ]
+        },
+        {
+          "id": "f1241376-094d-4880-a292-c397cb693855",
+          "key": "extract_text",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "22f9d530-f5ed-416f-a3f7-d0488074572d",
+            "54ab9f11-7301-47f6-90b6-3ab77889607b"
+          ],
+          "output_artifact_ids": [
+            "74e9b8d6-427b-4e6c-882a-4c3bbe83cba4"
+          ],
+          "logs": [
+            {
+              "id": 18,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "novel_parse",
+                "input_artifact_ids": [
+                  "22f9d530-f5ed-416f-a3f7-d0488074572d",
+                  "54ab9f11-7301-47f6-90b6-3ab77889607b"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:51.196653Z"
+            },
+            {
+              "id": 19,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "74e9b8d6-427b-4e6c-882a-4c3bbe83cba4"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:51.197919Z"
+            }
+          ]
+        },
+        {
+          "id": "9d1cfd41-a7e1-47a4-ba0d-8d7c2328777f",
+          "key": "segment_text",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "74e9b8d6-427b-4e6c-882a-4c3bbe83cba4"
+          ],
+          "output_artifact_ids": [
+            "4936fd15-be7d-4cb1-9edd-4e676cd4a4b8"
+          ],
+          "logs": [
+            {
+              "id": 20,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "text_segment",
+                "input_artifact_ids": [
+                  "74e9b8d6-427b-4e6c-882a-4c3bbe83cba4"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:51.199692Z"
+            },
+            {
+              "id": 21,
+              "level": "INFO",
+              "message": "TXT was segmented",
+              "details": {
+                "segments": 1
+              },
+              "created_at": "2026-07-20T08:33:51.202019Z"
+            },
+            {
+              "id": 22,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "4936fd15-be7d-4cb1-9edd-4e676cd4a4b8"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:51.202570Z"
+            }
+          ]
+        },
+        {
+          "id": "d316c603-c8e0-4881-8ae4-37840d5b33cc",
+          "key": "translate_text",
+          "status": "partially_succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "4936fd15-be7d-4cb1-9edd-4e676cd4a4b8"
+          ],
+          "output_artifact_ids": [
+            "0696f8f9-37c3-4739-9f30-4ef46638e10e"
+          ],
+          "logs": [
+            {
+              "id": 23,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "text_translate",
+                "input_artifact_ids": [
+                  "4936fd15-be7d-4cb1-9edd-4e676cd4a4b8"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:51.204308Z"
+            },
+            {
+              "id": 24,
+              "level": "ERROR",
+              "message": "Segment translation failed",
+              "details": {
+                "sequence": 0,
+                "error_code": "MODEL_API_ERROR"
+              },
+              "created_at": "2026-07-20T08:33:51.205633Z"
+            },
+            {
+              "id": 25,
+              "level": "WARNING",
+              "message": "Step partially succeeded",
+              "details": {
+                "error_code": "MODEL_API_ERROR"
+              },
+              "created_at": "2026-07-20T08:33:51.207991Z"
+            }
+          ]
+        },
+        {
+          "id": "39325267-980e-4d71-88bb-275a05119764",
+          "key": "quality_check",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "0696f8f9-37c3-4739-9f30-4ef46638e10e"
+          ],
+          "output_artifact_ids": [
+            "b0368b86-a9ff-40c7-828f-d9ff7750d814"
+          ],
+          "logs": [
+            {
+              "id": 26,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "translation_qa",
+                "input_artifact_ids": [
+                  "0696f8f9-37c3-4739-9f30-4ef46638e10e"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:51.209795Z"
+            },
+            {
+              "id": 27,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "b0368b86-a9ff-40c7-828f-d9ff7750d814"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:51.211680Z"
+            }
+          ]
+        },
+        {
+          "id": "862d56ef-c4c9-4dc1-8124-501ec7f1b6d0",
+          "key": "export_novel",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "0696f8f9-37c3-4739-9f30-4ef46638e10e",
+            "b0368b86-a9ff-40c7-828f-d9ff7750d814"
+          ],
+          "output_artifact_ids": [
+            "4bfeabb6-1322-4b2a-8760-db1a4fe71c2e",
+            "c2ccf18b-c433-4218-b45b-0d12992df66b"
+          ],
+          "logs": [
+            {
+              "id": 28,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "novel_export",
+                "input_artifact_ids": [
+                  "0696f8f9-37c3-4739-9f30-4ef46638e10e",
+                  "b0368b86-a9ff-40c7-828f-d9ff7750d814"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:51.213635Z"
+            },
+            {
+              "id": 29,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "4bfeabb6-1322-4b2a-8760-db1a4fe71c2e",
+                  "c2ccf18b-c433-4218-b45b-0d12992df66b"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:51.215634Z"
+            }
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "54ab9f11-7301-47f6-90b6-3ab77889607b",
+          "kind": "novel_encoding",
+          "checksum": "48ac32d8d395035c393b73dff2693478604e5ef77836a0131447dcfbe8bf19ee",
+          "size": 109
+        },
+        {
+          "id": "74e9b8d6-427b-4e6c-882a-4c3bbe83cba4",
+          "kind": "novel_text_extracted",
+          "checksum": "78f36f6e1d59d46eea03dfede8f27b9d2bf284effa578d4b460c4b0b4008cdaa",
+          "size": 13
+        },
+        {
+          "id": "4936fd15-be7d-4cb1-9edd-4e676cd4a4b8",
+          "kind": "novel_segments",
+          "checksum": "a5f57cdf1705e302d0ec5240b3bc6baab93813c1e7db2d0f03bbf83629dc0c0a",
+          "size": 173
+        },
+        {
+          "id": "0696f8f9-37c3-4739-9f30-4ef46638e10e",
+          "kind": "novel_translations",
+          "checksum": "bfec7eb21d44e6c5fc37e795f2b51566c76d34774a976fccc29164b801b687dc",
+          "size": 1387
+        },
+        {
+          "id": "b0368b86-a9ff-40c7-828f-d9ff7750d814",
+          "kind": "qa_report",
+          "checksum": "b045adbbb55fea300f97ccebdf40619f278b255cf7ac358ea36df9b59e229aa0",
+          "size": 237
+        },
+        {
+          "id": "4bfeabb6-1322-4b2a-8760-db1a4fe71c2e",
+          "kind": "novel_export_txt",
+          "checksum": "dcfc89e2d75100eed45c9d3d2a1f8878823dff99f3c3876d63f059cb4b43e527",
+          "size": 52
+        },
+        {
+          "id": "c2ccf18b-c433-4218-b45b-0d12992df66b",
+          "kind": "novel_export_json",
+          "checksum": "f206b165ceb7bb76965c47c8118826c6eed60c08da952312e89b5b5466fe8807",
+          "size": 1751
+        }
+      ]
+    },
+    "mock_manga": {
+      "id": "98355146-6bc4-4fef-b634-74342d04168e",
+      "project_id": "b576788d-4dcf-4a22-be37-ae8d62e7fc79",
+      "status": "succeeded",
+      "error": null,
+      "steps": [
+        {
+          "id": "98cf74c8-f664-49f1-b406-82d8aba48a88",
+          "key": "prepare_manga",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "3f906711-479a-45d6-b20f-d166ff421eab"
+          ],
+          "output_artifact_ids": [
+            "7b3ea1f2-b074-4695-ba26-c0e73e07fa02",
+            "7e2c0c65-5bb8-451e-a971-3cf80d996ba2"
+          ],
+          "logs": [
+            {
+              "id": 30,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "manga_import",
+                "input_artifact_ids": [
+                  "3f906711-479a-45d6-b20f-d166ff421eab"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:53.228371Z"
+            },
+            {
+              "id": 31,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "7b3ea1f2-b074-4695-ba26-c0e73e07fa02",
+                  "7e2c0c65-5bb8-451e-a971-3cf80d996ba2"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:53.231072Z"
+            }
+          ]
+        },
+        {
+          "id": "1c9b14cb-f621-4945-b317-f7d8e4fbf1a3",
+          "key": "translate_manga",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "7b3ea1f2-b074-4695-ba26-c0e73e07fa02",
+            "7e2c0c65-5bb8-451e-a971-3cf80d996ba2"
+          ],
+          "output_artifact_ids": [
+            "b542604d-c109-45ac-8bc6-0a01bbc1b844",
+            "6cbb7baf-0d55-4544-be1e-62692c0521ee"
+          ],
+          "logs": [
+            {
+              "id": 32,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "manga_full_pipeline",
+                "input_artifact_ids": [
+                  "7b3ea1f2-b074-4695-ba26-c0e73e07fa02",
+                  "7e2c0c65-5bb8-451e-a971-3cf80d996ba2"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:53.237241Z"
+            },
+            {
+              "id": 33,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "b542604d-c109-45ac-8bc6-0a01bbc1b844",
+                  "6cbb7baf-0d55-4544-be1e-62692c0521ee"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:53.241994Z"
+            }
+          ]
+        },
+        {
+          "id": "dbf8c0c6-3b3c-4b93-aa78-9ef22a3fbd86",
+          "key": "export_manga",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "b542604d-c109-45ac-8bc6-0a01bbc1b844",
+            "6cbb7baf-0d55-4544-be1e-62692c0521ee"
+          ],
+          "output_artifact_ids": [
+            "7f9e9154-4b13-4084-b16a-6a1373ff1088"
+          ],
+          "logs": [
+            {
+              "id": 34,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "cbz_build",
+                "input_artifact_ids": [
+                  "b542604d-c109-45ac-8bc6-0a01bbc1b844",
+                  "6cbb7baf-0d55-4544-be1e-62692c0521ee"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:53.243934Z"
+            },
+            {
+              "id": 35,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "7f9e9154-4b13-4084-b16a-6a1373ff1088"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:53.247308Z"
+            }
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "7e2c0c65-5bb8-451e-a971-3cf80d996ba2",
+          "kind": "manga_page_source",
+          "checksum": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460",
+          "size": 68
+        },
+        {
+          "id": "7b3ea1f2-b074-4695-ba26-c0e73e07fa02",
+          "kind": "manga_manifest",
+          "checksum": "ed840348dd77ab45490daf2c75b4af993da083b8c8f4dc8c0092a1fd30029e19",
+          "size": 224
+        },
+        {
+          "id": "b542604d-c109-45ac-8bc6-0a01bbc1b844",
+          "kind": "manga_page_translated",
+          "checksum": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460",
+          "size": 68
+        },
+        {
+          "id": "6cbb7baf-0d55-4544-be1e-62692c0521ee",
+          "kind": "adapter_raw_output",
+          "checksum": "f0bafce2dd2feca8a361526c06502dbf3853c9e74879ad9931aea1fa127a0270",
+          "size": 122
+        },
+        {
+          "id": "7f9e9154-4b13-4084-b16a-6a1373ff1088",
+          "kind": "manga_export_cbz",
+          "checksum": "802a893aee2a481187c284cdf8778e8a94610103e77232213d82753c3cba3fda",
+          "size": 177
+        }
+      ]
+    },
+    "unconfigured_manga_adapter": {
+      "id": "d403cb4f-97d6-4c0e-b89f-b007b0877092",
+      "project_id": "b576788d-4dcf-4a22-be37-ae8d62e7fc79",
+      "status": "failed",
+      "error": {
+        "code": "ADAPTER_UNAVAILABLE",
+        "message": "External service URL is not configured",
+        "details": {
+          "required_setting": "LINGUASPINDLE_MIT_BASE_URL"
+        }
+      },
+      "steps": [
+        {
+          "id": "b5f92c40-b2c7-47ea-9c12-d34106fdbf46",
+          "key": "prepare_manga",
+          "status": "succeeded",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "3f906711-479a-45d6-b20f-d166ff421eab"
+          ],
+          "output_artifact_ids": [
+            "353c5bdc-d282-40ae-8df9-7acbef9b85a2",
+            "109d69b2-2ed6-4b03-980a-84df1b0464ab"
+          ],
+          "logs": [
+            {
+              "id": 36,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "manga_import",
+                "input_artifact_ids": [
+                  "3f906711-479a-45d6-b20f-d166ff421eab"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:55.241200Z"
+            },
+            {
+              "id": 37,
+              "level": "INFO",
+              "message": "Step succeeded",
+              "details": {
+                "output_artifact_ids": [
+                  "353c5bdc-d282-40ae-8df9-7acbef9b85a2",
+                  "109d69b2-2ed6-4b03-980a-84df1b0464ab"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:55.244452Z"
+            }
+          ]
+        },
+        {
+          "id": "c07c256e-eaba-425d-99bb-20d9bafdf1a8",
+          "key": "translate_manga",
+          "status": "failed",
+          "attempt_count": 1,
+          "input_artifact_ids": [
+            "353c5bdc-d282-40ae-8df9-7acbef9b85a2",
+            "109d69b2-2ed6-4b03-980a-84df1b0464ab"
+          ],
+          "output_artifact_ids": [],
+          "logs": [
+            {
+              "id": 38,
+              "level": "INFO",
+              "message": "Step started",
+              "details": {
+                "attempt": 1,
+                "capability": "manga_full_pipeline",
+                "input_artifact_ids": [
+                  "353c5bdc-d282-40ae-8df9-7acbef9b85a2",
+                  "109d69b2-2ed6-4b03-980a-84df1b0464ab"
+                ]
+              },
+              "created_at": "2026-07-20T08:33:55.246424Z"
+            },
+            {
+              "id": 39,
+              "level": "ERROR",
+              "message": "External service URL is not configured",
+              "details": {
+                "error_code": "ADAPTER_UNAVAILABLE",
+                "details": {
+                  "required_setting": "LINGUASPINDLE_MIT_BASE_URL"
+                }
+              },
+              "created_at": "2026-07-20T08:33:55.246718Z"
+            }
+          ]
+        },
+        {
+          "id": "1d47fa42-01ad-4ac7-bc5c-34c540377a45",
+          "key": "export_manga",
+          "status": "pending",
+          "attempt_count": 0,
+          "input_artifact_ids": [],
+          "output_artifact_ids": [],
+          "logs": []
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "109d69b2-2ed6-4b03-980a-84df1b0464ab",
+          "kind": "manga_page_source",
+          "checksum": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460",
+          "size": 68
+        },
+        {
+          "id": "353c5bdc-d282-40ae-8df9-7acbef9b85a2",
+          "kind": "manga_manifest",
+          "checksum": "599244c0670ff8b23ca1a7fd90aaa3829f979aead8ad1de07692b81ab024e45f",
+          "size": 224
+        }
+      ]
+    }
+  },
+  "downloads": {
+    "novel_txt": {
+      "filename": "novel-export.txt",
+      "sha256": "7768a62ac0806d25be44daccb653e36b2f060aacf1659fd7c9266fc0827f0f30",
+      "size": 42
+    },
+    "novel_json": {
+      "filename": "novel-export.json",
+      "sha256": "30649851c0b53e1ab620554c19f140d1ee056a5894010dde04baa679b17d5668",
+      "size": 2082
+    },
+    "mock_manga_cbz": {
+      "filename": "mock-manga-export.cbz",
+      "sha256": "802a893aee2a481187c284cdf8778e8a94610103e77232213d82753c3cba3fda",
+      "size": 177
+    }
+  },
+  "browser_errors": [],
+  "console_errors": [],
+  "failed_requests": [],
+  "unexpected_origins": []
+}

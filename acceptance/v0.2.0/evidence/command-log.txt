@@ -1,0 +1,214 @@
+LinguaSpindle v0.2.0 acceptance command log
+Date: 2026-07-20 (Asia/Shanghai)
+Source candidate: f662c4844bd7990b3197f39314841b9c903deae1
+
+Status vocabulary: Pass, Fail, Blocked, Not executed. Harness and authorization corrections are
+recorded explicitly and are not silently converted into product results.
+
+[01] Repository baseline and local identity
+  git status --short --branch
+  git rev-parse --abbrev-ref HEAD
+  git rev-parse HEAD
+  git config --local --get user.name
+  git config --local --get user.email
+  git rev-parse v0.1.0^{commit}
+  git tag --list v0.2.0
+Result: Pass (exit 0)
+  Branch codex/v0.2.0-epub; candidate f662c4844bd7990b3197f39314841b9c903deae1.
+  Local identity taoning0403 / alnemark0403@gmail.com. Global config was not changed.
+  v0.1.0 -> 90439f66d2d2ddf656174bc33a34ffdacee2b41d; no v0.2.0 tag.
+
+[02] v0.1.0 immutable archive verification
+  shasum -a 256 -c acceptance/v0.1.0/evidence/checksums.sha256
+Result: Pass (exit 0; 6 of 6 files OK)
+
+[03] Formatting and lint
+  .venv/bin/ruff format --check src tests tools
+  .venv/bin/ruff check src tests tools
+Result: Pass (exit 0; 50 files already formatted; no lint findings)
+
+[04] Strict type checking
+  .venv/bin/mypy src tools/generate_v020_acceptance.py
+Result: Pass (exit 0; success in 26 source files)
+
+[05] Python and browser-asset syntax
+  PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m compileall -q src tests tools
+  node --check src/linguaspindle/web/app.js
+Result: Pass (exit 0)
+
+[06] Final automated suite and branch-aware coverage
+  PYTHONDONTWRITEBYTECODE=1 .venv/bin/pytest -q -p no:cacheprovider \
+    --cov=linguaspindle --cov-branch --cov-report=term-missing
+Result: Pass (exit 0; 149 passed, 3 skipped; total coverage 83%)
+  Default skips: generic browser flow, EPUB browser flow, and opt-in paid Provider flow.
+
+[07] Final real-browser rerun
+  LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
+  LINGUASPINDLE_BROWSER_EVIDENCE_DIR=acceptance/v0.2.0/artifacts/browser \
+  PYTHONDONTWRITEBYTECODE=1 .venv/bin/pytest -q -p no:cacheprovider -m browser
+Result: Pass (exit 0; 2 passed, 1 skipped, 149 deselected; Chromium 149.0.7827.55)
+  The remaining skip is the opt-in real paid Provider test. Browser evidence reported zero browser
+  errors, console errors, failed requests, and unexpected origins.
+  Generated trace: 1439086 bytes, SHA-256
+  0b11037e3e1becbfa3610b4b7a43932769b5aba65059d4ea273c51a79cb6c16a; checksum-only, removed.
+
+[08] Deterministic sample generation and large-file measurement
+  PYTHONDONTWRITEBYTECODE=1 .venv/bin/python tools/generate_v020_acceptance.py
+Result: Pass (exit 0)
+  EPUB3, TXT, and Mock manga Jobs succeeded. Eight delivered files matched Artifact checksums and
+  lineage; exported EPUB/CBZ files reopened successfully. Repeated artifact generation was byte-
+  identical. Resource measurement values are in evidence/resource-measurements.json.
+
+[09] Generated-evidence active-key and machine-path guard
+  PYTHONDONTWRITEBYTECODE=1 .venv/bin/python tools/generate_v020_acceptance.py
+Result: Pass (exit 0)
+  The generator's final guard found no locally active Provider key in generated acceptance files.
+  A separate scan found no checkout-specific /Users, /private/var, or C:\Users path in the
+  acceptance tree. No secret value or raw Compose configuration was printed or retained.
+
+[10] Wheel build
+  .venv/bin/python -m build --wheel --outdir acceptance/v0.2.0/artifacts/wheel .
+Result: Pass (exit 0)
+  linguaspindle-0.2.0-py3-none-any.whl, 95860 bytes, SHA-256
+  6f0a6abb6333f8c842edc76d453e283c60d578e1f2acc8ab66721437244bba42.
+
+[11] Wheel target installation
+  TARGET=$(mktemp -d /tmp/linguaspindle-wheel-smoke-v020.XXXXXX)
+  .venv/bin/pip install --no-deps --target "$TARGET" \
+    acceptance/v0.2.0/artifacts/wheel/linguaspindle-0.2.0-py3-none-any.whl
+Result: Pass (exit 0)
+
+[12] Installed-Wheel resource/Web smoke and harness corrections
+  Harness correction 1: the first inline probe supplied Settings.data_dir as str; TypeError.
+  Corrected to pathlib.Path; Pass.
+  Harness correction 2: a later bare system-Python probe could not import FastAPI because the
+  target install intentionally used --no-deps; ModuleNotFoundError. Rerun with pinned environment.
+  Harness correction 3: that rerun initially imported create_app from linguaspindle.web; ImportError.
+  Corrected to linguaspindle.interfaces.api.create_app.
+
+  PYTHONPATH="$TARGET" .venv/bin/python -c '
+  from importlib import resources
+  from pathlib import Path
+  from fastapi.testclient import TestClient
+  from linguaspindle import __version__
+  from linguaspindle.config import Settings
+  from linguaspindle.interfaces.api import create_app
+  assert __version__ == "0.2.0"
+  assert resources.files("linguaspindle.migrations").joinpath("0001_initial.sql").is_file()
+  assert resources.files("linguaspindle.migrations").joinpath("0002_epub.sql").is_file()
+  assert resources.files("linguaspindle").joinpath("web", "index.html").is_file()
+  app = create_app(Settings.from_env(Path("/tmp/linguaspindle-wheel-smoke-data")), start_worker=False)
+  with TestClient(app) as client:
+      assert client.get("/").status_code == 200
+      assert client.get("/health").json()["version"] == "0.2.0"
+  print("wheel-smoke: PASS")'
+Result: Pass (exit 0; wheel-smoke: PASS). No product source or Wheel change was needed.
+
+[13] Docker image build
+  docker build --tag lingua-spindle:0.2.0 .
+Attempt 1: Not executed (automatic permission review timed out before command execution).
+Retry result: Pass (exit 0)
+  Image ID sha256:db74fc61608b9899a8c48414adefd4cf246f4cfff3ec941cd62baab92c6113c0.
+
+[14] Image metadata and version
+  docker image inspect lingua-spindle:0.2.0 --format <whitelisted fields>
+  docker run --rm lingua-spindle:0.2.0 --version
+First version probe: harness exit 127 because replacing image CMD attempted to execute --version.
+  docker run --rm lingua-spindle:0.2.0 linguaspindle --version
+Corrected result: Pass (exit 0; 0.2.0)
+  Metadata: linux/arm64, 60771978 bytes, user 10001:10001, workdir /app, version label 0.2.0.
+
+[15] Isolated Compose start
+  LINGUASPINDLE_PORT=18765 LINGUASPINDLE_OPENAI_API_KEY= \
+    docker compose -p linguaspindle-v020-acceptance up -d --no-build
+Attempt 1: Not executed (automatic permission review timed out before command execution).
+Retry result: Pass (exit 0; isolated network, named volume, and container created)
+
+[16] Compose health and runtime security
+  curl --fail --silent --show-error http://127.0.0.1:18765/health
+  docker compose -p linguaspindle-v020-acceptance ps --format json
+  docker inspect linguaspindle-v020-acceptance-linguaspindle-1 \
+    --format 'read_only={{.HostConfig.ReadonlyRootfs}} security_opt={{json .HostConfig.SecurityOpt}} user={{.Config.User}} ports={{json .NetworkSettings.Ports}}'
+  docker compose -p linguaspindle-v020-acceptance exec -T linguaspindle python -c \
+    'import os; print("provider_key_present=" + str(bool(os.getenv("LINGUASPINDLE_OPENAI_API_KEY"))))'
+Result: Pass (all exit 0)
+  Health ok/version 0.2.0/database ok; container healthy; read_only=true;
+  no-new-privileges:true; user=10001:10001; 127.0.0.1:18765 only;
+  provider_key_present=False. No key value was read or printed.
+
+[17] Compose Mock Job and HTTP Artifact
+  curl --fail --silent --show-error \
+    -F 'name=Compose persistence acceptance' -F 'kind=novel' \
+    -F 'source_language=en' -F 'target_language=zh-CN' \
+    -F 'source=@acceptance/v0.2.0/artifacts/samples/txt/source.txt;type=text/plain' \
+    http://127.0.0.1:18765/api/projects
+  curl --fail --silent --show-error -H 'Content-Type: application/json' \
+    -d '{"provider_id":"mock"}' \
+    http://127.0.0.1:18765/api/projects/96dc56b5-7954-468a-81c1-2bb2a0d31e82/jobs
+  curl --fail --silent --show-error \
+    http://127.0.0.1:18765/api/jobs/747a753b-9b11-4309-bf9b-be8796803322
+  curl --fail --silent --show-error --output /tmp/linguaspindle-v020-compose-export.txt \
+    http://127.0.0.1:18765/api/artifacts/1ee0feea-7ac2-4142-ba50-e8610f7191a0/download
+  shasum -a 256 /tmp/linguaspindle-v020-compose-export.txt
+Result: Pass (all exit 0)
+  Job succeeded; 1 Source, 1 Job, 8 Artifacts. Download checksum
+  eff82d60199192d8ce2a989954023741ea23781ce7aa11e74d399f73f975c0ad matched metadata.
+
+[18] Compose restart persistence
+  docker compose -p linguaspindle-v020-acceptance restart linguaspindle
+  curl --fail --silent --show-error --retry 15 --retry-connrefused --retry-delay 1 \
+    http://127.0.0.1:18765/health
+  curl --fail --silent --show-error \
+    http://127.0.0.1:18765/api/projects/96dc56b5-7954-468a-81c1-2bb2a0d31e82
+  curl --fail --silent --show-error \
+    --output /tmp/linguaspindle-v020-compose-export-after-restart.txt \
+    http://127.0.0.1:18765/api/artifacts/1ee0feea-7ac2-4142-ba50-e8610f7191a0/download
+  shasum -a 256 /tmp/linguaspindle-v020-compose-export.txt \
+    /tmp/linguaspindle-v020-compose-export-after-restart.txt
+Result: Pass (all exit 0)
+  Health recovered; the succeeded Job and eight Artifacts remained; both checksums were
+  eff82d60199192d8ce2a989954023741ea23781ce7aa11e74d399f73f975c0ad.
+
+[19] Test-only Compose cleanup
+  docker compose -p linguaspindle-v020-acceptance down --volumes --remove-orphans
+Result: Pass (exit 0)
+  Test-only container, network, and named volume removed. The local image was retained.
+
+[20] Toolchain and image environment record
+  uname -srm
+  .venv/bin/python --version
+  .venv/bin/pytest --version
+  .venv/bin/ruff --version
+  .venv/bin/mypy --version
+  node --version
+  docker version --format 'client={{.Client.Version}} server={{.Server.Version}} os={{.Server.Os}} arch={{.Server.Arch}}'
+  docker compose version --short
+Result: Pass (all exit 0; sanitized values recorded in environment.txt)
+
+[21] Final acceptance-file integrity and repository checks
+  shasum -a 256 -c acceptance/v0.2.0/evidence/checksums.sha256
+  git diff --check
+  git tag --list v0.2.0
+  git ls-files acceptance/v0.2.0/artifacts/wheel/linguaspindle-0.2.0-py3-none-any.whl
+  git status --short
+  active-key scan using tools.generate_v020_acceptance helpers (value count only)
+  machine-specific checkout-path scan and Markdown local-link validation
+Result: Pass (all exit 0 after evidence assembly)
+  All retained checksums verified, diff whitespace was clean, the Wheel was tracked, no v0.2.0
+  tag existed, one configured active-key value was checked without disclosure, no machine-specific
+  checkout path was retained, Markdown local links resolved, and the evidence commit left a clean
+  worktree.
+
+[22] Publication actions
+  git tag v0.2.0
+  git push
+  GitHub Release publication
+Result: Not executed by instruction.
+
+Optional external tests not executed:
+  - real paid OpenAI-compatible Provider;
+  - real manga-image-translator model/service;
+  - external epubcheck; and
+  - native Windows/WSL2 runtime.
+
+Finalization result: Pass / release pending. No tag, push, or Release was performed.

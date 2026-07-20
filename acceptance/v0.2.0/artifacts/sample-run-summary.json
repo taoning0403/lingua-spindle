@@ -1,0 +1,846 @@
+{
+  "cases": [
+    {
+      "artifacts": [
+        {
+          "bytes": 4587,
+          "filename": "source-multichapter.epub",
+          "id": "1bfb8fe6-8e26-5f15-b68f-2498d22c2edc",
+          "job_id": null,
+          "kind": "source_original",
+          "lineage": {},
+          "media_type": "application/epub+zip",
+          "project_id": "7d0b5a6d-b7aa-5046-a519-f72c5c73b768",
+          "sha256": "b37e462e7381a8685481a0c81901f6827a073cb36bebd9954bb3c33ef3db0fae",
+          "step_run_id": null
+        },
+        {
+          "bytes": 25577,
+          "filename": "epub-package-manifest.json",
+          "id": "53ce6170-3c20-5698-8edb-b16efb351d68",
+          "job_id": "12a8c420-b354-52e2-adb9-cd2ba3853a68",
+          "kind": "epub_package_manifest",
+          "lineage": {
+            "source_artifact_id": "1bfb8fe6-8e26-5f15-b68f-2498d22c2edc"
+          },
+          "media_type": "application/json",
+          "project_id": "7d0b5a6d-b7aa-5046-a519-f72c5c73b768",
+          "sha256": "d4fe4e8ad5e82e59a89180afe1563108dab409b027e75e41fe764f7135a1a01c",
+          "step_run_id": "11a2d393-3b46-537a-92cb-82a620192718"
+        },
+        {
+          "bytes": 200,
+          "filename": "epub-segments.json",
+          "id": "5d4bcf95-f7dc-5d38-a5ff-c57d241f7b15",
+          "job_id": "12a8c420-b354-52e2-adb9-cd2ba3853a68",
+          "kind": "epub_segments",
+          "lineage": {},
+          "media_type": "application/json",
+          "project_id": "7d0b5a6d-b7aa-5046-a519-f72c5c73b768",
+          "sha256": "06579bb8e93ad1127c4718c5ad46300b3e74834db99d7732e0e520070350bb05",
+          "step_run_id": "76585a0c-e220-5149-86d8-400bb98f16cd"
+        },
+        {
+          "bytes": 1300,
+          "filename": "epub-translations.json",
+          "id": "6a2b2240-1604-505c-b58a-23a781b7423a",
+          "job_id": "12a8c420-b354-52e2-adb9-cd2ba3853a68",
+          "kind": "epub_translations",
+          "lineage": {},
+          "media_type": "application/json",
+          "project_id": "7d0b5a6d-b7aa-5046-a519-f72c5c73b768",
+          "sha256": "9e80c5118ab5396e4cee3b89f58b31a93cb34278e4e95f4b585f36f1a3d620cb",
+          "step_run_id": "d67c71d2-6ff6-5271-a573-528053edf751"
+        },
+        {
+          "bytes": 430,
+          "filename": "qa-report.json",
+          "id": "001d9447-9156-5260-9029-c6844c8d075b",
+          "job_id": "12a8c420-b354-52e2-adb9-cd2ba3853a68",
+          "kind": "qa_report",
+          "lineage": {},
+          "media_type": "application/json",
+          "project_id": "7d0b5a6d-b7aa-5046-a519-f72c5c73b768",
+          "sha256": "4f7fc77d94c2c69593b696e1b14d9462012309a10017be4e09ba7b76cc76e657",
+          "step_run_id": "bea86fa0-7381-5f9e-9e20-dd80aba09fc6"
+        },
+        {
+          "bytes": 4682,
+          "filename": "EPUB_Round_Trip-translated.epub",
+          "id": "cf394892-9e9e-5920-899f-e3e5f583059b",
+          "job_id": "12a8c420-b354-52e2-adb9-cd2ba3853a68",
+          "kind": "novel_export_epub",
+          "lineage": {
+            "job_id": "12a8c420-b354-52e2-adb9-cd2ba3853a68",
+            "manifest_artifact_id": "53ce6170-3c20-5698-8edb-b16efb351d68",
+            "project_id": "7d0b5a6d-b7aa-5046-a519-f72c5c73b768",
+            "source_artifact_id": "1bfb8fe6-8e26-5f15-b68f-2498d22c2edc",
+            "source_epub_artifact_id": "1bfb8fe6-8e26-5f15-b68f-2498d22c2edc"
+          },
+          "media_type": "application/epub+zip",
+          "project_id": "7d0b5a6d-b7aa-5046-a519-f72c5c73b768",
+          "sha256": "e7f6e5f96cbe1dcd8c9ce749331e7f103ca2c1a90e57bec53fd16b74306face2",
+          "step_run_id": "9b937c30-aa68-5c99-91d1-3cd969a9ad8b"
+        },
+        {
+          "bytes": 1345,
+          "filename": "epub-validation-report.json",
+          "id": "9030a148-2fed-5705-9ae2-aed3e8b665d4",
+          "job_id": "12a8c420-b354-52e2-adb9-cd2ba3853a68",
+          "kind": "epub_validation_report",
+          "lineage": {
+            "epub_artifact_id": "cf394892-9e9e-5920-899f-e3e5f583059b"
+          },
+          "media_type": "application/json",
+          "project_id": "7d0b5a6d-b7aa-5046-a519-f72c5c73b768",
+          "sha256": "f5c86e2ec145723ee54a7b840de6e1ce03e65b131b6c4e7b00742ff8327fd6a3",
+          "step_run_id": "9b937c30-aa68-5c99-91d1-3cd969a9ad8b"
+        }
+      ],
+      "case": "epub3_round_trip",
+      "delivered_files": [
+        {
+          "artifact_id": "1bfb8fe6-8e26-5f15-b68f-2498d22c2edc",
+          "artifact_kind": "source_original",
+          "bytes": 4587,
+          "path": "acceptance/v0.2.0/artifacts/samples/epub/source-multichapter.epub",
+          "sha256": "b37e462e7381a8685481a0c81901f6827a073cb36bebd9954bb3c33ef3db0fae"
+        },
+        {
+          "artifact_id": "cf394892-9e9e-5920-899f-e3e5f583059b",
+          "artifact_kind": "novel_export_epub",
+          "bytes": 4682,
+          "path": "acceptance/v0.2.0/artifacts/samples/epub/translated-multichapter.epub",
+          "sha256": "e7f6e5f96cbe1dcd8c9ce749331e7f103ca2c1a90e57bec53fd16b74306face2"
+        },
+        {
+          "artifact_id": "9030a148-2fed-5705-9ae2-aed3e8b665d4",
+          "artifact_kind": "epub_validation_report",
+          "bytes": 1345,
+          "path": "acceptance/v0.2.0/artifacts/samples/epub/validation-report.json",
+          "sha256": "f5c86e2ec145723ee54a7b840de6e1ce03e65b131b6c4e7b00742ff8327fd6a3"
+        }
+      ],
+      "job": {
+        "adapter_id": null,
+        "error": null,
+        "id": "12a8c420-b354-52e2-adb9-cd2ba3853a68",
+        "pipeline_key": "novel_epub_v1",
+        "progress": 1.0,
+        "project_id": "7d0b5a6d-b7aa-5046-a519-f72c5c73b768",
+        "provider_id": "mock",
+        "status": "succeeded",
+        "steps": [
+          {
+            "attempt_count": 1,
+            "capability": "novel_parse",
+            "error": null,
+            "executor_id": null,
+            "executor_type": "internal",
+            "id": "11a2d393-3b46-537a-92cb-82a620192718",
+            "input_artifact_ids": [
+              "1bfb8fe6-8e26-5f15-b68f-2498d22c2edc"
+            ],
+            "key": "inspect_epub",
+            "order": 0,
+            "output_artifact_ids": [
+              "53ce6170-3c20-5698-8edb-b16efb351d68"
+            ],
+            "status": "succeeded"
+          },
+          {
+            "attempt_count": 1,
+            "capability": "text_segment",
+            "error": null,
+            "executor_id": null,
+            "executor_type": "internal",
+            "id": "76585a0c-e220-5149-86d8-400bb98f16cd",
+            "input_artifact_ids": [
+              "53ce6170-3c20-5698-8edb-b16efb351d68"
+            ],
+            "key": "segment_epub",
+            "order": 1,
+            "output_artifact_ids": [
+              "5d4bcf95-f7dc-5d38-a5ff-c57d241f7b15"
+            ],
+            "status": "succeeded"
+          },
+          {
+            "attempt_count": 1,
+            "capability": "text_translate",
+            "error": null,
+            "executor_id": "mock",
+            "executor_type": "provider",
+            "id": "d67c71d2-6ff6-5271-a573-528053edf751",
+            "input_artifact_ids": [
+              "5d4bcf95-f7dc-5d38-a5ff-c57d241f7b15"
+            ],
+            "key": "translate_text",
+            "order": 2,
+            "output_artifact_ids": [
+              "6a2b2240-1604-505c-b58a-23a781b7423a"
+            ],
+            "status": "succeeded"
+          },
+          {
+            "attempt_count": 1,
+            "capability": "translation_qa",
+            "error": null,
+            "executor_id": null,
+            "executor_type": "internal",
+            "id": "bea86fa0-7381-5f9e-9e20-dd80aba09fc6",
+            "input_artifact_ids": [
+              "6a2b2240-1604-505c-b58a-23a781b7423a"
+            ],
+            "key": "quality_check",
+            "order": 3,
+            "output_artifact_ids": [
+              "001d9447-9156-5260-9029-c6844c8d075b"
+            ],
+            "status": "succeeded"
+          },
+          {
+            "attempt_count": 1,
+            "capability": "epub_build",
+            "error": null,
+            "executor_id": null,
+            "executor_type": "internal",
+            "id": "9b937c30-aa68-5c99-91d1-3cd969a9ad8b",
+            "input_artifact_ids": [
+              "53ce6170-3c20-5698-8edb-b16efb351d68",
+              "6a2b2240-1604-505c-b58a-23a781b7423a",
+              "001d9447-9156-5260-9029-c6844c8d075b"
+            ],
+            "key": "export_epub",
+            "order": 4,
+            "output_artifact_ids": [
+              "cf394892-9e9e-5920-899f-e3e5f583059b",
+              "9030a148-2fed-5705-9ae2-aed3e8b665d4"
+            ],
+            "status": "succeeded"
+          }
+        ]
+      },
+      "mock_execution": {
+        "model": "mock-v1",
+        "provider_id": "mock"
+      },
+      "project": {
+        "id": "7d0b5a6d-b7aa-5046-a519-f72c5c73b768",
+        "kind": "novel",
+        "source_language": "zh-CN",
+        "sources": [
+          {
+            "artifact_id": "1bfb8fe6-8e26-5f15-b68f-2498d22c2edc",
+            "checksum": "b37e462e7381a8685481a0c81901f6827a073cb36bebd9954bb3c33ef3db0fae",
+            "id": "c1c44b61-7877-5a06-9caa-6225ab94c330",
+            "kind": "epub",
+            "metadata": {
+              "chapter_count": 4,
+              "cover_path": "EPUB/images/cover.png",
+              "creators": [
+                "陶宁"
+              ],
+              "descriptions": [
+                "一段跨越两章的短途航行。"
+              ],
+              "document_count": 5,
+              "epub_version": "3.0",
+              "format": "epub",
+              "language": "zh-CN",
+              "languages": [
+                "zh-CN"
+              ],
+              "navigation_documents": [
+                "EPUB/nav.xhtml"
+              ],
+              "resource_count": 9,
+              "subjects": [
+                "科幻"
+              ],
+              "text_unit_count": 26,
+              "title": "星港纪事",
+              "titles": [
+                "星港纪事"
+              ]
+            },
+            "original_name": "source-multichapter.epub",
+            "size": 4587
+          }
+        ],
+        "target_language": "en"
+      },
+      "verification": {
+        "byte_equal_preserved_resources": {
+          "EPUB/images/cover.png": true,
+          "EPUB/images/diagram.png": true,
+          "EPUB/images/paper.png": true,
+          "EPUB/styles/book.css": true
+        },
+        "creator_display_only_preserved": true,
+        "footnote_link_preserved": true,
+        "internal_chapter_link_preserved": true,
+        "mock_translation_marker_present": true,
+        "output_archive": {
+          "crc_valid": true,
+          "member_count": 12,
+          "openable": true
+        },
+        "output_language": [
+          "en"
+        ],
+        "output_valid": true,
+        "ruby_pronunciation_preserved": true,
+        "script_text_not_translated": true,
+        "source_archive": {
+          "crc_valid": true,
+          "member_count": 12,
+          "openable": true
+        },
+        "source_language": [
+          "zh-CN"
+        ],
+        "source_valid": true
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 191,
+          "filename": "source.txt",
+          "id": "54d0857e-3c4f-559a-ac6b-53db51f2b509",
+          "job_id": null,
+          "kind": "source_original",
+          "lineage": {},
+          "media_type": "text/plain",
+          "project_id": "e9171143-d303-510d-8c81-71e26dd2e066",
+          "sha256": "de810c9af217a7ebd41309990c72c4fbea5ae889abea7a8bdfec14ea9f56d0f6",
+          "step_run_id": null
+        },
+        {
+          "bytes": 109,
+          "filename": "encoding.json",
+          "id": "d41e4b99-d5ae-55a5-8e5c-5646b4722c1e",
+          "job_id": "76cd9865-8974-536d-9a26-a9994eb2b8a7",
+          "kind": "novel_encoding",
+          "lineage": {},
+          "media_type": "application/json",
+          "project_id": "e9171143-d303-510d-8c81-71e26dd2e066",
+          "sha256": "763521837f23ccf84806fb20127f0bb678a86e2dbc5fb3094e16d460af480a73",
+          "step_run_id": "f68bcbed-a321-51f0-b283-e34cf8fcd518"
+        },
+        {
+          "bytes": 191,
+          "filename": "source-normalized.txt",
+          "id": "731ae5bd-a2ce-5236-8ce3-2df6c3a6983a",
+          "job_id": "76cd9865-8974-536d-9a26-a9994eb2b8a7",
+          "kind": "novel_text_extracted",
+          "lineage": {
+            "source_artifact_id": "54d0857e-3c4f-559a-ac6b-53db51f2b509"
+          },
+          "media_type": "text/plain; charset=utf-8",
+          "project_id": "e9171143-d303-510d-8c81-71e26dd2e066",
+          "sha256": "de810c9af217a7ebd41309990c72c4fbea5ae889abea7a8bdfec14ea9f56d0f6",
+          "step_run_id": "bef3f605-7841-5266-8c5c-d3cd4bd6472c"
+        },
+        {
+          "bytes": 574,
+          "filename": "segments.json",
+          "id": "6827e4e6-626d-52be-b599-9058ead631ce",
+          "job_id": "76cd9865-8974-536d-9a26-a9994eb2b8a7",
+          "kind": "novel_segments",
+          "lineage": {},
+          "media_type": "application/json",
+          "project_id": "e9171143-d303-510d-8c81-71e26dd2e066",
+          "sha256": "832f6b31f4ef34fb685f45a8f42dbb63e50f514a3420cdffb2d9cbc65d71fe7d",
+          "step_run_id": "4a4fa446-b114-5a3d-b5b0-eac4012a65c0"
+        },
+        {
+          "bytes": 3849,
+          "filename": "translations.json",
+          "id": "9bd69961-5eae-57b2-9f6a-6f3ebcf349df",
+          "job_id": "76cd9865-8974-536d-9a26-a9994eb2b8a7",
+          "kind": "novel_translations",
+          "lineage": {},
+          "media_type": "application/json",
+          "project_id": "e9171143-d303-510d-8c81-71e26dd2e066",
+          "sha256": "42ce222f7bfee10cf1b7e346f6988053f8fbab1bec255e92c31f87b57e8656dc",
+          "step_run_id": "d8ca2a38-8e1e-53bd-a001-fbfbe18c4d94"
+        },
+        {
+          "bytes": 36,
+          "filename": "qa-report.json",
+          "id": "ae5372f0-50f3-517a-8209-e2fa183b665c",
+          "job_id": "76cd9865-8974-536d-9a26-a9994eb2b8a7",
+          "kind": "qa_report",
+          "lineage": {},
+          "media_type": "application/json",
+          "project_id": "e9171143-d303-510d-8c81-71e26dd2e066",
+          "sha256": "d8f61fe7341b140339eb7b51706fdd672fecf97db085989b78eee32fc562488b",
+          "step_run_id": "bbaab515-c133-584e-b693-b8b2e5acbf8b"
+        },
+        {
+          "bytes": 216,
+          "filename": "TXT_Regression-translated.txt",
+          "id": "c05dcb96-efa5-53af-8e5c-27f8638dc986",
+          "job_id": "76cd9865-8974-536d-9a26-a9994eb2b8a7",
+          "kind": "novel_export_txt",
+          "lineage": {},
+          "media_type": "text/plain; charset=utf-8",
+          "project_id": "e9171143-d303-510d-8c81-71e26dd2e066",
+          "sha256": "d36a739eec2208f105235f37cf59f585c4d2aecc17655c2c022782bfdbfd189c",
+          "step_run_id": "87a93444-8b81-5fe8-b52c-2929fa884f2f"
+        },
+        {
+          "bytes": 4043,
+          "filename": "TXT_Regression-translated.json",
+          "id": "705c93ff-715f-5165-bd9f-bcd3e7e7bdad",
+          "job_id": "76cd9865-8974-536d-9a26-a9994eb2b8a7",
+          "kind": "novel_export_json",
+          "lineage": {},
+          "media_type": "application/json",
+          "project_id": "e9171143-d303-510d-8c81-71e26dd2e066",
+          "sha256": "92c0b8cf5e724cc3982429fc23973fa5b65ddafdd0d226ef87f9d87200b644f3",
+          "step_run_id": "87a93444-8b81-5fe8-b52c-2929fa884f2f"
+        }
+      ],
+      "case": "txt_regression",
+      "delivered_files": [
+        {
+          "artifact_id": "54d0857e-3c4f-559a-ac6b-53db51f2b509",
+          "artifact_kind": "source_original",
+          "bytes": 191,
+          "path": "acceptance/v0.2.0/artifacts/samples/txt/source.txt",
+          "sha256": "de810c9af217a7ebd41309990c72c4fbea5ae889abea7a8bdfec14ea9f56d0f6"
+        },
+        {
+          "artifact_id": "c05dcb96-efa5-53af-8e5c-27f8638dc986",
+          "artifact_kind": "novel_export_txt",
+          "bytes": 216,
+          "path": "acceptance/v0.2.0/artifacts/samples/txt/translated.txt",
+          "sha256": "d36a739eec2208f105235f37cf59f585c4d2aecc17655c2c022782bfdbfd189c"
+        },
+        {
+          "artifact_id": "705c93ff-715f-5165-bd9f-bcd3e7e7bdad",
+          "artifact_kind": "novel_export_json",
+          "bytes": 4043,
+          "path": "acceptance/v0.2.0/artifacts/samples/txt/translated.json",
+          "sha256": "92c0b8cf5e724cc3982429fc23973fa5b65ddafdd0d226ef87f9d87200b644f3"
+        }
+      ],
+      "job": {
+        "adapter_id": null,
+        "error": null,
+        "id": "76cd9865-8974-536d-9a26-a9994eb2b8a7",
+        "pipeline_key": "novel_txt_v1",
+        "progress": 1.0,
+        "project_id": "e9171143-d303-510d-8c81-71e26dd2e066",
+        "provider_id": "mock",
+        "status": "succeeded",
+        "steps": [
+          {
+            "attempt_count": 1,
+            "capability": "novel_parse",
+            "error": null,
+            "executor_id": null,
+            "executor_type": "internal",
+            "id": "f68bcbed-a321-51f0-b283-e34cf8fcd518",
+            "input_artifact_ids": [
+              "54d0857e-3c4f-559a-ac6b-53db51f2b509"
+            ],
+            "key": "detect_encoding",
+            "order": 0,
+            "output_artifact_ids": [
+              "d41e4b99-d5ae-55a5-8e5c-5646b4722c1e"
+            ],
+            "status": "succeeded"
+          },
+          {
+            "attempt_count": 1,
+            "capability": "novel_parse",
+            "error": null,
+            "executor_id": null,
+            "executor_type": "internal",
+            "id": "bef3f605-7841-5266-8c5c-d3cd4bd6472c",
+            "input_artifact_ids": [
+              "54d0857e-3c4f-559a-ac6b-53db51f2b509",
+              "d41e4b99-d5ae-55a5-8e5c-5646b4722c1e"
+            ],
+            "key": "extract_text",
+            "order": 1,
+            "output_artifact_ids": [
+              "731ae5bd-a2ce-5236-8ce3-2df6c3a6983a"
+            ],
+            "status": "succeeded"
+          },
+          {
+            "attempt_count": 1,
+            "capability": "text_segment",
+            "error": null,
+            "executor_id": null,
+            "executor_type": "internal",
+            "id": "4a4fa446-b114-5a3d-b5b0-eac4012a65c0",
+            "input_artifact_ids": [
+              "731ae5bd-a2ce-5236-8ce3-2df6c3a6983a"
+            ],
+            "key": "segment_text",
+            "order": 2,
+            "output_artifact_ids": [
+              "6827e4e6-626d-52be-b599-9058ead631ce"
+            ],
+            "status": "succeeded"
+          },
+          {
+            "attempt_count": 1,
+            "capability": "text_translate",
+            "error": null,
+            "executor_id": "mock",
+            "executor_type": "provider",
+            "id": "d8ca2a38-8e1e-53bd-a001-fbfbe18c4d94",
+            "input_artifact_ids": [
+              "6827e4e6-626d-52be-b599-9058ead631ce"
+            ],
+            "key": "translate_text",
+            "order": 3,
+            "output_artifact_ids": [
+              "9bd69961-5eae-57b2-9f6a-6f3ebcf349df"
+            ],
+            "status": "succeeded"
+          },
+          {
+            "attempt_count": 1,
+            "capability": "translation_qa",
+            "error": null,
+            "executor_id": null,
+            "executor_type": "internal",
+            "id": "bbaab515-c133-584e-b693-b8b2e5acbf8b",
+            "input_artifact_ids": [
+              "9bd69961-5eae-57b2-9f6a-6f3ebcf349df"
+            ],
+            "key": "quality_check",
+            "order": 4,
+            "output_artifact_ids": [
+              "ae5372f0-50f3-517a-8209-e2fa183b665c"
+            ],
+            "status": "succeeded"
+          },
+          {
+            "attempt_count": 1,
+            "capability": "novel_export",
+            "error": null,
+            "executor_id": null,
+            "executor_type": "internal",
+            "id": "87a93444-8b81-5fe8-b52c-2929fa884f2f",
+            "input_artifact_ids": [
+              "9bd69961-5eae-57b2-9f6a-6f3ebcf349df",
+              "ae5372f0-50f3-517a-8209-e2fa183b665c"
+            ],
+            "key": "export_novel",
+            "order": 5,
+            "output_artifact_ids": [
+              "c05dcb96-efa5-53af-8e5c-27f8638dc986",
+              "705c93ff-715f-5165-bd9f-bcd3e7e7bdad"
+            ],
+            "status": "succeeded"
+          }
+        ]
+      },
+      "mock_execution": {
+        "model": "mock-v1",
+        "provider_id": "mock"
+      },
+      "project": {
+        "id": "e9171143-d303-510d-8c81-71e26dd2e066",
+        "kind": "novel",
+        "source_language": "zh-CN",
+        "sources": [
+          {
+            "artifact_id": "54d0857e-3c4f-559a-ac6b-53db51f2b509",
+            "checksum": "de810c9af217a7ebd41309990c72c4fbea5ae889abea7a8bdfec14ea9f56d0f6",
+            "id": "4ed874e9-79e5-5fee-97b7-a78f91da3033",
+            "kind": "txt",
+            "original_name": "source.txt",
+            "size": 191
+          }
+        ],
+        "target_language": "en"
+      },
+      "verification": {
+        "json_job_lineage_matches": true,
+        "mock_translation_marker_present": true,
+        "source_immutable_checksum_matches": true
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 493,
+          "filename": "source.cbz",
+          "id": "78482d5a-43b6-53fd-973a-055eaa47bd94",
+          "job_id": null,
+          "kind": "source_original",
+          "lineage": {},
+          "media_type": "application/x-cbr",
+          "project_id": "1eafefc0-8b7f-599e-8542-9d6a7ce85200",
+          "sha256": "00fc3314ee31c3229f6141450dd1d9a6f796acce3e112d102c7fb074ea658f9a",
+          "step_run_id": null
+        },
+        {
+          "bytes": 236,
+          "filename": "0001-001.png",
+          "id": "8b848dc1-e2f2-5a3c-bb45-bc32410ef9eb",
+          "job_id": "f73c5b45-1e2e-59ba-b89b-6cd37ca7fe52",
+          "kind": "manga_page_source",
+          "lineage": {
+            "source_artifact_id": "78482d5a-43b6-53fd-973a-055eaa47bd94"
+          },
+          "media_type": "image/png",
+          "project_id": "1eafefc0-8b7f-599e-8542-9d6a7ce85200",
+          "sha256": "f04573ad6195ec8d55c2c087c3d407fdbd00445638c9096f8d8ee05911eb8d16",
+          "step_run_id": "fa09e9a9-ec3b-5521-9d8e-7682a4aa9b37"
+        },
+        {
+          "bytes": 236,
+          "filename": "0002-002.png",
+          "id": "2c4ab3b9-e8c5-59be-be82-3d4bb9cd0af8",
+          "job_id": "f73c5b45-1e2e-59ba-b89b-6cd37ca7fe52",
+          "kind": "manga_page_source",
+          "lineage": {
+            "source_artifact_id": "78482d5a-43b6-53fd-973a-055eaa47bd94"
+          },
+          "media_type": "image/png",
+          "project_id": "1eafefc0-8b7f-599e-8542-9d6a7ce85200",
+          "sha256": "e81bd350e6d36e5e911063a518f55a7e488cf63ce90c75c66e8bb7b98d2268ab",
+          "step_run_id": "fa09e9a9-ec3b-5521-9d8e-7682a4aa9b37"
+        },
+        {
+          "bytes": 329,
+          "filename": "manga-manifest.json",
+          "id": "73866d7e-80fa-5ae4-b5a1-4e93070a5e23",
+          "job_id": "f73c5b45-1e2e-59ba-b89b-6cd37ca7fe52",
+          "kind": "manga_manifest",
+          "lineage": {},
+          "media_type": "application/json",
+          "project_id": "1eafefc0-8b7f-599e-8542-9d6a7ce85200",
+          "sha256": "22190d471ad0484fe6ef80b185562dea27283ae9086adbd2891058ed47692171",
+          "step_run_id": "fa09e9a9-ec3b-5521-9d8e-7682a4aa9b37"
+        },
+        {
+          "bytes": 236,
+          "filename": "translated-0001-001.png",
+          "id": "c30b966e-f605-555a-b7e2-0382bc626ae3",
+          "job_id": "f73c5b45-1e2e-59ba-b89b-6cd37ca7fe52",
+          "kind": "manga_page_translated",
+          "lineage": {
+            "adapter_id": "mock-manga",
+            "source_page_artifact_id": "8b848dc1-e2f2-5a3c-bb45-bc32410ef9eb"
+          },
+          "media_type": "application/octet-stream",
+          "project_id": "1eafefc0-8b7f-599e-8542-9d6a7ce85200",
+          "sha256": "f04573ad6195ec8d55c2c087c3d407fdbd00445638c9096f8d8ee05911eb8d16",
+          "step_run_id": "4bea555b-ab0d-52aa-b4c5-666c931e3f11"
+        },
+        {
+          "bytes": 118,
+          "filename": "adapter-0001.json",
+          "id": "a4927690-9fc9-5a88-a128-7380a25c78a5",
+          "job_id": "f73c5b45-1e2e-59ba-b89b-6cd37ca7fe52",
+          "kind": "adapter_raw_output",
+          "lineage": {
+            "adapter_id": "mock-manga"
+          },
+          "media_type": "application/json",
+          "project_id": "1eafefc0-8b7f-599e-8542-9d6a7ce85200",
+          "sha256": "aa10b3025b599d1c4d4b0a580a8eb4aba35a5ab2ce93cb91e96cbcecbd00b784",
+          "step_run_id": "4bea555b-ab0d-52aa-b4c5-666c931e3f11"
+        },
+        {
+          "bytes": 236,
+          "filename": "translated-0002-002.png",
+          "id": "a59372a3-7b97-5bc9-b2e7-0b31e23268c9",
+          "job_id": "f73c5b45-1e2e-59ba-b89b-6cd37ca7fe52",
+          "kind": "manga_page_translated",
+          "lineage": {
+            "adapter_id": "mock-manga",
+            "source_page_artifact_id": "2c4ab3b9-e8c5-59be-be82-3d4bb9cd0af8"
+          },
+          "media_type": "application/octet-stream",
+          "project_id": "1eafefc0-8b7f-599e-8542-9d6a7ce85200",
+          "sha256": "e81bd350e6d36e5e911063a518f55a7e488cf63ce90c75c66e8bb7b98d2268ab",
+          "step_run_id": "4bea555b-ab0d-52aa-b4c5-666c931e3f11"
+        },
+        {
+          "bytes": 118,
+          "filename": "adapter-0002.json",
+          "id": "5846763f-4cb7-5326-b364-70d17f43c3c3",
+          "job_id": "f73c5b45-1e2e-59ba-b89b-6cd37ca7fe52",
+          "kind": "adapter_raw_output",
+          "lineage": {
+            "adapter_id": "mock-manga"
+          },
+          "media_type": "application/json",
+          "project_id": "1eafefc0-8b7f-599e-8542-9d6a7ce85200",
+          "sha256": "d8c35d96ee063e950c908f270142de6a44dd09ce45455537360b6d0a0aa02570",
+          "step_run_id": "4bea555b-ab0d-52aa-b4c5-666c931e3f11"
+        },
+        {
+          "bytes": 473,
+          "filename": "Manga_Mock_Regression-translated.cbz",
+          "id": "f23d478f-4f0f-50a6-b014-0f035d2573f4",
+          "job_id": "f73c5b45-1e2e-59ba-b89b-6cd37ca7fe52",
+          "kind": "manga_export_cbz",
+          "lineage": {},
+          "media_type": "application/vnd.comicbook+zip",
+          "project_id": "1eafefc0-8b7f-599e-8542-9d6a7ce85200",
+          "sha256": "f064b62f988f744d36d10ca7ec8582d75261f35427a13082bdcec0342dd38857",
+          "step_run_id": "e9df5bff-2487-5fd7-b212-0249109598d3"
+        }
+      ],
+      "case": "manga_cbz_mock_regression",
+      "delivered_files": [
+        {
+          "artifact_id": "78482d5a-43b6-53fd-973a-055eaa47bd94",
+          "artifact_kind": "source_original",
+          "bytes": 493,
+          "path": "acceptance/v0.2.0/artifacts/samples/manga/source.cbz",
+          "sha256": "00fc3314ee31c3229f6141450dd1d9a6f796acce3e112d102c7fb074ea658f9a"
+        },
+        {
+          "artifact_id": "f23d478f-4f0f-50a6-b014-0f035d2573f4",
+          "artifact_kind": "manga_export_cbz",
+          "bytes": 473,
+          "path": "acceptance/v0.2.0/artifacts/samples/manga/translated.cbz",
+          "sha256": "f064b62f988f744d36d10ca7ec8582d75261f35427a13082bdcec0342dd38857"
+        }
+      ],
+      "job": {
+        "adapter_id": "mock-manga",
+        "error": null,
+        "id": "f73c5b45-1e2e-59ba-b89b-6cd37ca7fe52",
+        "pipeline_key": "manga_full_v1",
+        "progress": 1.0,
+        "project_id": "1eafefc0-8b7f-599e-8542-9d6a7ce85200",
+        "provider_id": "mock",
+        "status": "succeeded",
+        "steps": [
+          {
+            "attempt_count": 1,
+            "capability": "manga_import",
+            "error": null,
+            "executor_id": null,
+            "executor_type": "internal",
+            "id": "fa09e9a9-ec3b-5521-9d8e-7682a4aa9b37",
+            "input_artifact_ids": [
+              "78482d5a-43b6-53fd-973a-055eaa47bd94"
+            ],
+            "key": "prepare_manga",
+            "order": 0,
+            "output_artifact_ids": [
+              "73866d7e-80fa-5ae4-b5a1-4e93070a5e23",
+              "8b848dc1-e2f2-5a3c-bb45-bc32410ef9eb",
+              "2c4ab3b9-e8c5-59be-be82-3d4bb9cd0af8"
+            ],
+            "status": "succeeded"
+          },
+          {
+            "attempt_count": 1,
+            "capability": "manga_full_pipeline",
+            "error": null,
+            "executor_id": "mock-manga",
+            "executor_type": "adapter",
+            "id": "4bea555b-ab0d-52aa-b4c5-666c931e3f11",
+            "input_artifact_ids": [
+              "73866d7e-80fa-5ae4-b5a1-4e93070a5e23",
+              "8b848dc1-e2f2-5a3c-bb45-bc32410ef9eb",
+              "2c4ab3b9-e8c5-59be-be82-3d4bb9cd0af8"
+            ],
+            "key": "translate_manga",
+            "order": 1,
+            "output_artifact_ids": [
+              "c30b966e-f605-555a-b7e2-0382bc626ae3",
+              "a4927690-9fc9-5a88-a128-7380a25c78a5",
+              "a59372a3-7b97-5bc9-b2e7-0b31e23268c9",
+              "5846763f-4cb7-5326-b364-70d17f43c3c3"
+            ],
+            "status": "succeeded"
+          },
+          {
+            "attempt_count": 1,
+            "capability": "cbz_build",
+            "error": null,
+            "executor_id": null,
+            "executor_type": "internal",
+            "id": "e9df5bff-2487-5fd7-b212-0249109598d3",
+            "input_artifact_ids": [
+              "c30b966e-f605-555a-b7e2-0382bc626ae3",
+              "a4927690-9fc9-5a88-a128-7380a25c78a5",
+              "a59372a3-7b97-5bc9-b2e7-0b31e23268c9",
+              "5846763f-4cb7-5326-b364-70d17f43c3c3"
+            ],
+            "key": "export_manga",
+            "order": 2,
+            "output_artifact_ids": [
+              "f23d478f-4f0f-50a6-b014-0f035d2573f4"
+            ],
+            "status": "succeeded"
+          }
+        ]
+      },
+      "mock_execution": {
+        "adapter_id": "mock-manga",
+        "adapter_type": "built-in deterministic offline mock",
+        "provider_id": "mock"
+      },
+      "project": {
+        "id": "1eafefc0-8b7f-599e-8542-9d6a7ce85200",
+        "kind": "manga",
+        "source_language": "ja",
+        "sources": [
+          {
+            "artifact_id": "78482d5a-43b6-53fd-973a-055eaa47bd94",
+            "checksum": "00fc3314ee31c3229f6141450dd1d9a6f796acce3e112d102c7fb074ea658f9a",
+            "id": "9f327b63-7366-5694-83e9-714401b12b40",
+            "kind": "cbz",
+            "original_name": "source.cbz",
+            "size": 493
+          }
+        ],
+        "target_language": "en"
+      },
+      "verification": {
+        "output_archive": {
+          "crc_valid": true,
+          "member_count": 2,
+          "openable": true
+        },
+        "page_count_preserved": true,
+        "source_archive": {
+          "crc_valid": true,
+          "member_count": 2,
+          "openable": true
+        },
+        "zip_timestamps_fixed_by_acceptance_harness": true
+      }
+    }
+  ],
+  "determinism": {
+    "application_ids": "UUIDv5 sequence fixed by acceptance harness",
+    "fixture_payloads": "fixed",
+    "runtime_database": "temporary and removed after generation",
+    "zip_member_timestamps": [
+      2020,
+      1,
+      2,
+      3,
+      4,
+      6
+    ]
+  },
+  "execution_boundary": "ApplicationService + JobRunner",
+  "generator": "tools/generate_v020_acceptance.py",
+  "milestone": "v0.2.0",
+  "mock_only": true,
+  "network_used": false,
+  "paid_provider_used": false,
+  "schema_version": 1
+}

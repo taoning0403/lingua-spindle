@@ -1,0 +1,59 @@
+{
+  "default_limits": {
+    "max_archive_compression_ratio": 100.0,
+    "max_archive_files": 2000,
+    "max_archive_member_bytes": 104857600,
+    "max_archive_path_depth": 20,
+    "max_archive_uncompressed_bytes": 1048576000,
+    "max_upload_bytes": 104857600
+  },
+  "fixture": {
+    "committed": false,
+    "construction": "deterministic EPUB3 with a stored 24 MiB binary resource, 260 XHTML chapters, and 240 stored auxiliary resources",
+    "input_bytes": 25307593,
+    "requested_auxiliary_resource_count": 240,
+    "requested_chapter_count": 260,
+    "requested_large_resource_bytes": 25165824,
+    "sha256": "5bede6bd858a4b0f60e47b49185713e0aad0e3164adf63ce5a4c790c51147088",
+    "temporary_only": true
+  },
+  "inspection": {
+    "compressed_payload_bytes": 25245503,
+    "document_count": 261,
+    "elapsed_seconds": 0.028224,
+    "expanded_bytes": 25309480,
+    "maximum_compression_ratio": 13.03204134366925,
+    "maximum_member_expanded_bytes": 25165824,
+    "maximum_path_depth": 3,
+    "member_count": 505,
+    "process_peak_rss_basis": "ru_maxrss bytes on macOS",
+    "process_peak_rss_bytes": 65355776,
+    "text_unit_count": 523,
+    "valid": true
+  },
+  "limit_headroom_multiples": {
+    "archive_members": 3.9604,
+    "expanded_bytes": 41.4302,
+    "largest_member_bytes": 4.1667,
+    "maximum_compression_ratio": 7.6734,
+    "path_depth": 6.6667,
+    "upload_bytes": 4.1433
+  },
+  "limitations": [
+    "One cold subprocess sample on the recorded host; elapsed time and peak RSS vary.",
+    "The 24 MiB resource is ZIP_STORED, so this is not a compression-bomb sample.",
+    "Inspection reads and validates every member but does not invoke Provider translation.",
+    "The fixture is synthetic and does not predict reader rendering or publisher CSS cost.",
+    "The default thresholds are safety bounds, not throughput or memory guarantees."
+  ],
+  "measurement": "inspect_epub in a fresh subprocess",
+  "milestone": "v0.2.0",
+  "platform": {
+    "machine": "arm64",
+    "python_implementation": "CPython",
+    "python_version": "3.12.11",
+    "release": "25.4.0",
+    "system": "Darwin"
+  },
+  "schema_version": 1
+}

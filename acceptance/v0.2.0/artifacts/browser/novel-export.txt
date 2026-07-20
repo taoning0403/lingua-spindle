@@ -1,0 +1,3 @@
+[fr] Browser first.
+
+[fr] Browser second.

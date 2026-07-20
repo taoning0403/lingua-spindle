@@ -70,11 +70,18 @@ The final v0.1.0 evidence remains immutable and indexed at `acceptance/v0.1.0/RE
 its later Docker/WSL supplement and the limits of native Windows, real manga-model, and real paid-
 Provider execution.
 
-v0.2.0 results belong only under `acceptance/v0.2.0/`. The acceptance report must record the exact
-commands and distinguish Pass, Fail, Blocked, Not executed, and optional external tests. This
-state document does not turn an in-progress command, Mock Provider run, fake HTTP Adapter test, or
-unavailable external environment into a passing result. Consult that report for the current
-executable/static/browser/Compose/resource-measurement matrix once generated.
+The v0.2.0 source candidate `f662c4844bd7990b3197f39314841b9c903deae1` has completed the
+required local acceptance matrix with final status **Pass / release pending**. Evidence belongs
+only under `acceptance/v0.2.0/`; the human-readable conclusion is in
+`acceptance/v0.2.0/reports/acceptance-report.md`. No v0.2.0 tag, push, or GitHub Release was created.
+
+Final executable evidence includes 149 passing tests with 3 explicit default skips and 83% total
+branch-aware coverage; a real Chromium rerun with 2 browser tests passing and only the paid
+Provider test skipped; deterministic Mock EPUB/TXT/manga artifacts; installed-Wheel Web and
+migration-resource smoke checks; and an isolated Linux/arm64 Docker Compose run proving health,
+loopback publication, non-root/read-only execution, HTTP Artifact integrity, and restart
+persistence. Native Windows/WSL, a real paid Provider, a real manga model, and external
+`epubcheck` remain accurately marked as optional external tests not executed in this run.
 
 Required v0.2.0 gates include EPUB unit/integration/interface/browser coverage, malicious and
 resource-limit fixtures, export re-import/resource equality, controls/recovery/reuse, TXT/manga
