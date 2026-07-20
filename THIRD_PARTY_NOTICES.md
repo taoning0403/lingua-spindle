@@ -6,11 +6,12 @@ external services. The machine-readable/human-reviewable source of record is
 
 ## Runtime libraries
 
-The tested v0.1.0 direct runtime libraries use permissive licenses compatible with an Apache-2.0
+The tested v0.2.0 direct runtime libraries use permissive licenses compatible with an Apache-2.0
 core: FastAPI (MIT), Uvicorn (BSD-3-Clause), Typer (MIT), SQLAlchemy (MIT), HTTPX
 (BSD-3-Clause), Pydantic (MIT), charset-normalizer (MIT), python-multipart (Apache-2.0), and
 platformdirs (MIT). Their transitive dependencies remain under their own notices included in the
-installed distributions. `constraints-v010.txt` records the direct versions used in acceptance.
+installed distributions. `constraints-v020.txt` records the current direct versions;
+`constraints-v010.txt` remains as the historical v0.1.0 acceptance constraint.
 
 Development-only tools include pytest/pytest-cov, Ruff, mypy, and Playwright for Python. They are
 not imported by the production package. Playwright browser binaries are installed separately for
@@ -37,7 +38,7 @@ deployment or redistribution.
 ## Research candidates
 
 `comic-translate`, `BallonsTranslator`, Ebook-Translator-Calibre-Plugin, and `docutranslate` were
-evaluated but are not runtime components of v0.1.0. Their mention in research documentation does
+evaluated but are not runtime components of v0.2.0. Their mention in research documentation does
 not bundle, depend on, or relicense them.
 
 If the inventory and an installed package's license disagree, the upstream package license

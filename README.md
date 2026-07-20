@@ -4,10 +4,16 @@ LinguaSpindle is an open-source translation orchestration engine for novels and 
 imported sources immutable, runs restart-safe ordered Pipelines, and exposes the same application
 core through a no-login Web GUI, the `linguaspindle` CLI, and an asynchronous HTTP API.
 
-v0.1.0 provides two complete paths:
+v0.2.0 provides three paths through the same Project/Job/Step/Segment/Artifact model:
 
 - TXT → paragraph-aware segments → Mock or OpenAI-compatible translation → QA → TXT/JSON; and
+- unencrypted EPUB 2/3 → structure-aware visible text → translation/QA → validated EPUB; and
 - image/CBZ → capability-selected manga Adapter → translated pages/raw output → CBZ.
+
+The EPUB path preserves reading order, navigation, links, anchors, cover, images, CSS, fonts, and
+other non-text resources. Missing or failed translated text falls back to its immutable source
+text. See [EPUB support and reconstruction rules](docs/epub.md) for the exact text-node policy,
+validation, safety limits, and known limits.
 
 The built-in mocks make the complete core demonstrable offline. The first real manga integration
 is a protocol-only Adapter for a separately operated
@@ -92,6 +98,26 @@ linguaspindle artifacts list PROJECT_ID
 linguaspindle export PROJECT_ID --format txt
 ```
 
+For EPUB, use the same commands with an `.epub` source. The source kind selects the EPUB Pipeline
+unless `--pipeline` is supplied explicitly:
+
+```bash
+linguaspindle projects create \
+  --name "Sample EPUB" \
+  --kind novel \
+  --source-language en \
+  --target-language zh-CN \
+  --source ./sample.epub
+linguaspindle run PROJECT_ID --provider mock
+linguaspindle export PROJECT_ID --format epub --output ./sample.zh-CN.epub
+```
+
+`--output` copies the immutable export Artifact without loading it all into memory. It refuses to
+replace an existing path unless `--overwrite` is given.
+
+Successful CLI commands exit `0`; failed doctor/availability checks exit `1`; normalized
+configuration/application errors print a JSON error envelope and exit `2`, suitable for scripts.
+
 `linguaspindle run` waits by default. The Web/API background worker claims queued Jobs
 asynchronously. Pause and cancel requests take effect at safe segment/page boundaries; an
 external Adapter that cannot interrupt immediately remains `cancelling` until that boundary.
@@ -116,6 +142,10 @@ curl -sS -X POST http://127.0.0.1:8765/api/projects/PROJECT_ID/jobs \
 
 curl -sS http://127.0.0.1:8765/api/jobs/JOB_ID
 ```
+
+Use `source=@book.epub;type=application/epub+zip` for EPUB. Project uploads are streamed into the
+managed Artifact store with a configured byte limit; Artifact downloads use a file response
+instead of constructing the whole payload in application memory.
 
 Interactive OpenAPI documentation is at <http://127.0.0.1:8765/docs>. See the
 [API guide](docs/api.md) for lifecycle and error semantics.
@@ -155,11 +185,11 @@ See [Adapter development and operations](docs/adapter-development.md) and the
 ## Development and verification
 
 ```bash
-python -m pip install -c constraints-v010.txt -e '.[dev]'
-ruff format --check src tests
-ruff check src tests
-mypy src
-python -m compileall -q src tests
+python -m pip install -c constraints-v020.txt -e '.[dev]'
+ruff format --check src tests tools
+ruff check src tests tools
+mypy src tools/generate_v020_acceptance.py
+python -m compileall -q src tests tools
 pytest -q
 ```
 
@@ -171,8 +201,9 @@ LINGUASPINDLE_RUN_BROWSER_TESTS=1 pytest -q -m browser
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), the factual
-[v0.1.0 acceptance archive](acceptance/v0.1.0/README.md), and the current
-[project state](docs/PROJECT_STATE.md).
+[versioned acceptance archive](acceptance/README.md), and the current
+[project state](docs/PROJECT_STATE.md). v0.2.0 is not tagged or released until its acceptance
+report has been reviewed.
 
 ## Architecture and licensing
 

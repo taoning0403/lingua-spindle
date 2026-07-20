@@ -25,7 +25,7 @@ external integration. Such changes need an ADR and license review.
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -c constraints-v010.txt -e '.[dev]'
+python -m pip install -c constraints-v020.txt -e '.[dev]'
 ```
 
 On Windows PowerShell use `.venv\Scripts\Activate.ps1`. The supported Python range begins at
@@ -36,10 +36,10 @@ On Windows PowerShell use `.venv\Scripts\Activate.ps1`. The supported Python ran
 Run the checks relevant to your change; before a pull request, run all of these:
 
 ```bash
-ruff format --check src tests
-ruff check src tests
-mypy src
-python -m compileall -q src tests
+ruff format --check src tests tools
+ruff check src tests tools
+mypy src tools/generate_v020_acceptance.py
+python -m compileall -q src tests tools
 pytest -q
 ```
 
@@ -70,7 +70,8 @@ environment blockers.
 
 Update only maintained context whose facts changed, following `AGENTS.md`. Keep pull requests
 focused and describe verification commands and outcomes. Do not commit `.env`, database files,
-Artifact payloads, model weights, fonts, virtual environments, or generated browser downloads.
+runtime Artifact payloads, model weights, fonts, virtual environments, or ad hoc browser
+downloads. Compact versioned acceptance fixtures/evidence follow `acceptance/README.md` instead.
 
 By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md) and certify that
 you have the right to submit your contribution under Apache-2.0.

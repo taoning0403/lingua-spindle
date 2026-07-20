@@ -94,6 +94,8 @@ def test_nested_image_directory_is_normalized_to_a_cbz(
         ("compression_ratio", ErrorCode.ARCHIVE_LIMIT_EXCEEDED),
         ("path_depth", ErrorCode.ARCHIVE_LIMIT_EXCEEDED),
         ("ambiguous_name", ErrorCode.ARCHIVE_UNSAFE),
+        ("unicode_ambiguous_name", ErrorCode.ARCHIVE_UNSAFE),
+        ("directory_members", ErrorCode.ARCHIVE_LIMIT_EXCEEDED),
     ],
 )
 def test_manga_archives_share_bounded_zip_security_rules(
@@ -110,9 +112,18 @@ def test_manga_archives_share_bounded_zip_security_rules(
         elif variation == "path_depth":
             service.settings.max_archive_path_depth = 3
             archive.writestr("a/b/c/page.png", b"image")
-        else:
+        elif variation == "ambiguous_name":
             archive.writestr("Page.PNG", b"one")
             archive.writestr("page.png", b"two")
+        elif variation == "unicode_ambiguous_name":
+            archive.writestr("caf\N{LATIN SMALL LETTER E WITH ACUTE}.png", b"one")
+            archive.writestr("cafe\N{COMBINING ACUTE ACCENT}.png", b"two")
+        else:
+            service.settings.max_archive_files = 3
+            archive.writestr("one/", b"")
+            archive.writestr("two/", b"")
+            archive.writestr("three/", b"")
+            archive.writestr("page.png", b"image")
     project = service.create_project(
         name=f"Bounded manga {variation}",
         kind="manga",

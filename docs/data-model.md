@@ -1,7 +1,8 @@
 # Data model
 
-SQLite migration `src/linguaspindle/migrations/0001_initial.sql` implements the v0.1.0 relational
-model through SQLAlchemy classes in `models.py`.
+SQLite migrations `src/linguaspindle/migrations/0001_initial.sql` and `0002_epub.sql` implement the
+v0.2.0 relational model through SQLAlchemy classes in `models.py`. Migration 0002 extends existing
+v0.1.0 rows in place; it does not replace the database or require a new data root.
 
 ```text
 LinguaSpindle instance
@@ -37,10 +38,12 @@ SQLite enables foreign keys, WAL, and a five-second busy timeout for each connec
 owns Sources, Jobs, and Artifacts. Deletion cascades relational children only after application
 confirmation, then bounded storage cleanup removes its payload subtree.
 
-`sources` stores original name, validated kind, media type, size, checksum, import time, and the
-Artifact containing the copied bytes. Source-to-Artifact deletion is restricted so a live Source
-cannot point to removed metadata. A workflow never updates the original payload; re-import would
-create a new Source/Artifact.
+`sources` stores original name, validated kind (`txt`, `epub`, `cbz`, or `image`), media type, size,
+checksum, import time, compact inspection metadata, and the Artifact containing the copied bytes.
+EPUB inspection metadata includes version, title/creator/language values, cover/navigation display
+data, and chapter/document/resource/text-unit counts; the full structural manifest is a generated
+Artifact. Source-to-Artifact deletion is restricted so a live Source cannot point to removed
+metadata. A workflow never updates the original payload; re-import creates a new Source/Artifact.
 
 ## Job and StepRun
 
@@ -84,8 +87,9 @@ Payload publication precedes row commit and is atomic within the destination dir
 commit fails, the new payload is removed. Reads check the stored byte size; checksums are exposed
 for independent integrity verification.
 
-Kinds used by v0.1.0 include source, encoding, extracted text, segments, translations, QA,
-TXT/JSON exports, manga manifests/pages, Adapter raw output, and CBZ export.
+Kinds used by v0.2.0 include source, encoding, extracted text, TXT/EPUB segments and translations,
+QA, EPUB package/validation reports, TXT/JSON/EPUB exports, manga manifests/pages, Adapter raw
+output, and CBZ export.
 
 ## TranslationProfile and ProviderConfig
 
@@ -100,11 +104,22 @@ Settings and is reported publicly as a configured boolean.
 
 ## TranslationSegment and QaFinding
 
-`translation_segments` is unique by Job and sequence. It stores Project/Job, source and optional
-translated text, status, model, Profile snapshot, prompt version, normalized error, and timestamps.
-This lets retry skip successful segments and target failed ones without disturbing order. API/GUI
-queries default to the most recently created Job with segments; an explicit Job ID accesses
-history.
+`translation_segments` is unique by Job and sequence. Every row stores Project/Job, source and
+optional translated text, status, model, Profile snapshot, prompt version, normalized error, and
+timestamps. EPUB rows additionally store source Artifact, source document, content role, a JSON
+XML-slot locator, source-text hash, full translation-input hash, and optional reused Segment ID.
+The self-reference uses `SET NULL`; historical reuse remains informative without preventing
+Project/Job deletion.
+
+The input hash is conservative: source archive/content/location plus effective non-secret
+language, Provider/model, style, prompt, model parameters, and context policy must match before a
+successful earlier Segment in the same Project is reused. TXT retains its existing per-Job
+behavior. Indexes on Project/input-hash/status and Job/document/sequence support reuse lookup and
+ordered chapter/document inspection.
+
+These fields let retry skip successful Segments, target failed ones without disturbing order, and
+reconstruct an EPUB slot deterministically. API/GUI queries default to the most recently created
+Job with Segments; an explicit Job ID accesses history.
 
 `qa_findings` references Project, Job, and optional segment with category, severity, message, and
 time. Deleting/replacing a Job's segments also removes their findings. v0.1.0 QA is diagnostic and
@@ -119,4 +134,22 @@ read-only, not an editorial revision model.
 - Remain `cancelling` until an active safe boundary is reached.
 - Keep source bytes immutable and Artifact keys under the configured root.
 - Never publish a successful Artifact row for a missing/partial payload.
+- Never treat a staged upload or temporary EPUB export as a Project/Artifact after validation
+  failure; remove the temporary payload.
+- Reuse an EPUB translation only when its complete translation-input hash matches.
+- Rebuild EPUB from the immutable source and publish the output as a different Artifact.
+- Reject Project deletion while a related Job is non-terminal; terminal cancellation precedes
+  deletion.
 - Never store the runtime Provider key or a secret-shaped configuration field.
+
+## Forward migration, backup, and rollback
+
+Schema migrations and their `schema_migrations` marker are committed atomically. On first v0.2.0
+startup, `0002_epub.sql` adds nullable/defaulted Source and Segment fields plus indexes, so v0.1.0
+TXT/manga records remain readable with empty/default EPUB metadata.
+
+Before upgrading, stop writes and back up the entire data root, including SQLite, WAL/SHM when
+present, and Artifact payloads. Application migrations are forward-only: rollback means stop
+v0.2.0, restore the complete pre-upgrade data-root backup, then run v0.1.0. Do not run v0.1.0
+against a database already migrated to schema 0002, and do not restore only SQLite or only the
+Artifact directory.

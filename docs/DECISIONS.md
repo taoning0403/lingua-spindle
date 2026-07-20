@@ -12,10 +12,11 @@ consolidated design.
 | [0004 — Python modular monolith, SQLite, and a durable in-process runner](adr/0004-python-modular-monolith-and-sqlite-runner.md) | Accepted | Use one Python application core, SQLite plus local Artifacts, forward-only migrations, and a restart-aware in-process worker shared by all interfaces. |
 | [0005 — Runtime-only Provider secrets](adr/0005-runtime-only-provider-secrets.md) | Accepted | Resolve API keys from runtime environment only; persist and display no secret or secret derivative. |
 | [0006 — manga-image-translator external Adapter](adr/0006-manga-image-translator-external-adapter.md) | Accepted | Integrate the GPL upstream only as an operator-managed HTTP service, distribute none of its uncertain weights/fonts, and test through a fake service. |
+| [0007 — Structure-preserving EPUB round trip and bounded archive processing](adr/0007-epub-round-trip-and-bounded-archive-processing.md) | Accepted | Extend the existing Source/Segment/Artifact pipeline with stable EPUB text locators, deterministic reuse, source-based reconstruction, independent validation, streamed payload I/O, and centralized ZIP resource guards. |
 
 ## Recording a decision
 
-1. Add the next numbered file under `docs/adr/` (currently `0006`).
+1. Add the next numbered file under `docs/adr/` (currently `0007`).
 2. Record date, status, context, decision, and consequences.
 3. Add a concise row here and update consolidated architecture/data-model/project context.
 4. Supersede an accepted ADR with a new ADR when reversing it; do not rewrite history to hide the

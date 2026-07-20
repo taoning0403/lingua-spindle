@@ -1,6 +1,6 @@
 # Architecture
 
-LinguaSpindle v0.1.0 is a local-first Python modular monolith with process-separated external
+LinguaSpindle v0.2.0 is a local-first Python modular monolith with process-separated external
 capabilities. Windows, Linux, server, Docker, Web, CLI, and API use one business implementation.
 
 ```text
@@ -19,7 +19,7 @@ Static Web GUI       Typer CLI       FastAPI / OpenAPI
                SQLite metadata  local immutable payloads
 ```
 
-ADRs 0001–0006 own the durable boundaries. The implementation is intentionally one-host and does
+ADRs 0001–0007 own the durable boundaries. The implementation is intentionally one-host and does
 not introduce a broker, distributed worker, external database, frontend build service, or
 application identity layer.
 
@@ -35,7 +35,9 @@ application identity layer.
 - Server-served HTML/CSS/ES-module GUI; polling is the only progress transport.
 - pytest, Ruff, mypy, coverage, and opt-in Playwright Chromium acceptance.
 
-ADR 0004 records why this stack fits a single-instance v0.1.0.
+ADR 0004 records why this stack fits a single-instance deployment. EPUB inspection/reconstruction
+uses the Python standard library ZIP/XML implementation plus the existing storage and Job
+boundaries; it does not add an EPUB service or external runtime dependency.
 
 ## Interface and application boundary
 
@@ -48,6 +50,12 @@ The FastAPI lifespan constructs one `ApplicationService` and one `JobRunner`. Cr
 returns `202` immediately; the runner claims it from SQLite. CLI `run` creates the same Job and may
 drive the same runner synchronously. The GUI polls persisted Job detail.
 
+Multipart source bodies are bounded before parsing, then copied from `UploadFile` into the managed
+Artifact store as a stream. The application layer independently enforces the exact source-byte
+limit. HTTP downloads use a verified private Artifact path with a file response, and CLI output
+uses an atomic streamed copy. Interfaces never expose storage keys or read the whole payload merely
+to transfer it.
+
 The GUI opens directly to the dashboard. There are no login/account/profile pages, auth
 dependencies, permission filters, or identity-shaped routes. Translation Profiles are
 instance-scoped translation policy, not personal profiles.
@@ -57,7 +65,12 @@ instance-scoped translation policy, not personal profiles.
 Pipelines are versioned ordered code definitions in `orchestration/pipelines.py`:
 
 - `novel_txt_v1`: encoding → extraction → segmentation → Provider translation → QA → TXT/JSON.
+- `novel_epub_v1`: package inspection → located visible-text segmentation → Provider translation
+  → QA → reconstructed and validated EPUB.
 - `manga_full_v1`: safe import → `manga_full_pipeline` Adapter → CBZ.
+
+Project kind and immutable Source kind select a compatible Preset. Novel remains the domain kind;
+TXT and EPUB are Source formats, not competing Project or task models.
 
 Each Job snapshots Pipeline version, Provider/Adapter ID, and a secret-free Translation Profile.
 Each ordered Step persists state, attempt count, timestamps, progress, input/output Artifact IDs,
@@ -80,6 +93,10 @@ successful translation segments are reused. Attempt counts and prior error evide
 Step logs. A process restart classifies an active Step/Job as failed with `PROCESS_INTERRUPTED`;
 the operator retries explicitly. Already completed Steps are never unconditionally rerun.
 
+EPUB Segments add the source Artifact, source document, XML-slot locator, content role, source
+hash, translation-input hash, and optional reused Segment lineage. Reuse across Jobs is allowed
+only when the exact immutable location/content and effective non-secret translation policy match.
+
 This is not a DAG editor or distributed scheduler.
 
 ## Persistence and Artifact boundary
@@ -95,9 +112,29 @@ same-directory temporary file, `fsync`, and atomic replacement before the databa
 published; a metadata failure removes the payload. Filenames and storage resolution prevent path
 traversal. Archive member count, expanded size, and path are validated before extraction.
 
-Project deletion requires explicit confirmation, deletes relational metadata, and removes only
-the generated Project subtree under the configured Artifact root. Backups must include the whole
-data root so metadata and payloads remain consistent.
+Project deletion requires explicit confirmation and is rejected while any queued, running,
+paused, or cancelling Job exists; the operator must cancel it to a terminal state first. A
+confirmed eligible deletion removes relational metadata and only the generated Project subtree
+under the configured Artifact root. Backups must include the whole data root so metadata and
+payloads remain consistent.
+
+### EPUB package boundary
+
+The EPUB inspector treats ZIP/XML as untrusted data. It validates the uncompressed first
+`mimetype`, container/OPF, EPUB 2/3 version, manifest, spine, navigation, parseable XML/XHTML, and
+internal resource references. It rejects encryption metadata, traversal/absolute/backslash paths,
+symlinks, duplicate or portable-name-conflicting entries, unsafe compression, and configurable
+member-count, total expansion, per-member expansion, compression-ratio, and path-depth excess.
+Archive hashing, secret scanning, and resource verification use bounded reads. XML parsing,
+reconstruction, and byte comparison may buffer at most one member whose announced and observed
+size is already bounded by the per-member limit. Members are never extracted to
+caller-controlled paths.
+
+The inspection Artifact owns the structural manifest and ordered visible-text locators. Export
+starts from the immutable source ZIP, modifies only located XML text slots plus OPF/XHTML language,
+preserves failed/missing translations as source text, and keeps other payload bytes identical.
+Before atomic publication it reopens and re-inspects the temporary EPUB, validates package and
+reference invariants, and compares unchanged members. See ADR 0007 and `docs/epub.md`.
 
 ## Provider and secret boundary
 
@@ -109,8 +146,12 @@ ADR 0005 permits only runtime resolution from `LINGUASPINDLE_OPENAI_API_KEY`. Pr
 TranslationProfile, Job/Step snapshots, and public status contain no secret field. Base URLs reject
 credentials/query strings. API requests forbid unknown secret fields. Before managed persistence,
 known runtime values, bearer headers, key assignments, and secret-shaped mapping keys are
-redacted. JSON/text Artifact payloads receive the same policy; a binary payload containing the
-active key is refused. Tests scan every database/WAL/log/Artifact/export file for the test key.
+redacted in diagnostics and configuration payloads. User-authored book text and metadata use a
+content-safe policy that removes only the exact active runtime key, so ordinary phrases such as
+`password: castle` are not rewritten. Imported sources containing that key are rejected before
+publication. Binary and ZIP-based output Artifacts are checked for the key in raw bytes and in
+bounded expanded members. Tests scan databases/WAL, logs, Artifacts, exports, and compressed
+members for the test key.
 When a compatible endpoint returns standard prompt/completion/total token counts, only those
 non-negative integers are retained in a redacted Step log for audit; raw Provider responses and
 headers are not persisted.
@@ -151,19 +192,22 @@ The core image runs as UID/GID 10001, keeps external heavyweight tools out, uses
 
 ## Errors and observability
 
-Stable codes cover configuration, Adapter unavailable, external command, timeout, invalid format,
+Stable codes cover configuration, upload/archive limits, unsafe archives, invalid/unsupported/
+protected EPUB, export validation, Adapter unavailable, external command, timeout, invalid format,
 model API, rate limit, task cancellation, missing output, not found, invalid state, process
 interruption, storage, and unknown errors. API and CLI present readable normalized envelopes.
 Step logs keep redacted details; raw Adapter metadata is a separate Artifact. Progress is derived
 from persisted Step weights and real segment/page boundaries—unsupported external progress is not
 invented.
 
-## Deliberate v0.1.0 limits
+## Deliberate v0.2.0 limits
 
 - one host/data root and in-process worker;
 - polling only;
-- TXT novels and CBZ/image manga;
+- TXT and common unencrypted EPUB 2/3 novels plus CBZ/image manga;
 - basic read-only result inspection, not a full editor;
 - no transparent mid-call resume after process death;
 - no streaming manga protocol/progress; and
-- no built-in installation or redistribution of external tools/assets.
+- no built-in installation or redistribution of external tools/assets;
+- no DRM bypass, dynamic browser rendering of book content, or broad publisher-format repair; and
+- no PDF, DOCX, MOBI, or AZW3 support.

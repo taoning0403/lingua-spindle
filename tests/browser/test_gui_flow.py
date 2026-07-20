@@ -525,7 +525,7 @@ def test_gui_real_provider_minimal_translation(tmp_path) -> None:
             else:
                 project_id = _create_project(
                     page,
-                    name="Real Provider acceptance v0.1.0",
+                    name="Real Provider acceptance v0.2.0",
                     source=source,
                     source_language="en",
                     target_language="zh-CN",

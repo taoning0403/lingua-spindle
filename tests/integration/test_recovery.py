@@ -21,6 +21,25 @@ def test_startup_recovery_marks_active_step_failed_and_allows_retry(tmp_path) ->
     assert first.claim_next_job("crashed-runner") == job["id"]
     first_step = first.get_job(job["id"])["steps"][0]
     first.start_step(first_step["id"])
+    source_artifact = first.source_artifact(project["id"])
+    first.replace_segments(
+        project_id=project["id"],
+        job_id=job["id"],
+        profile=job["profile_snapshot"],
+        segments=[
+            {
+                "source_text": "Persist me.",
+                "source_artifact_id": source_artifact.id,
+                "source_document": "OPS/chapter.xhtml",
+                "content_role": "xhtml",
+                "locator": {"document_path": "OPS/chapter.xhtml", "element_index": 2},
+                "source_text_hash": "synthetic-source-hash",
+                "translation_input_hash": "synthetic-input-hash",
+            }
+        ],
+    )
+    interrupted_segment = first.segment_rows(job["id"])[0]
+    first.update_segment(interrupted_segment.id, status="running")
     first.close()
 
     second = ApplicationService(settings)
@@ -33,6 +52,10 @@ def test_startup_recovery_marks_active_step_failed_and_allows_retry(tmp_path) ->
         assert interrupted["status"] == "failed"
         assert interrupted["error"]["code"] == ErrorCode.PROCESS_INTERRUPTED
         assert any("restart interrupted" in log["message"] for log in interrupted["logs"])
+        recovered_segments = second.list_segments(project["id"], job_id=job["id"])
+        assert recovered_segments[0]["status"] == "failed"
+        assert recovered_segments[0]["error"]["code"] == ErrorCode.PROCESS_INTERRUPTED
+        assert recovered_segments[0]["source_document"] == "OPS/chapter.xhtml"
 
         second.retry_job(job["id"])
         assert JobRunner(second).run_once() is True
@@ -66,3 +89,21 @@ def test_unexpected_pipeline_boundary_failure_is_normalized(service, monkeypatch
     assert failed["error"]["code"] == ErrorCode.UNKNOWN
     assert failed["error"]["details"] == {"exception_type": "RuntimeError"}
     assert "untrusted detail" not in str(failed)
+
+
+def test_runner_tolerates_a_claimed_job_removed_by_an_external_race(service) -> None:
+    runner = JobRunner(service)
+
+    runner._execute("job-that-no-longer-exists")
+
+    project = service.create_project(
+        name="Runner remains usable",
+        kind="novel",
+        source_language="en",
+        target_language="fr",
+        source_name="runner.txt",
+        source_bytes=b"Still runs.",
+    )
+    job = service.create_job(project_id=project["id"])
+    assert runner.run_once() is True
+    assert service.get_job(job["id"])["status"] == "succeeded"

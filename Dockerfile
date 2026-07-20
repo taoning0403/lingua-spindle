@@ -1,7 +1,7 @@
 FROM python:3.12-slim AS runtime
 
 LABEL org.opencontainers.image.title="LinguaSpindle" \
-      org.opencontainers.image.version="0.1.0" \
+      org.opencontainers.image.version="0.2.0" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.source="https://github.com/taoning0403/lingua-spindle"
 
@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_CONSTRAINT=/app/constraints-v010.txt \
+    PIP_CONSTRAINT=/app/constraints-v020.txt \
     LINGUASPINDLE_DATA_DIR=/data
 
 WORKDIR /app
@@ -17,7 +17,7 @@ WORKDIR /app
 RUN groupadd --gid 10001 linguaspindle \
     && useradd --uid 10001 --gid 10001 --no-create-home --home-dir /nonexistent linguaspindle
 
-COPY pyproject.toml constraints-v010.txt README.md LICENSE ./
+COPY pyproject.toml constraints-v020.txt README.md LICENSE ./
 COPY src ./src
 
 RUN python -m pip install . \

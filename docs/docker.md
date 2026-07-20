@@ -22,10 +22,36 @@ access-controlling reverse proxy in front.
 
 - Base: `python:3.12-slim`.
 - Application UID/GID: `10001`, with no login shell or home directory.
-- Compose root filesystem: read-only, with a bounded `/tmp` tmpfs.
+- Compose root filesystem: read-only, with a 128 MiB `/tmp` tmpfs.
 - Mutable root: `/data`, backed by `linguaspindle-data`.
 - Health endpoint: `http://127.0.0.1:8765/health` inside the container.
-- No manga upstream, model, font, CUDA runtime, browser, or development dependency in the image.
+- No manga upstream, model, font, CUDA runtime, browser, external EPUB validator, or development
+  dependency in the image.
+
+The default `/tmp` budget accommodates FastAPI's spool for a source near the 100 MiB upload limit
+plus multipart overhead. EPUB output work files are created below managed `/data/cache` and
+removed after publication/failure. If `LINGUASPINDLE_MAX_UPLOAD_BYTES` is increased, increase the
+Compose tmpfs and any reverse-proxy request limit deliberately; an upload permitted by one layer
+can otherwise fail at another.
+
+Compose also passes `LINGUASPINDLE_WORKER_POLL_SECONDS` (default `0.25`) so the durable queue poll
+interval can be adjusted without rebuilding the image.
+
+Compose passes these resource guards from `.env`:
+
+| Variable | Default |
+| --- | ---: |
+| `LINGUASPINDLE_MAX_UPLOAD_BYTES` | `104857600` |
+| `LINGUASPINDLE_MAX_ARCHIVE_FILES` | `2000` |
+| `LINGUASPINDLE_MAX_ARCHIVE_BYTES` | `1048576000` |
+| `LINGUASPINDLE_MAX_ARCHIVE_MEMBER_BYTES` | `104857600` |
+| `LINGUASPINDLE_MAX_ARCHIVE_COMPRESSION_RATIO` | `100` |
+| `LINGUASPINDLE_MAX_ARCHIVE_PATH_DEPTH` | `20` |
+
+See [EPUB support](epub.md) before changing them. The expansion limit is not a memory allocation
+promise: it bounds archive work on the single host. Hashing/scans use bounded reads; XML
+parse/rebuild and unchanged-member comparison may buffer one member, itself capped by the
+per-member limit.
 
 Inspect status and logs:
 
@@ -95,11 +121,18 @@ The outer identity is not passed into or stored by LinguaSpindle.
 
 ## Upgrade
 
-1. Back up the entire volume.
+1. Stop writes and back up the entire volume as one consistent unit.
 2. Pull the intended source/tag and review `CHANGELOG.md`.
 3. Run `docker compose build --pull`.
 4. Run `docker compose up -d`.
 5. Check health, `linguaspindle doctor`, and recent Jobs.
 
-Forward-only database migrations run on startup. An active Step interrupted during replacement is
-marked failed and remains explicitly retryable; completed Steps are reused.
+On the first v0.2.0 start, forward-only atomic migration `0002_epub.sql` adds defaulted/nullable
+Source/Segment fields and indexes. Existing v0.1.0 TXT/manga data and Artifact paths stay in the
+same volume. An active Step interrupted during replacement is marked failed and remains explicitly
+retryable; completed Steps are reused.
+
+There is no in-place downgrade. To return to v0.1.0, stop the v0.2.0 container, restore the entire
+pre-upgrade volume backup into an empty volume, select the v0.1.0 source/image, and start it. Do not
+run v0.1.0 against a database that has already recorded migration 0002, and never combine a
+restored database with post-upgrade Artifact bytes.

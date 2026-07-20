@@ -162,6 +162,19 @@ def _settings(**overrides: object) -> SimpleNamespace:
     return SimpleNamespace(**values)
 
 
+def _replace_member(path: Path, member_name: str, payload: bytes) -> None:
+    with zipfile.ZipFile(path, "r") as archive:
+        entries = [
+            (info, payload if info.filename == member_name else archive.read(info))
+            for info in archive.infolist()
+        ]
+        comment = archive.comment
+    with zipfile.ZipFile(path, "w", allowZip64=True) as archive:
+        archive.comment = comment
+        for info, entry_payload in entries:
+            archive.writestr(info, entry_payload)
+
+
 def _assert_rejected(path: Path, settings: object | None = None) -> LinguaError:
     with pytest.raises(LinguaError) as caught:
         inspect_epub(path, settings)
@@ -241,6 +254,103 @@ def test_common_epub2_package_and_ncx_are_supported(tmp_path: Path) -> None:
     assert any(unit["locator"]["document_type"] == "ncx" for unit in manifest["text_units"])
 
 
+@pytest.mark.parametrize(
+    "doctype",
+    [
+        (
+            b'<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" '
+            b'"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">'
+        ),
+        b'<!DOCTYPE html SYSTEM "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">',
+    ],
+)
+def test_epub2_allows_safe_external_xhtml_doctype(tmp_path: Path, doctype: bytes) -> None:
+    source = tmp_path / "fixture-v2-doctype.epub"
+    resources = _write_epub(source, epub_version="2.0")
+    chapter = resources["OEBPS/Text/chapter-1.xhtml"].replace(
+        b'<html xmlns="http://www.w3.org/1999/xhtml">',
+        doctype + b'\n<html xmlns="http://www.w3.org/1999/xhtml">',
+    )
+    _replace_member(source, "OEBPS/Text/chapter-1.xhtml", chapter)
+
+    manifest = inspect_epub(source)
+
+    assert "Chapter One" in [unit["source_text"] for unit in manifest["text_units"]]
+
+
+@pytest.mark.parametrize(
+    "declaration",
+    [
+        b"<!DOCTYPE html [<!ELEMENT html ANY>]>",
+        (
+            b'<!DOCTYPE html SYSTEM "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
+            b'<!ENTITY leaked "must-not-expand">'
+        ),
+    ],
+)
+def test_epub_rejects_internal_dtd_subsets_and_entity_declarations(
+    tmp_path: Path, declaration: bytes
+) -> None:
+    source = tmp_path / "unsafe-declaration.epub"
+    resources = _write_epub(source, epub_version="2.0")
+    chapter = resources["OEBPS/Text/chapter-1.xhtml"].replace(
+        b'<html xmlns="http://www.w3.org/1999/xhtml">',
+        declaration + b'\n<html xmlns="http://www.w3.org/1999/xhtml">',
+    )
+    _replace_member(source, "OEBPS/Text/chapter-1.xhtml", chapter)
+
+    _assert_rejected(source)
+
+
+@pytest.mark.parametrize("variation", ["multiple", "wrong-media-type", "missing-toc"])
+def test_epub3_requires_one_xhtml_toc_navigation_document(tmp_path: Path, variation: str) -> None:
+    source = tmp_path / f"bad-nav-{variation}.epub"
+    resources = _write_epub(source)
+    if variation == "multiple":
+        package = resources["OEBPS/content.opf"].replace(
+            b'<item id="chapter-1" href="Text/chapter-1.xhtml" '
+            b'media-type="application/xhtml+xml"/>',
+            b'<item id="chapter-1" href="Text/chapter-1.xhtml" '
+            b'media-type="application/xhtml+xml" properties="nav"/>',
+        )
+        _replace_member(source, "OEBPS/content.opf", package)
+    elif variation == "wrong-media-type":
+        package = resources["OEBPS/content.opf"].replace(
+            b'<item id="nav" href="Text/nav.xhtml" '
+            b'media-type="application/xhtml+xml" properties="nav"/>',
+            b'<item id="nav" href="Text/nav.xhtml" media-type="image/png" properties="nav"/>',
+        )
+        _replace_member(source, "OEBPS/content.opf", package)
+    else:
+        nav = resources["OEBPS/Text/nav.xhtml"].replace(
+            b'epub:type="toc"', b'epub:type="landmarks"'
+        )
+        _replace_member(source, "OEBPS/Text/nav.xhtml", nav)
+
+    _assert_rejected(source)
+
+
+def test_nested_skipped_element_tails_remain_excluded(tmp_path: Path) -> None:
+    source = tmp_path / "nested-skipped.epub"
+    resources = _write_epub(source)
+    chapter = resources["OEBPS/Text/chapter-1.xhtml"].replace(
+        b"<code>code must stay</code><span>Visible after code</span>",
+        (b"<p>Before<script>hidden<script>nested</script>nested child tail</script>After</p>"),
+    )
+    _replace_member(source, "OEBPS/Text/chapter-1.xhtml", chapter)
+
+    units = inspect_epub(source)["text_units"]
+    texts = [unit["source_text"] for unit in units]
+
+    assert "Before" in texts
+    assert "After" in texts
+    assert "hidden" not in texts
+    assert "nested" not in texts
+    assert "nested child tail" not in texts
+    after = next(unit for unit in units if unit["source_text"] == "After")
+    assert after["locator"]["slot"] == "tail"
+
+
 def test_build_roundtrip_preserves_structure_links_and_non_text_payloads(tmp_path: Path) -> None:
     source = tmp_path / "source.epub"
     output = tmp_path / "translated.epub"
@@ -267,6 +377,7 @@ def test_build_roundtrip_preserves_structure_links_and_non_text_payloads(tmp_pat
 
     assert source.read_bytes() == source_bytes
     assert summary["valid"] is True
+    assert "output_path" not in summary
     assert summary["preserved_unit_count"] == 1
     assert validate_epub(output, settings)["valid"] is True  # type: ignore[arg-type]
     reimported = inspect_epub(output, settings)  # type: ignore[arg-type]
@@ -320,6 +431,46 @@ def test_translations_can_be_addressed_by_locator_and_failed_records_fall_back(
     assert "线轴之书" in texts
     assert "Chapter One" in texts
     assert "must not be used" not in texts
+
+
+def test_successful_translation_outer_whitespace_is_stripped(tmp_path: Path) -> None:
+    source = tmp_path / "source.epub"
+    output = tmp_path / "translated.epub"
+    _write_epub(source)
+    manifest = inspect_epub(source)
+    heading = next(unit for unit in manifest["text_units"] if unit["source_text"] == "Chapter One")
+
+    build_translated_epub(
+        source,
+        output,
+        manifest,
+        {heading["sequence"]: "  Chapitre un \n"},
+        "fr",
+    )
+
+    with zipfile.ZipFile(output) as archive:
+        chapter = ET.fromstring(  # noqa: S314 - generated fixture output
+            archive.read("OEBPS/Text/chapter-1.xhtml")
+        )
+    heading_element = next(
+        element for element in chapter.iter() if element.tag.rsplit("}", 1)[-1] == "h1"
+    )
+    assert heading_element.text == "Chapitre un"
+
+
+@pytest.mark.parametrize("language", ["English", "e", "en_US", "en-", "en--US", "en-u"])
+def test_build_rejects_implausible_target_language(tmp_path: Path, language: str) -> None:
+    source = tmp_path / "source.epub"
+    output = tmp_path / "translated.epub"
+    _write_epub(source)
+    manifest = inspect_epub(source)
+
+    with pytest.raises(LinguaError) as caught:
+        build_translated_epub(source, output, manifest, [], language)
+
+    assert caught.value.code == ErrorCode.EPUB_INVALID
+    assert "BCP 47" in caught.value.message
+    assert not output.exists()
 
 
 def test_long_xml_slot_is_split_and_partial_translation_rebuilds_exactly(tmp_path: Path) -> None:
@@ -392,6 +543,16 @@ def test_encrypted_general_purpose_flag_is_rejected(tmp_path: Path) -> None:
 
     error = _assert_rejected(source)
     assert "Encrypted" in error.message
+
+
+@pytest.mark.parametrize("control", ["\x7f", "\x85"])
+def test_zip_member_paths_reject_del_and_c1_controls(tmp_path: Path, control: str) -> None:
+    source = tmp_path / "control-path.epub"
+    _write_epub(source, unsafe_member=f"OEBPS/unsafe{control}name.txt")
+
+    error = _assert_rejected(source)
+
+    assert "control character" in error.message
 
 
 def test_archive_resource_limits_reject_bombs_large_members_counts_and_depth(

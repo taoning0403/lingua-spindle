@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
+import zipfile
 
 import pytest
 
@@ -233,3 +235,161 @@ def test_import_rejects_the_active_runtime_provider_key(tmp_path) -> None:
         assert runtime_value not in caught.value.message
     finally:
         service.close()
+
+
+@pytest.mark.parametrize("encoding", ["utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be"])
+def test_import_rejects_runtime_key_in_common_wide_text_encodings(tmp_path, encoding: str) -> None:
+    runtime_value = "sk-wide-text-do-not-import"
+    service = ApplicationService(
+        Settings(data_dir=tmp_path / encoding, openai_api_key=runtime_value)
+    )
+    try:
+        with pytest.raises(LinguaError) as caught:
+            service.create_project(
+                name="Wide text secret",
+                kind="novel",
+                source_language="en",
+                target_language="fr",
+                source_name="wide.txt",
+                source_bytes=f"Accidentally pasted {runtime_value}".encode(encoding),
+            )
+        assert caught.value.code == ErrorCode.CONFIGURATION
+        assert service.list_projects() == []
+    finally:
+        service.close()
+
+
+def _compressed_epub_with_secret(secret: str, location: str) -> bytes:
+    title = secret if location == "metadata" else "Safe title"
+    paragraph = secret if location == "body" else "Safe paragraph"
+    script = secret if location == "script" else "safe-script-value"
+    package = f"""<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf"
+         xmlns:dc="http://purl.org/dc/elements/1.1/" version="3.0">
+  <metadata><dc:identifier>fixture</dc:identifier><dc:title>{title}</dc:title>
+    <dc:language>en</dc:language></metadata>
+  <manifest>
+    <item id="chapter" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+  </manifest>
+  <spine><itemref idref="chapter"/></spine>
+</package>""".encode()
+    chapter = f"""<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter</title>
+  <script>{script}</script></head><body><p>{paragraph}</p></body></html>""".encode()
+    container = b"""<?xml version="1.0" encoding="UTF-8"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
+  <rootfiles><rootfile full-path="OPS/content.opf"
+    media-type="application/oebps-package+xml"/></rootfiles>
+</container>"""
+    nav = b"""<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:epub="http://www.idpf.org/2007/ops">
+  <head><title>Navigation</title></head><body>
+    <nav epub:type="toc"><ol><li><a href="chapter.xhtml">Chapter</a></li></ol></nav>
+  </body>
+</html>"""
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("mimetype", b"application/epub+zip", compress_type=zipfile.ZIP_STORED)
+        archive.writestr("META-INF/container.xml", container)
+        archive.writestr("OPS/content.opf", package)
+        archive.writestr("OPS/chapter.xhtml", chapter)
+        archive.writestr("OPS/nav.xhtml", nav)
+    return output.getvalue()
+
+
+@pytest.mark.parametrize("location", ["metadata", "body", "script"])
+def test_import_rejects_runtime_key_inside_compressed_epub_members(tmp_path, location: str) -> None:
+    runtime_value = f"sk-compressed-{location}-97cbb40b"
+    payload = _compressed_epub_with_secret(runtime_value, location)
+    assert runtime_value.encode() not in payload
+    settings = Settings(data_dir=tmp_path / f"compressed-{location}", openai_api_key=runtime_value)
+    service = ApplicationService(settings)
+    try:
+        with pytest.raises(LinguaError) as caught:
+            service.create_project(
+                name="Compressed secret fixture",
+                kind="novel",
+                source_language="en",
+                target_language="fr",
+                source_name="compressed.epub",
+                source_bytes=payload,
+                media_type="application/epub+zip",
+            )
+        assert caught.value.code == ErrorCode.CONFIGURATION
+        assert service.list_projects() == []
+    finally:
+        service.close()
+
+    assert all(
+        runtime_value.encode() not in path.read_bytes()
+        for path in settings.data_dir.rglob("*")
+        if path.is_file()
+    )
+
+
+def test_user_prose_with_secret_shaped_words_is_preserved(service: ApplicationService) -> None:
+    prose = "The password: castle is a clue; secret=plot is ordinary prose."
+    project = service.create_project(
+        name="The password: castle project",
+        kind="novel",
+        source_language="en",
+        target_language="fr",
+        source_name="secret=plot.txt",
+        source_bytes=prose.encode(),
+    )
+    profile = service.create_profile(
+        name="The password: castle profile",
+        source_language="en",
+        target_language="fr",
+        provider_id="mock",
+        style="Keep secret=plot and password: castle literally.",
+        prompt_template="Translate {text}; password: castle and secret=plot are content.",
+    )
+    assert project["name"] == "The password: castle project"
+    assert profile["style"] == "Keep secret=plot and password: castle literally."
+
+    job = service.create_job(project_id=project["id"], profile_id=profile["id"])
+    assert JobRunner(service).run_once() is True
+    assert service.get_job(job["id"])["status"] == "succeeded"
+    segments = service.list_segments(project["id"], job_id=job["id"])
+    assert segments[0]["source_text"] == prose
+    assert prose in segments[0]["translated_text"]
+
+    content_kinds = {
+        "novel_text_extracted",
+        "novel_segments",
+        "novel_translations",
+        "novel_export_txt",
+        "novel_export_json",
+    }
+    for artifact in service.list_artifacts(project_id=project["id"], job_id=job["id"]):
+        if artifact["kind"] not in content_kinds:
+            continue
+        _, artifact_payload = service.read_artifact(artifact["id"])
+        assert b"[REDACTED]" not in artifact_payload
+        if artifact["kind"] != "novel_segments":
+            assert b"password: castle" in artifact_payload
+
+
+def test_project_with_active_job_must_be_cancelled_before_deletion(
+    service: ApplicationService,
+) -> None:
+    project = service.create_project(
+        name="Active deletion guard",
+        kind="novel",
+        source_language="en",
+        target_language="fr",
+        source_name="active.txt",
+        source_bytes=b"Active job.",
+    )
+    job = service.create_job(project_id=project["id"])
+
+    with pytest.raises(LinguaError) as active:
+        service.delete_project(project["id"], confirmed=True)
+    assert active.value.code == ErrorCode.INVALID_STATE
+    assert active.value.details == {"active_jobs": [{"id": job["id"], "status": "queued"}]}
+
+    service.cancel_job(job["id"])
+    assert service.delete_project(project["id"], confirmed=True)["deleted"] == project["id"]

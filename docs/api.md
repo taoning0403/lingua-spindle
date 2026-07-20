@@ -13,7 +13,7 @@ Interactive OpenAPI is served at `/docs`; the machine contract is `/openapi.json
 4. Poll `GET /api/jobs/{job_id}` for persisted Job, Step, log, error, and Artifact state.
 5. Inspect segments or download final Artifacts.
 
-The GUI uses polling as the only v0.1.0 progress transport. There is no SSE or WebSocket contract.
+The GUI uses polling as the only v0.2.0 progress transport. There is no SSE or WebSocket contract.
 
 ## Main endpoints
 
@@ -25,7 +25,7 @@ The GUI uses polling as the only v0.1.0 progress transport. There is no SSE or W
 | `GET /api/providers` | Secret-free Provider configuration status. |
 | `GET /api/pipelines` | Versioned ordered Pipeline Presets. |
 | `GET`, `POST /api/profiles` | List/create non-secret Translation Profiles. |
-| `GET`, `POST /api/projects` | List/create Projects. Create is multipart. |
+| `GET`, `POST /api/projects` | List/create Projects. Create streams one multipart TXT/EPUB/CBZ/image Source. |
 | `GET`, `DELETE /api/projects/{id}` | Detail or confirmed deletion (`?confirmed=true`). |
 | `POST /api/projects/{id}/jobs` | Queue an asynchronous Job. |
 | `GET /api/jobs` | List Jobs, optionally filtering `project_id` and `status`. |
@@ -37,7 +37,7 @@ The GUI uses polling as the only v0.1.0 progress transport. There is no SSE or W
 | `GET /api/projects/{id}/segments` | Latest Job's novel results; optional `job_id`. |
 | `GET /api/projects/{id}/artifacts` | Project Artifacts; optional `job_id`. |
 | `GET /api/artifacts/{id}` | Artifact metadata. |
-| `GET /api/artifacts/{id}/download` | Payload with attachment disposition. |
+| `GET /api/artifacts/{id}/download` | Verified payload as a file/stream response with attachment disposition. |
 | `POST /api/projects/{id}/exports` | Return latest completed export Artifacts. |
 
 ## Create requests
@@ -45,8 +45,11 @@ The GUI uses polling as the only v0.1.0 progress transport. There is no SSE or W
 Project multipart fields:
 
 ```text
-name, kind=novel|manga, source_language, target_language, source=<file>
+name, kind=novel|manga, source_language, target_language, source=<TXT|EPUB|CBZ|image file>
 ```
+
+For EPUB, `target_language` must be a plausible BCP 47 tag (for example `en`, `fr`, or `zh-CN`),
+because it is written to OPF `dc:language` and XHTML `lang`/`xml:lang`.
 
 Job JSON:
 
@@ -61,6 +64,25 @@ Job JSON:
 
 Omitted Pipeline selects the default for Project kind. Manga Jobs default to `mock-manga`; use
 `manga-image-translator-http` only after its health is ready.
+
+For Novel Projects, omitted Pipeline also considers the immutable Source kind: TXT selects
+`novel_txt_v1`, and EPUB selects `novel_epub_v1`. A supplied incompatible Pipeline returns
+`CONFIGURATION_ERROR` rather than processing the file through the wrong parser.
+
+EPUB upload example:
+
+```bash
+curl -sS -X POST http://127.0.0.1:8765/api/projects \
+  -F 'name=Book' \
+  -F 'kind=novel' \
+  -F 'source_language=en' \
+  -F 'target_language=zh-CN' \
+  -F 'source=@book.epub;type=application/epub+zip'
+```
+
+Project detail returns compact Source metadata such as EPUB version, title/creator/language,
+cover/navigation display data, and chapter/document/resource/text-unit counts. Full package structure remains an
+Artifact rather than being duplicated into the Source row.
 
 The Profile endpoint accepts source/target language, style, prompt template/version, batch size,
 model parameters, Provider ID, and model. It does not accept an API key. Unknown fields are
@@ -81,6 +103,31 @@ Provider request envelope through model parameters.
 - Retry is valid for failed/partial Jobs. The earliest failed/partial Step and its downstream
   Steps are reset; upstream successes and prior logs/attempt counts remain.
 - Process interruption marks the active Step and Job `failed` with `PROCESS_INTERRUPTED`.
+- Confirmed Project deletion is rejected while a Job is queued, running, paused, or cancelling;
+  cancel it to a terminal state first.
+
+EPUB uses the same controls. Segment detail includes source Artifact/document, content role,
+locator, hashes, and reuse lineage. A retry or repeated compatible Job can reuse successful exact
+inputs; changed source/policy inputs are translated again.
+
+## Transfer behavior and limits
+
+`POST /api/projects` has an outer ASGI request guard before multipart parsing. The default request
+allowance is the configured source limit plus 1 MiB for multipart framing. The application then
+streams the uploaded file to a staged Artifact payload and enforces the exact
+`LINGUASPINDLE_MAX_UPLOAD_BYTES` source bound. EPUB validation completes before Project/Source/
+Artifact metadata is published; failures clean the staged payload.
+
+This protects application-managed reads. Operators using a reverse proxy should set its request
+limit at least large enough for the configured source plus multipart overhead, but should not make
+it unbounded. Archive expanded/member/count/ratio/path-depth limits are listed in
+`docs/epub.md` and exposed by `/api/system`.
+
+`GET /api/artifacts/{id}/download` verifies a real Artifact row, resolves its private path under
+the managed root, checks stored size, and returns a Starlette file response with attachment
+filename and `X-Content-Type-Options: nosniff`. It does not call `read_bytes()` or build the whole
+payload in a JSON/bytes response. Range/sendfile details remain server/framework behavior rather
+than an API guarantee.
 
 ## Errors
 
@@ -97,14 +144,18 @@ Application errors have a stable envelope:
 }
 ```
 
-Stable categories include configuration, Adapter unavailable, external command, timeout, invalid
-format, model API, rate limit, cancellation, missing output, not found, invalid state, interrupted
-process, storage, and unknown errors. Managed diagnostics are redacted before persistence and
-serialization. Never rely on raw third-party body text as a machine contract.
+Stable categories include configuration, upload too large, archive unsafe/limit exceeded, EPUB
+invalid/unsupported/protected/validation failed, Adapter unavailable, external command, timeout,
+invalid format, model API, rate limit, cancellation, missing output, not found, invalid state,
+interrupted process, storage, and unknown errors. `UPLOAD_TOO_LARGE` and
+`ARCHIVE_LIMIT_EXCEEDED` use HTTP 413; errors retain the standard envelope. Managed diagnostics
+are redacted before persistence and serialization. User-authored book text only replaces the
+exact active runtime key and is not rewritten merely because it contains words such as `password`
+or `secret`. Never rely on raw third-party body text as a machine contract.
 
 ## Compatibility
 
-v0.1.0 has no formal external client package. Use OpenAPI and treat undocumented response fields
+v0.2.0 has no formal external client package. Use OpenAPI and treat undocumented response fields
 as internal. Artifact IDs are the cross-boundary payload identity; private filesystem storage keys
 are never returned. The API intentionally contains no user/account/tenant/permission routes or
 fields.
