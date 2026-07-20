@@ -1,4 +1,4 @@
-"""Versioned code-defined v0.1.0 Pipeline Presets."""
+"""Versioned code-defined Pipeline Presets."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ class PipelinePreset:
     key: str
     display_name: str
     project_kind: str
+    source_kinds: tuple[str, ...]
     version: str
     steps: tuple[StepDefinition, ...]
 
@@ -28,6 +29,7 @@ class PipelinePreset:
             "key": self.key,
             "display_name": self.display_name,
             "project_kind": self.project_kind,
+            "source_kinds": list(self.source_kinds),
             "version": self.version,
             "steps": [asdict(step) for step in self.steps],
         }
@@ -37,6 +39,7 @@ NOVEL_TXT = PipelinePreset(
     key="novel_txt_v1",
     display_name="TXT novel translation",
     project_kind="novel",
+    source_kinds=("txt",),
     version="1",
     steps=(
         StepDefinition("detect_encoding", "novel_parse", "internal", 0.08),
@@ -48,10 +51,26 @@ NOVEL_TXT = PipelinePreset(
     ),
 )
 
+NOVEL_EPUB = PipelinePreset(
+    key="novel_epub_v1",
+    display_name="EPUB novel translation",
+    project_kind="novel",
+    source_kinds=("epub",),
+    version="1",
+    steps=(
+        StepDefinition("inspect_epub", "novel_parse", "internal", 0.10),
+        StepDefinition("segment_epub", "text_segment", "internal", 0.20),
+        StepDefinition("translate_text", "text_translate", "provider", 0.50),
+        StepDefinition("quality_check", "translation_qa", "internal", 0.10),
+        StepDefinition("export_epub", "epub_build", "internal", 0.10),
+    ),
+)
+
 MANGA_FULL = PipelinePreset(
     key="manga_full_v1",
     display_name="External manga full pipeline",
     project_kind="manga",
+    source_kinds=("cbz", "image"),
     version="1",
     steps=(
         StepDefinition("prepare_manga", "manga_import", "internal", 0.15),
@@ -60,7 +79,7 @@ MANGA_FULL = PipelinePreset(
     ),
 )
 
-PIPELINES = {preset.key: preset for preset in (NOVEL_TXT, MANGA_FULL)}
+PIPELINES = {preset.key: preset for preset in (NOVEL_TXT, NOVEL_EPUB, MANGA_FULL)}
 
 
 def get_pipeline(key: str) -> PipelinePreset:
@@ -70,8 +89,18 @@ def get_pipeline(key: str) -> PipelinePreset:
         raise LinguaError(ErrorCode.CONFIGURATION, f"Unknown Pipeline Preset: {key}") from exc
 
 
-def default_pipeline(project_kind: str) -> PipelinePreset:
-    for preset in PIPELINES.values():
-        if preset.project_kind == project_kind:
-            return preset
+def default_pipeline(project_kind: str, source_kind: str | None = None) -> PipelinePreset:
+    """Choose deterministically; never rely on catalog insertion order."""
+    if source_kind is not None:
+        for preset in PIPELINES.values():
+            if preset.project_kind == project_kind and source_kind in preset.source_kinds:
+                return preset
+        raise LinguaError(
+            ErrorCode.CONFIGURATION,
+            f"No Pipeline for project kind/source kind: {project_kind}/{source_kind}",
+        )
+    if project_kind == "novel":
+        return NOVEL_TXT
+    if project_kind == "manga":
+        return MANGA_FULL
     raise LinguaError(ErrorCode.CONFIGURATION, f"No Pipeline for project kind: {project_kind}")

@@ -13,7 +13,7 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, BinaryIO
 
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import selectinload
@@ -22,6 +22,7 @@ from . import __version__
 from .adapters import AdapterRegistry, MangaImageTranslatorHttpAdapter, MockMangaAdapter
 from .config import Settings
 from .database import Database
+from .epub import inspect_epub
 from .errors import ErrorCode, LinguaError
 from .models import (
     Artifact,
@@ -73,6 +74,10 @@ class ApplicationService:
         self.settings = settings
         self.database = Database(settings)
         self.store = ArtifactStore(settings)
+        for pattern in ("epub-export-*", ".epub-export-*.tmp"):
+            for temporary in settings.cache_dir.glob(pattern):
+                if temporary.is_file() or temporary.is_symlink():
+                    temporary.unlink(missing_ok=True)
         self.providers = ProviderRegistry([MockProvider(), OpenAICompatibleProvider(settings)])
         self.adapters = AdapterRegistry(
             [MockMangaAdapter(), MangaImageTranslatorHttpAdapter(settings)]
@@ -167,9 +172,11 @@ class ApplicationService:
     def _source_kind(project_kind: str, filename: str) -> str:
         suffix = Path(filename).suffix.lower()
         if project_kind == "novel":
-            if suffix != ".txt":
-                raise LinguaError(ErrorCode.INVALID_FORMAT, "v0.1.0 novel sources must be TXT")
-            return "txt"
+            if suffix == ".txt":
+                return "txt"
+            if suffix == ".epub":
+                return "epub"
+            raise LinguaError(ErrorCode.INVALID_FORMAT, "Novel sources must be TXT or EPUB")
         if suffix in {".cbz", ".zip"}:
             return "cbz"
         if suffix in _IMAGE_SUFFIXES:
@@ -190,6 +197,43 @@ class ApplicationService:
         source_bytes: bytes,
         media_type: str | None = None,
     ) -> dict[str, Any]:
+        return self.create_project_from_stream(
+            name=name,
+            kind=kind,
+            source_language=source_language,
+            target_language=target_language,
+            source_name=source_name,
+            source=io.BytesIO(source_bytes),
+            media_type=media_type,
+        )
+
+    @staticmethod
+    def _path_contains(path: Path, needle: bytes) -> bool:
+        if not needle:
+            return False
+        overlap = b""
+        with path.open("rb") as handle:
+            while chunk := handle.read(1024 * 1024):
+                candidate = overlap + chunk
+                if needle in candidate:
+                    return True
+                overlap_size = max(len(needle) - 1, 0)
+                overlap = candidate[-overlap_size:] if overlap_size else b""
+        return False
+
+    def create_project_from_stream(
+        self,
+        *,
+        name: str,
+        kind: str,
+        source_language: str,
+        target_language: str,
+        source_name: str,
+        source: BinaryIO,
+        media_type: str | None = None,
+    ) -> dict[str, Any]:
+        """Validate and atomically publish an imported Source from a bounded stream."""
+
         name, kind, source_language, target_language = self._validate_project_fields(
             self._redact_text(name),
             kind,
@@ -197,29 +241,57 @@ class ApplicationService:
             self._redact_text(target_language),
         )
         source_name = self._redact_text(source_name)
-        if not source_bytes:
-            raise LinguaError(ErrorCode.INVALID_FORMAT, "Imported source is empty")
-        if len(source_bytes) > self.settings.max_upload_bytes:
-            raise LinguaError(ErrorCode.INVALID_FORMAT, "Imported source exceeds the size limit")
-        secret = self.settings.openai_api_key
-        if secret and secret.encode() in source_bytes:
-            raise LinguaError(
-                ErrorCode.CONFIGURATION,
-                "Imported source contains the runtime Provider secret; remove it before import",
-            )
         source_kind = self._source_kind(kind, source_name)
         project_id = new_id()
         artifact_id = new_id()
         guessed_type = self._redact_text(
             media_type or mimetypes.guess_type(source_name)[0] or "application/octet-stream"
         )
-        stored = self.store.write_bytes(
-            project_id=project_id,
-            artifact_id=artifact_id,
-            filename=source_name,
-            payload=source_bytes,
-        )
         try:
+            stored = self.store.write_stream(
+                project_id=project_id,
+                artifact_id=artifact_id,
+                filename=source_name,
+                source=source,
+                max_bytes=self.settings.max_upload_bytes,
+            )
+            if stored.size == 0:
+                raise LinguaError(ErrorCode.INVALID_FORMAT, "Imported source is empty")
+            stored_path = self.store.path(stored.storage_key)
+            secret = self.settings.openai_api_key
+            if secret and self._path_contains(stored_path, secret.encode()):
+                raise LinguaError(
+                    ErrorCode.CONFIGURATION,
+                    "Imported source contains the runtime Provider secret; remove it before import",
+                )
+            source_metadata: dict[str, Any] = {}
+            if source_kind == "epub":
+                inspection = inspect_epub(stored_path, self.settings)
+                metadata = inspection.get("metadata", {})
+                validation = inspection.get("validation", {})
+                titles = list(metadata.get("titles", []))
+                creators = list(metadata.get("creators", []))
+                subjects = list(metadata.get("subjects", []))
+                descriptions = list(metadata.get("descriptions", []))
+                languages = list(metadata.get("languages", []))
+                source_metadata = {
+                    "format": "epub",
+                    "epub_version": inspection["epub_version"],
+                    "title": titles[0] if titles else None,
+                    "titles": titles,
+                    "creators": creators,
+                    "subjects": subjects,
+                    "descriptions": descriptions,
+                    "language": languages[0] if languages else None,
+                    "languages": languages,
+                    "document_count": validation.get("document_count", 0),
+                    "chapter_count": validation.get("spine_document_count", 0),
+                    "resource_count": validation.get("resource_count", 0),
+                    "text_unit_count": validation.get("text_unit_count", 0),
+                    "cover_path": inspection.get("cover_path"),
+                    "navigation_documents": inspection.get("navigation_documents", []),
+                }
+                guessed_type = "application/epub+zip"
             with self.database.session() as session:
                 project = Project(
                     id=project_id,
@@ -238,10 +310,15 @@ class ApplicationService:
                     checksum=stored.checksum,
                     storage_key=stored.storage_key,
                     metadata_json=json.dumps(
-                        {"original_name": source_name, "immutable": True}, ensure_ascii=False
+                        {
+                            "original_name": source_name,
+                            "immutable": True,
+                            **source_metadata,
+                        },
+                        ensure_ascii=False,
                     ),
                 )
-                source = Source(
+                source_row = Source(
                     id=new_id(),
                     project_id=project_id,
                     kind=source_kind,
@@ -250,6 +327,7 @@ class ApplicationService:
                     size=stored.size,
                     checksum=stored.checksum,
                     artifact_id=artifact_id,
+                    metadata_json=json.dumps(source_metadata, ensure_ascii=False),
                 )
                 default_profile = TranslationProfile(
                     id=new_id(),
@@ -259,7 +337,7 @@ class ApplicationService:
                     provider_id="mock",
                     model="mock-v1",
                 )
-                session.add_all([project, artifact, source, default_profile])
+                session.add_all([project, artifact, source_row, default_profile])
         except Exception:
             self.store.remove_project_payloads(project_id)
             raise
@@ -307,25 +385,29 @@ class ApplicationService:
                 for image in images:
                     archive.write(image, arcname=image.relative_to(path).as_posix())
             source_name = f"{path.name}.cbz"
-            payload = buffer.getvalue()
             media_type = "application/vnd.comicbook+zip"
+            return self.create_project(
+                name=name,
+                kind=kind,
+                source_language=source_language,
+                target_language=target_language,
+                source_name=source_name,
+                source_bytes=buffer.getvalue(),
+                media_type=media_type,
+            )
         else:
-            if path.stat().st_size > self.settings.max_upload_bytes:
-                raise LinguaError(
-                    ErrorCode.INVALID_FORMAT, "Imported source exceeds the size limit"
-                )
             source_name = path.name
-            payload = path.read_bytes()
             media_type = mimetypes.guess_type(path.name)[0]
-        return self.create_project(
-            name=name,
-            kind=kind,
-            source_language=source_language,
-            target_language=target_language,
-            source_name=source_name,
-            source_bytes=payload,
-            media_type=media_type,
-        )
+            with path.open("rb") as source:
+                return self.create_project_from_stream(
+                    name=name,
+                    kind=kind,
+                    source_language=source_language,
+                    target_language=target_language,
+                    source_name=source_name,
+                    source=source,
+                    media_type=media_type,
+                )
 
     def list_projects(self) -> list[dict[str, Any]]:
         with self.database.session() as session:
@@ -385,6 +467,7 @@ class ApplicationService:
             "size": source.size,
             "checksum": source.checksum,
             "artifact_id": source.artifact_id,
+            "metadata": _loads(source.metadata_json, {}),
             "created_at": _iso(source.created_at),
         }
 
@@ -553,17 +636,27 @@ class ApplicationService:
             project = session.get(Project, project_id)
             if project is None:
                 raise LinguaError(ErrorCode.NOT_FOUND, "Project not found")
-            source_count = session.scalar(
-                select(func.count()).select_from(Source).where(Source.project_id == project_id)
+            source = session.scalar(
+                select(Source)
+                .where(Source.project_id == project_id)
+                .order_by(Source.created_at.desc())
             )
-            if not source_count:
+            if source is None:
                 raise LinguaError(ErrorCode.INVALID_STATE, "Project has no imported source")
             pipeline = (
-                get_pipeline(pipeline_key) if pipeline_key else default_pipeline(project.kind)
+                get_pipeline(pipeline_key)
+                if pipeline_key
+                else default_pipeline(project.kind, source.kind)
             )
             if pipeline.project_kind != project.kind:
                 raise LinguaError(
                     ErrorCode.CONFIGURATION, "Pipeline does not support this project kind"
+                )
+            if source.kind not in pipeline.source_kinds:
+                raise LinguaError(
+                    ErrorCode.CONFIGURATION,
+                    "Pipeline does not support the Project source format",
+                    {"pipeline_key": pipeline.key, "source_kind": source.kind},
                 )
             profile = session.get(TranslationProfile, profile_id) if profile_id else None
             if profile_id and profile is None:
@@ -595,11 +688,10 @@ class ApplicationService:
                 adapter_id = adapter_id or "mock-manga"
                 self.adapters.get(adapter_id, "manga_full_pipeline")
             snapshot = self._profile_public(profile)
-            if selected_provider != profile.provider_id:
-                snapshot["provider_id"] = selected_provider
-                snapshot["model"] = self._redact_text(
-                    str(provider.public_status().get("model") or "unknown")
-                )
+            snapshot["provider_id"] = selected_provider
+            snapshot["model"] = self._redact_text(
+                str(provider.public_status().get("model") or "unknown")
+            )
             job = Job(
                 id=new_id(),
                 project_id=project_id,
@@ -902,6 +994,19 @@ class ApplicationService:
                         "Process restart interrupted this Step; retry is available",
                         {"error_code": ErrorCode.PROCESS_INTERRUPTED},
                     )
+                session.execute(
+                    update(TranslationSegment)
+                    .where(
+                        TranslationSegment.job_id == job.id,
+                        TranslationSegment.status == "running",
+                    )
+                    .values(
+                        status="failed",
+                        error_code=ErrorCode.PROCESS_INTERRUPTED,
+                        error_message="Segment was interrupted by process restart",
+                        updated_at=utcnow(),
+                    )
+                )
                 job.status = JobStatus.FAILED
                 job.runner_token = None
                 job.control_request = None
@@ -980,6 +1085,58 @@ class ApplicationService:
             raise
         return artifact
 
+    def create_artifact_from_path(
+        self,
+        *,
+        project_id: str,
+        kind: str,
+        filename: str,
+        media_type: str,
+        source_path: Path,
+        job_id: str | None = None,
+        step_run_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Artifact:
+        """Publish a generated file without materializing it as one in-memory byte string."""
+
+        artifact_id = new_id()
+        filename = self._redact_text(filename)
+        media_type = self._redact_text(media_type)
+        secret = self.settings.openai_api_key
+        if secret and self._path_contains(source_path, secret.encode()):
+            raise LinguaError(
+                ErrorCode.STORAGE,
+                "Refusing to persist an Artifact containing the runtime Provider secret",
+            )
+        stored = self.store.write_file(
+            project_id=project_id,
+            artifact_id=artifact_id,
+            filename=filename,
+            source_path=source_path,
+        )
+        artifact = Artifact(
+            id=artifact_id,
+            project_id=project_id,
+            job_id=job_id,
+            step_run_id=step_run_id,
+            kind=kind,
+            filename=stored.filename,
+            media_type=media_type,
+            size=stored.size,
+            checksum=stored.checksum,
+            storage_key=stored.storage_key,
+            metadata_json=json.dumps(
+                self.redact_for_persistence(metadata or {}), ensure_ascii=False
+            ),
+        )
+        try:
+            with self.database.session() as session:
+                session.add(artifact)
+        except Exception:
+            self.store.remove(stored.storage_key)
+            raise
+        return artifact
+
     @staticmethod
     def _artifact_public(artifact: Artifact) -> dict[str, Any]:
         return {
@@ -1023,6 +1180,35 @@ class ApplicationService:
                 raise LinguaError(ErrorCode.OUTPUT_MISSING, "Artifact payload size is inconsistent")
             return public, payload
 
+    def artifact_path(self, artifact_id: str) -> tuple[dict[str, Any], Path]:
+        """Return verified download metadata and a private path for an interface response."""
+
+        with self.database.session() as session:
+            artifact = session.get(Artifact, artifact_id)
+            if artifact is None:
+                raise LinguaError(ErrorCode.NOT_FOUND, "Artifact not found")
+            public = self._artifact_public(artifact)
+            path = self.store.path(artifact.storage_key)
+            if path.stat().st_size != artifact.size:
+                raise LinguaError(ErrorCode.OUTPUT_MISSING, "Artifact payload size is inconsistent")
+            return public, path
+
+    def copy_artifact(self, artifact_id: str, destination: Path) -> tuple[dict[str, Any], Path]:
+        """Copy an Artifact through the application boundary using an atomic streamed write."""
+
+        with self.database.session() as session:
+            artifact = session.get(Artifact, artifact_id)
+            if artifact is None:
+                raise LinguaError(ErrorCode.NOT_FOUND, "Artifact not found")
+            public = self._artifact_public(artifact)
+            path = self.store.copy_to_atomic(
+                artifact.storage_key, destination.expanduser().resolve()
+            )
+            if path.stat().st_size != artifact.size:
+                path.unlink(missing_ok=True)
+                raise LinguaError(ErrorCode.OUTPUT_MISSING, "Copied Artifact size is inconsistent")
+            return public, path
+
     def export_project(
         self, project_id: str, *, format_name: str | None = None
     ) -> list[dict[str, Any]]:
@@ -1031,7 +1217,7 @@ class ApplicationService:
             if project is None:
                 raise LinguaError(ErrorCode.NOT_FOUND, "Project not found")
             kinds = (
-                {"novel_export_txt", "novel_export_json"}
+                {"novel_export_txt", "novel_export_json", "novel_export_epub"}
                 if project.kind == "novel"
                 else {"manga_export_cbz", "manga_page_translated"}
             )
@@ -1084,12 +1270,46 @@ class ApplicationService:
             return [by_id[item] for item in artifact_ids if item in by_id]
 
     def replace_segments(
-        self, *, project_id: str, job_id: str, texts: list[str], profile: dict[str, Any]
-    ) -> None:
+        self,
+        *,
+        project_id: str,
+        job_id: str,
+        profile: dict[str, Any],
+        texts: list[str] | None = None,
+        segments: list[dict[str, Any]] | None = None,
+    ) -> int:
+        if (texts is None) == (segments is None):
+            raise ValueError("Provide exactly one of texts or segments")
+        records = (
+            [{"sequence": sequence, "source_text": text} for sequence, text in enumerate(texts)]
+            if texts is not None
+            else list(segments or [])
+        )
+        profile_json = json.dumps(profile, ensure_ascii=False)
+        reused = 0
         with self.database.session() as session:
             session.execute(delete(QaFinding).where(QaFinding.job_id == job_id))
             session.execute(delete(TranslationSegment).where(TranslationSegment.job_id == job_id))
-            for sequence, text in enumerate(texts):
+            for fallback_sequence, record in enumerate(records):
+                sequence = int(record.get("sequence", fallback_sequence))
+                text = str(record["source_text"])
+                input_hash = record.get("translation_input_hash")
+                previous = None
+                if isinstance(input_hash, str) and input_hash:
+                    previous = session.scalar(
+                        select(TranslationSegment)
+                        .where(
+                            TranslationSegment.project_id == project_id,
+                            TranslationSegment.job_id != job_id,
+                            TranslationSegment.translation_input_hash == input_hash,
+                            TranslationSegment.status == "succeeded",
+                            TranslationSegment.translated_text.is_not(None),
+                        )
+                        .order_by(TranslationSegment.updated_at.desc())
+                        .limit(1)
+                    )
+                if previous is not None:
+                    reused += 1
                 session.add(
                     TranslationSegment(
                         id=new_id(),
@@ -1097,11 +1317,21 @@ class ApplicationService:
                         job_id=job_id,
                         sequence=sequence,
                         source_text=text,
-                        status="pending",
-                        profile_snapshot_json=json.dumps(profile, ensure_ascii=False),
+                        translated_text=previous.translated_text if previous else None,
+                        status="succeeded" if previous else "pending",
+                        model=previous.model if previous else None,
+                        profile_snapshot_json=profile_json,
                         prompt_version=str(profile.get("prompt_version", "v1")),
+                        source_artifact_id=record.get("source_artifact_id"),
+                        source_document=record.get("source_document"),
+                        content_role=record.get("content_role"),
+                        locator_json=json.dumps(record.get("locator", {}), ensure_ascii=False),
+                        source_text_hash=record.get("source_text_hash"),
+                        translation_input_hash=input_hash,
+                        reused_from_segment_id=previous.id if previous else None,
                     )
                 )
+        return reused
 
     def segment_rows(self, job_id: str) -> list[TranslationSegment]:
         with self.database.session() as session:
@@ -1174,6 +1404,13 @@ class ApplicationService:
                     "id": row.id,
                     "job_id": row.job_id,
                     "sequence": row.sequence,
+                    "source_artifact_id": row.source_artifact_id,
+                    "source_document": row.source_document,
+                    "content_role": row.content_role,
+                    "locator": _loads(row.locator_json, {}),
+                    "source_text_hash": row.source_text_hash,
+                    "translation_input_hash": row.translation_input_hash,
+                    "reused_from_segment_id": row.reused_from_segment_id,
                     "source_text": row.source_text,
                     "translated_text": row.translated_text,
                     "status": row.status,
@@ -1467,6 +1704,14 @@ class ApplicationService:
             "recent_jobs": [self._job_summary(job) for job in recent],
             "data_dir": self._redact_text(str(self.settings.data_dir)),
             "bind_default": "127.0.0.1",
+            "limits": {
+                "max_upload_bytes": self.settings.max_upload_bytes,
+                "max_archive_files": self.settings.max_archive_files,
+                "max_archive_uncompressed_bytes": self.settings.max_archive_uncompressed_bytes,
+                "max_archive_member_bytes": self.settings.max_archive_member_bytes,
+                "max_archive_compression_ratio": self.settings.max_archive_compression_ratio,
+                "max_archive_path_depth": self.settings.max_archive_path_depth,
+            },
         }
 
     def health(self) -> dict[str, Any]:
@@ -1596,9 +1841,24 @@ class ApplicationService:
             "checks": checks,
         }
 
-    @staticmethod
-    def validate_archive_member(name: str) -> PurePosixPath:
-        member = PurePosixPath(name.replace("\\", "/"))
-        if member.is_absolute() or ".." in member.parts:
+    def validate_archive_member(self, name: str) -> PurePosixPath:
+        if not name or "\x00" in name or "\\" in name:
             raise LinguaError(ErrorCode.INVALID_FORMAT, "Archive contains an unsafe path")
+        member = PurePosixPath(name)
+        if (
+            member.is_absolute()
+            or any(part in {"", ".", ".."} for part in member.parts)
+            or (member.parts and ":" in member.parts[0])
+        ):
+            raise LinguaError(ErrorCode.INVALID_FORMAT, "Archive contains an unsafe path")
+        if len(member.parts) > self.settings.max_archive_path_depth:
+            raise LinguaError(
+                ErrorCode.ARCHIVE_LIMIT_EXCEEDED,
+                "Archive member path exceeds the configured depth limit",
+                {
+                    "member": name,
+                    "depth": len(member.parts),
+                    "limit": self.settings.max_archive_path_depth,
+                },
+            )
         return member

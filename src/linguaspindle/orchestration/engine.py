@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import re
+import stat
+import tempfile
 import threading
 import time
 import zipfile
@@ -18,6 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from ..application import ApplicationService
+from ..epub import build_translated_epub, inspect_epub
 from ..errors import ErrorCode, LinguaError
 from ..models import Artifact, Job, Project, StepRun
 from ..providers import TranslationRequest
@@ -81,6 +85,9 @@ class ExecutionContext:
     def payload(self, artifact: Artifact) -> bytes:
         return self.service.store.read_bytes(artifact.storage_key)
 
+    def path(self, artifact: Artifact) -> Path:
+        return self.service.store.path(artifact.storage_key)
+
     def create_artifact(
         self,
         *,
@@ -101,6 +108,26 @@ class ExecutionContext:
             metadata=metadata,
         )
 
+    def create_artifact_from_path(
+        self,
+        *,
+        kind: str,
+        filename: str,
+        media_type: str,
+        source_path: Path,
+        metadata: dict[str, Any] | None = None,
+    ) -> Artifact:
+        return self.service.create_artifact_from_path(
+            project_id=self.job.project_id,
+            job_id=self.job.id,
+            step_run_id=self.step.id,
+            kind=kind,
+            filename=filename,
+            media_type=media_type,
+            source_path=source_path,
+            metadata=metadata,
+        )
+
 
 StepHandler = Callable[[ExecutionContext], StepResult]
 
@@ -114,12 +141,15 @@ class JobRunner:
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._handlers: dict[str, StepHandler] = {
+            "inspect_epub": self._inspect_epub,
+            "segment_epub": self._segment_epub,
             "detect_encoding": self._detect_encoding,
             "extract_text": self._extract_text,
             "segment_text": self._segment_text,
             "translate_text": self._translate_text,
             "quality_check": self._quality_check,
             "export_novel": self._export_novel,
+            "export_epub": self._export_epub,
             "prepare_manga": self._prepare_manga,
             "translate_manga": self._translate_manga,
             "export_manga": self._export_manga,
@@ -319,18 +349,29 @@ class JobRunner:
     ) -> list[Artifact]:
         source = self.service.source_artifact(job.project_id)
         ids: list[str]
-        if step.step_key in {"detect_encoding", "prepare_manga"}:
+        if step.step_key in {"detect_encoding", "inspect_epub", "prepare_manga"}:
             ids = [source.id]
+        elif step.step_key == "segment_epub":
+            ids = self._step_outputs(steps, "inspect_epub")
         elif step.step_key == "extract_text":
             ids = [source.id, *self._step_outputs(steps, "detect_encoding")]
         elif step.step_key == "segment_text":
             ids = self._step_outputs(steps, "extract_text")
         elif step.step_key == "translate_text":
-            ids = self._step_outputs(steps, "segment_text")
+            ids = [
+                *self._step_outputs(steps, "segment_text"),
+                *self._step_outputs(steps, "segment_epub"),
+            ]
         elif step.step_key == "quality_check":
             ids = self._step_outputs(steps, "translate_text")
         elif step.step_key == "export_novel":
             ids = [
+                *self._step_outputs(steps, "translate_text"),
+                *self._step_outputs(steps, "quality_check"),
+            ]
+        elif step.step_key == "export_epub":
+            ids = [
+                *self._step_outputs(steps, "inspect_epub"),
                 *self._step_outputs(steps, "translate_text"),
                 *self._step_outputs(steps, "quality_check"),
             ]
@@ -341,6 +382,118 @@ class JobRunner:
         else:
             ids = []
         return self.service.artifact_rows(ids)
+
+    def _inspect_epub(self, context: ExecutionContext) -> StepResult:
+        source = context.input_artifacts[0]
+        manifest = inspect_epub(context.path(source), self.service.settings)
+        validation = dict(manifest.get("validation", {}))
+        artifact = context.create_artifact(
+            kind="epub_package_manifest",
+            filename="epub-package-manifest.json",
+            media_type="application/json",
+            payload=json.dumps(manifest, ensure_ascii=False, indent=2).encode(),
+            metadata={
+                "source_artifact_id": source.id,
+                "epub_version": manifest.get("epub_version"),
+                "document_count": validation.get("document_count", 0),
+                "text_unit_count": validation.get("text_unit_count", 0),
+            },
+        )
+        context.log(
+            "INFO",
+            "EPUB package inspected",
+            {
+                "epub_version": manifest.get("epub_version"),
+                "documents": validation.get("document_count", 0),
+                "text_units": validation.get("text_unit_count", 0),
+            },
+        )
+        return StepResult([artifact.id])
+
+    def _segment_epub(self, context: ExecutionContext) -> StepResult:
+        manifest_artifact = next(
+            artifact
+            for artifact in context.input_artifacts
+            if artifact.kind == "epub_package_manifest"
+        )
+        manifest = json.loads(context.payload(manifest_artifact))
+        source = self.service.source_artifact(context.job.project_id)
+        records: list[dict[str, Any]] = []
+        for fallback_sequence, unit in enumerate(manifest.get("text_units", [])):
+            text = str(unit["source_text"])
+            locator = dict(unit["locator"])
+            document = str(locator.get("document_path") or "")
+            role = str(locator.get("document_type") or "body")
+            if locator.get("slot") == "attribute":
+                role = str(locator.get("attribute") or "attribute")
+            source_hash = hashlib.sha256(text.encode()).hexdigest()
+            reuse_payload = {
+                "schema_version": 1,
+                "source_checksum": source.checksum,
+                "source_document": document,
+                "locator": locator,
+                "source_text": text,
+                "source_language": context.job.source_language,
+                "target_language": context.job.target_language,
+                "provider_id": context.job.provider_id,
+                "model": context.job.profile.get("model"),
+                "style": context.job.profile.get("style"),
+                "prompt_template": context.job.profile.get("prompt_template"),
+                "prompt_version": context.job.profile.get("prompt_version"),
+                "model_parameters": context.job.profile.get("model_parameters", {}),
+                "context_strategy": context.job.profile.get("context_strategy"),
+            }
+            input_hash = hashlib.sha256(
+                json.dumps(
+                    reuse_payload,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode()
+            ).hexdigest()
+            records.append(
+                {
+                    "sequence": int(unit.get("sequence", fallback_sequence)),
+                    "source_text": text,
+                    "source_artifact_id": source.id,
+                    "source_document": document,
+                    "content_role": role,
+                    "locator": locator,
+                    "source_text_hash": source_hash,
+                    "translation_input_hash": input_hash,
+                }
+            )
+        if not records:
+            raise LinguaError(ErrorCode.EPUB_INVALID, "EPUB contains no translatable text")
+        reused = self.service.replace_segments(
+            project_id=context.job.project_id,
+            job_id=context.job.id,
+            segments=records,
+            profile=context.job.profile,
+        )
+        artifact = context.create_artifact(
+            kind="epub_segments",
+            filename="epub-segments.json",
+            media_type="application/json",
+            payload=json.dumps(
+                {
+                    "version": 1,
+                    "source_artifact_id": source.id,
+                    "manifest_artifact_id": manifest_artifact.id,
+                    "segment_count": len(records),
+                    "reused_segment_count": reused,
+                },
+                ensure_ascii=False,
+                indent=2,
+            ).encode(),
+            metadata={"segment_count": len(records), "reused_segment_count": reused},
+        )
+        context.log(
+            "INFO",
+            "EPUB visible text was segmented",
+            {"segments": len(records), "reused_segments": reused},
+        )
+        return StepResult([artifact.id])
 
     def _detect_encoding(self, context: ExecutionContext) -> StepResult:
         source = context.input_artifacts[0]
@@ -478,10 +631,25 @@ class JobRunner:
         profile = context.job.profile
         rows = self.service.segment_rows(context.job.id)
         failures: list[LinguaError] = []
+        reused_count = sum(1 for row in rows if row.reused_from_segment_id is not None)
+        if reused_count:
+            context.log(
+                "INFO",
+                "Previously successful translations were reused",
+                {"reused_segments": reused_count},
+            )
+        current_document: str | None = None
         for index, segment in enumerate(rows):
             if segment.status == "succeeded":
                 continue
             context.checkpoint()
+            if segment.source_document and segment.source_document != current_document:
+                current_document = segment.source_document
+                context.log(
+                    "INFO",
+                    "Processing EPUB document",
+                    {"document": current_document},
+                )
             self.service.update_segment(segment.id, status="running")
             request = TranslationRequest(
                 text=segment.source_text,
@@ -516,23 +684,38 @@ class JobRunner:
                 failures.append(exc)
             context.progress((index + 1) / max(len(rows), 1))
         public_segments = self.service.list_segments(context.job.project_id, job_id=context.job.id)
+        if context.job.pipeline_key == "novel_epub_v1":
+            translation_payload: dict[str, Any] = {
+                "version": 1,
+                "provider_id": context.job.provider_id,
+                "segment_count": len(public_segments),
+                "succeeded_count": sum(
+                    1 for segment in public_segments if segment["status"] == "succeeded"
+                ),
+                "failed_count": len(failures),
+                "reused_count": reused_count,
+                "segment_ids": [segment["id"] for segment in public_segments],
+            }
+            artifact_kind = "epub_translations"
+            artifact_filename = "epub-translations.json"
+        else:
+            translation_payload = {
+                "version": 1,
+                "provider_id": context.job.provider_id,
+                "profile": profile,
+                "segments": public_segments,
+            }
+            artifact_kind = "novel_translations"
+            artifact_filename = "translations.json"
         artifact = context.create_artifact(
-            kind="novel_translations",
-            filename="translations.json",
+            kind=artifact_kind,
+            filename=artifact_filename,
             media_type="application/json",
-            payload=json.dumps(
-                {
-                    "version": 1,
-                    "provider_id": context.job.provider_id,
-                    "profile": profile,
-                    "segments": public_segments,
-                },
-                ensure_ascii=False,
-                indent=2,
-            ).encode(),
+            payload=json.dumps(translation_payload, ensure_ascii=False, indent=2).encode(),
             metadata={
                 "segment_count": len(public_segments),
                 "failed_count": len(failures),
+                "reused_count": reused_count,
             },
         )
         partial = None
@@ -630,6 +813,76 @@ class JobRunner:
         )
         return StepResult([txt_artifact.id, json_artifact.id])
 
+    def _export_epub(self, context: ExecutionContext) -> StepResult:
+        manifest_artifact = next(
+            artifact
+            for artifact in context.input_artifacts
+            if artifact.kind == "epub_package_manifest"
+        )
+        manifest = json.loads(context.payload(manifest_artifact))
+        source = self.service.source_artifact(context.job.project_id)
+        segments = self.service.list_segments(context.job.project_id, job_id=context.job.id)
+        if not segments:
+            raise LinguaError(ErrorCode.OUTPUT_MISSING, "No EPUB translation segments to export")
+        failed_count = sum(1 for segment in segments if segment["status"] != "succeeded")
+        temporary_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                dir=self.service.settings.cache_dir,
+                prefix="epub-export-",
+                suffix=".epub",
+                delete=False,
+            ) as temporary:
+                temporary_path = Path(temporary.name)
+            validation = build_translated_epub(
+                source_path=context.path(source),
+                output_path=temporary_path,
+                manifest=manifest,
+                translations=segments,
+                target_language=context.job.target_language,
+                settings=self.service.settings,
+            )
+            epub_artifact = context.create_artifact_from_path(
+                kind="novel_export_epub",
+                filename=f"{context.job.project_name}-translated.epub",
+                media_type="application/epub+zip",
+                source_path=temporary_path,
+                metadata={
+                    "format": "epub",
+                    "source_artifact_id": source.id,
+                    "source_epub_artifact_id": source.id,
+                    "manifest_artifact_id": manifest_artifact.id,
+                    "project_id": context.job.project_id,
+                    "job_id": context.job.id,
+                    "target_language": context.job.target_language,
+                    "segment_count": len(segments),
+                    "fallback_segment_count": failed_count,
+                },
+            )
+            validation_artifact = context.create_artifact(
+                kind="epub_validation_report",
+                filename="epub-validation-report.json",
+                media_type="application/json",
+                payload=json.dumps(validation, ensure_ascii=False, indent=2).encode(),
+                metadata={
+                    "epub_artifact_id": epub_artifact.id,
+                    "valid": bool(validation.get("valid", True)),
+                },
+            )
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
+        context.log(
+            "INFO",
+            "Translated EPUB rebuilt and independently validated",
+            {
+                "epub_artifact_id": epub_artifact.id,
+                "validation_artifact_id": validation_artifact.id,
+                "fallback_segments": failed_count,
+            },
+        )
+        return StepResult([epub_artifact.id, validation_artifact.id])
+
     def _prepare_manga(self, context: ExecutionContext) -> StepResult:
         source = context.input_artifacts[0]
         payload = context.payload(source)
@@ -654,16 +907,80 @@ class JobRunner:
                     ErrorCode.INVALID_FORMAT, "Manga archive is not a valid CBZ"
                 ) from exc
             members = [item for item in archive.infolist() if not item.is_dir()]
-            if len(members) > self.service.settings.max_archive_files:
-                raise LinguaError(ErrorCode.INVALID_FORMAT, "Manga archive contains too many files")
-            total = sum(item.file_size for item in members)
-            if total > self.service.settings.max_archive_uncompressed_bytes:
+            settings = self.service.settings
+            if len(members) > settings.max_archive_files:
                 raise LinguaError(
-                    ErrorCode.INVALID_FORMAT, "Manga archive expands beyond the configured limit"
+                    ErrorCode.ARCHIVE_LIMIT_EXCEEDED,
+                    "Manga archive contains too many files",
+                    {"member_count": len(members), "limit": settings.max_archive_files},
                 )
+            total = 0
+            portable_names: set[str] = set()
             image_members = []
             for member in members:
                 safe_member = self.service.validate_archive_member(member.filename)
+                portable_name = str(safe_member).casefold()
+                if portable_name in portable_names:
+                    raise LinguaError(
+                        ErrorCode.ARCHIVE_UNSAFE,
+                        "Manga archive contains duplicate or ambiguous paths",
+                        {"member": member.filename},
+                    )
+                portable_names.add(portable_name)
+                if member.flag_bits & 0x41:
+                    raise LinguaError(
+                        ErrorCode.INVALID_FORMAT,
+                        "Encrypted manga archives are not supported",
+                        {"member": member.filename},
+                    )
+                unix_mode = member.external_attr >> 16
+                if member.create_system == 3 and stat.S_IFMT(unix_mode) == stat.S_IFLNK:
+                    raise LinguaError(
+                        ErrorCode.ARCHIVE_UNSAFE,
+                        "Manga archive cannot contain symbolic links",
+                        {"member": member.filename},
+                    )
+                if member.compress_type not in {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}:
+                    raise LinguaError(
+                        ErrorCode.INVALID_FORMAT,
+                        "Manga archive uses an unsupported compression method",
+                        {"member": member.filename},
+                    )
+                if member.file_size > settings.max_archive_member_bytes:
+                    raise LinguaError(
+                        ErrorCode.ARCHIVE_LIMIT_EXCEEDED,
+                        "Manga archive member exceeds the configured size limit",
+                        {
+                            "member": member.filename,
+                            "expanded_bytes": member.file_size,
+                            "limit": settings.max_archive_member_bytes,
+                        },
+                    )
+                total += member.file_size
+                if total > settings.max_archive_uncompressed_bytes:
+                    raise LinguaError(
+                        ErrorCode.ARCHIVE_LIMIT_EXCEEDED,
+                        "Manga archive expands beyond the configured limit",
+                        {
+                            "expanded_bytes": total,
+                            "limit": settings.max_archive_uncompressed_bytes,
+                        },
+                    )
+                ratio = (
+                    member.file_size / member.compress_size
+                    if member.compress_size > 0
+                    else (float("inf") if member.file_size else 0.0)
+                )
+                if ratio > settings.max_archive_compression_ratio:
+                    raise LinguaError(
+                        ErrorCode.ARCHIVE_LIMIT_EXCEEDED,
+                        "Manga archive member exceeds the configured compression ratio",
+                        {
+                            "member": member.filename,
+                            "compression_ratio": "infinite" if ratio == float("inf") else ratio,
+                            "limit": settings.max_archive_compression_ratio,
+                        },
+                    )
                 if safe_member.suffix.lower() in _IMAGE_SUFFIXES:
                     image_members.append((member, safe_member))
             if not image_members:
@@ -672,6 +989,12 @@ class JobRunner:
             for index, (member, safe_member) in enumerate(image_members, start=1):
                 context.checkpoint()
                 image = archive.read(member)
+                if len(image) != member.file_size:
+                    raise LinguaError(
+                        ErrorCode.INVALID_FORMAT,
+                        "Manga archive member size is inconsistent",
+                        {"member": member.filename},
+                    )
                 page = context.create_artifact(
                     kind="manga_page_source",
                     filename=f"{index:04d}-{safe_member.name}",
