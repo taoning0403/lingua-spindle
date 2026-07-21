@@ -1,13 +1,31 @@
 from __future__ import annotations
 
+import base64
 import io
 import zipfile
 
 import pytest
 
 from linguaspindle.application import ApplicationService
-from linguaspindle.errors import ErrorCode
+from linguaspindle.errors import ErrorCode, LinguaError
 from linguaspindle.orchestration.engine import JobRunner
+
+PNG_1X1 = bytes.fromhex(
+    "89504e470d0a1a0a0000000d4948445200000001000000010804000000b51c0c02"
+    "0000000b4944415478da6364f80f00010501012718e3660000000049454e44ae426082"
+)
+JPEG_1X1 = base64.b64decode(
+    "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////"
+    "////////////////////////////////////////////////2wBDAf//////////////////"
+    "////////////////////////////////////////////////////////////////////wAAR"
+    "CAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAX/xAAUEAEAAAAAAAAAAAAA"
+    "AAAAAAAA/9oADAMBAAIQAxAAAAF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABBQJ/"
+    "/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAA"
+    "AP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJ//8QAFBABAAAA"
+    "AAAAAAAAAAAAAAAAAP/aAAgBAQABPyF//9oADAMBAAIAAwAAABAf/8QAFBEBAAAAAAAAAAAA"
+    "AAAAAAAAAP/aAAgBAwEBPxB//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPxB//8QA"
+    "FBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxB//9k="
+)
 
 
 def test_mock_manga_pipeline_preserves_pages_and_exports_cbz(
@@ -15,8 +33,8 @@ def test_mock_manga_pipeline_preserves_pages_and_exports_cbz(
 ) -> None:
     source = io.BytesIO()
     with zipfile.ZipFile(source, "w") as archive:
-        archive.writestr("001.png", b"not-a-real-png-but-contract-safe")
-        archive.writestr("chapter/002.jpg", b"not-a-real-jpeg")
+        archive.writestr("001.png", PNG_1X1)
+        archive.writestr("chapter/002.jpg", JPEG_1X1)
     project = service.create_project(
         name="Manga sample",
         kind="manga",
@@ -41,23 +59,42 @@ def test_mock_manga_pipeline_preserves_pages_and_exports_cbz(
         assert archive.namelist() == ["0001.png", "0002.jpg"]
 
 
+def test_mock_single_image_pipeline_exports_an_image(service: ApplicationService) -> None:
+    project = service.create_project(
+        name="Manga image",
+        kind="manga",
+        source_language="ja",
+        target_language="en",
+        source_name="page.png",
+        source_bytes=PNG_1X1,
+        media_type="image/png",
+    )
+    job = service.create_job(project_id=project["id"], adapter_id="mock-manga")
+
+    JobRunner(service).run_once()
+
+    assert service.get_job(job["id"])["status"] == "succeeded"
+    exported = service.export_project(project["id"], format_name="image")
+    artifact = next(item for item in exported if item["kind"] == "manga_export_image")
+    _, payload = service.read_artifact(artifact["id"])
+    assert payload == PNG_1X1
+
+
 def test_archive_traversal_is_rejected(service: ApplicationService) -> None:
     source = io.BytesIO()
     with zipfile.ZipFile(source, "w") as archive:
         archive.writestr("../escape.png", b"payload")
-    project = service.create_project(
-        name="Unsafe manga",
-        kind="manga",
-        source_language="ja",
-        target_language="en",
-        source_name="unsafe.cbz",
-        source_bytes=source.getvalue(),
-    )
-    job = service.create_job(project_id=project["id"], adapter_id="mock-manga")
-    JobRunner(service).run_once()
-    failed = service.get_job(job["id"])
-    assert failed["status"] == "failed"
-    assert failed["error"]["code"] == "INVALID_FORMAT"
+    with pytest.raises(LinguaError) as captured:
+        service.create_project(
+            name="Unsafe manga",
+            kind="manga",
+            source_language="ja",
+            target_language="en",
+            source_name="unsafe.cbz",
+            source_bytes=source.getvalue(),
+        )
+    assert captured.value.code == ErrorCode.ARCHIVE_UNSAFE
+    assert service.list_projects() == []
 
 
 def test_nested_image_directory_is_normalized_to_a_cbz(
@@ -66,8 +103,8 @@ def test_nested_image_directory_is_normalized_to_a_cbz(
     source_dir = tmp_path / "pages"
     nested = source_dir / "chapter"
     nested.mkdir(parents=True)
-    (source_dir / "001.png").write_bytes(b"first")
-    (nested / "002.jpg").write_bytes(b"second")
+    (source_dir / "001.png").write_bytes(PNG_1X1)
+    (nested / "002.jpg").write_bytes(JPEG_1X1)
     (nested / "ignored.txt").write_text("ignored", encoding="utf-8")
 
     project = service.create_project_from_path(
@@ -124,18 +161,14 @@ def test_manga_archives_share_bounded_zip_security_rules(
             archive.writestr("two/", b"")
             archive.writestr("three/", b"")
             archive.writestr("page.png", b"image")
-    project = service.create_project(
-        name=f"Bounded manga {variation}",
-        kind="manga",
-        source_language="ja",
-        target_language="en",
-        source_name="bounded.cbz",
-        source_bytes=source.getvalue(),
-    )
-    job = service.create_job(project_id=project["id"], adapter_id="mock-manga")
-
-    JobRunner(service).run_once()
-
-    failed = service.get_job(job["id"])
-    assert failed["status"] == "failed"
-    assert failed["error"]["code"] == expected_code
+    with pytest.raises(LinguaError) as captured:
+        service.create_project(
+            name=f"Bounded manga {variation}",
+            kind="manga",
+            source_language="ja",
+            target_language="en",
+            source_name="bounded.cbz",
+            source_bytes=source.getvalue(),
+        )
+    assert captured.value.code == expected_code
+    assert service.list_projects() == []

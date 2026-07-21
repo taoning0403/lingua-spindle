@@ -5,10 +5,12 @@ from collections.abc import Callable
 import httpx
 import pytest
 
-from linguaspindle.config import Settings
 from linguaspindle.errors import ErrorCode, LinguaError
 from linguaspindle.providers.base import TranslationRequest
-from linguaspindle.providers.openai_compatible import OpenAICompatibleProvider
+from linguaspindle.providers.openai_compatible import (
+    OpenAICompatibleProvider,
+    OpenAIProviderConfig,
+)
 
 
 def _request() -> TranslationRequest:
@@ -23,16 +25,14 @@ def _request() -> TranslationRequest:
     )
 
 
-def _provider(tmp_path, **changes) -> OpenAICompatibleProvider:
-    settings = Settings(
-        data_dir=tmp_path / "data",
-        openai_api_key="sk-runtime-secret",
-        openai_base_url="https://provider.example/v1",
-        openai_model="model-v1",
-        openai_max_retries=changes.pop("openai_max_retries", 2),
+def _provider(**changes) -> OpenAICompatibleProvider:
+    config = OpenAIProviderConfig(
+        api_key=changes.pop("api_key", "sk-runtime-secret"),
+        base_url=changes.pop("base_url", "https://provider.example/v1"),
+        model=changes.pop("model", "model-v1"),
         **changes,
     )
-    return OpenAICompatibleProvider(settings)
+    return OpenAICompatibleProvider(config)
 
 
 def _mock_client(
@@ -47,33 +47,28 @@ def _mock_client(
     monkeypatch.setattr(httpx, "Client", factory)
 
 
-def test_rate_limit_and_server_errors_retry_before_success(
-    tmp_path, monkeypatch: pytest.MonkeyPatch
+def test_success_maps_usage_and_sends_caller_runtime_key(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    responses = [429, 503, 200]
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
-        status = responses.pop(0)
-        if status == 200:
-            return httpx.Response(
-                200,
-                json={
-                    "model": "model-v2",
-                    "choices": [{"message": {"content": "Bonjour"}}],
-                    "usage": {
-                        "prompt_tokens": 12,
-                        "completion_tokens": 3,
-                        "total_tokens": 15,
-                    },
+        return httpx.Response(
+            200,
+            json={
+                "model": "model-v2",
+                "choices": [{"message": {"content": "Bonjour"}}],
+                "usage": {
+                    "prompt_tokens": 12,
+                    "completion_tokens": 3,
+                    "total_tokens": 15,
                 },
-            )
-        return httpx.Response(status, text="retry later")
+            },
+        )
 
     _mock_client(monkeypatch, handler)
-    monkeypatch.setattr("linguaspindle.providers.openai_compatible.time.sleep", lambda _: None)
-    result = _provider(tmp_path).translate(_request())
+    result = _provider().translate(_request())
 
     assert result.text == "Bonjour"
     assert result.model == "model-v2"
@@ -82,15 +77,31 @@ def test_rate_limit_and_server_errors_retry_before_success(
         "completion_tokens": 3,
         "total_tokens": 15,
     }
-    assert len(requests) == 3
-    assert all(
-        request.headers["authorization"] == "Bearer sk-runtime-secret" for request in requests
-    )
-    assert requests[-1].url == "https://provider.example/v1/chat/completions"
+    assert len(requests) == 1
+    assert requests[0].headers["authorization"] == "Bearer sk-runtime-secret"
+    assert requests[0].url == "https://provider.example/v1/chat/completions"
 
 
-def test_timeout_is_normalized_after_bounded_retries(
-    tmp_path, monkeypatch: pytest.MonkeyPatch
+def test_rate_limit_is_retryable_without_a_hidden_provider_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        return httpx.Response(429, text="retry later")
+
+    _mock_client(monkeypatch, handler)
+    with pytest.raises(LinguaError) as caught:
+        _provider().translate(_request())
+    assert caught.value.code == ErrorCode.RATE_LIMIT
+    assert caught.value.retryable is True
+    assert attempts == 1
+
+
+def test_timeout_is_normalized_for_core_owned_retry(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     attempts = 0
 
@@ -100,21 +111,20 @@ def test_timeout_is_normalized_after_bounded_retries(
         raise httpx.ReadTimeout("synthetic timeout", request=request)
 
     _mock_client(monkeypatch, handler)
-    monkeypatch.setattr("linguaspindle.providers.openai_compatible.time.sleep", lambda _: None)
     with pytest.raises(LinguaError) as caught:
-        _provider(tmp_path, openai_max_retries=1).translate(_request())
+        _provider().translate(_request())
     assert caught.value.code == ErrorCode.TIMEOUT
     assert caught.value.retryable is True
-    assert attempts == 2
+    assert attempts == 1
 
 
-def test_rejected_response_redacts_runtime_key(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_rejected_response_redacts_runtime_key(monkeypatch: pytest.MonkeyPatch) -> None:
     def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(400, text="api_key=sk-runtime-secret rejected")
 
     _mock_client(monkeypatch, handler)
     with pytest.raises(LinguaError) as caught:
-        _provider(tmp_path).translate(_request())
+        _provider().translate(_request())
     assert caught.value.code == ErrorCode.MODEL_API
     assert caught.value.retryable is False
     assert "sk-runtime-secret" not in str(caught.value.details)
@@ -129,27 +139,78 @@ def test_rejected_response_redacts_runtime_key(tmp_path, monkeypatch: pytest.Mon
         {"choices": [{"message": {"content": ""}}]},
     ],
 )
-def test_invalid_provider_output_is_normalized(
-    tmp_path, monkeypatch: pytest.MonkeyPatch, body: dict
-) -> None:
+def test_invalid_provider_output_is_normalized(monkeypatch: pytest.MonkeyPatch, body: dict) -> None:
     def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=body)
 
     _mock_client(monkeypatch, handler)
-    monkeypatch.setattr("linguaspindle.providers.openai_compatible.time.sleep", lambda _: None)
     with pytest.raises(LinguaError) as caught:
-        _provider(tmp_path, openai_max_retries=0).translate(_request())
+        _provider().translate(_request())
     assert caught.value.code == ErrorCode.OUTPUT_MISSING
 
 
-def test_missing_runtime_key_fails_without_an_http_request(tmp_path) -> None:
+def test_missing_runtime_key_fails_without_an_http_request() -> None:
     provider = OpenAICompatibleProvider(
-        Settings(
-            data_dir=tmp_path / "data",
-            openai_api_key=None,
-            openai_base_url="https://provider.example/v1",
-        )
+        OpenAIProviderConfig(api_key=None, base_url="https://provider.example/v1")
     )
     with pytest.raises(LinguaError) as caught:
         provider.translate(_request())
     assert caught.value.code == ErrorCode.CONFIGURATION
+
+
+@pytest.mark.parametrize("reserved_field", ["model", "messages"])
+def test_reserved_model_parameters_are_rejected_without_an_http_request(
+    monkeypatch: pytest.MonkeyPatch,
+    reserved_field: str,
+) -> None:
+    def unexpected_request(_request: httpx.Request) -> httpx.Response:
+        raise AssertionError("reserved fields must fail before the HTTP boundary")
+
+    _mock_client(monkeypatch, unexpected_request)
+    base = _request()
+    request = TranslationRequest(
+        text=base.text,
+        source_language=base.source_language,
+        target_language=base.target_language,
+        style=base.style,
+        prompt_template=base.prompt_template,
+        prompt_version=base.prompt_version,
+        model_parameters={reserved_field: "caller-controlled"},
+    )
+
+    with pytest.raises(LinguaError) as caught:
+        _provider().translate(request)
+
+    assert caught.value.code is ErrorCode.CONFIGURATION
+    assert caught.value.details == {"reserved_fields": [reserved_field]}
+
+
+def test_key_resolver_is_called_once_per_translation(monkeypatch: pytest.MonkeyPatch) -> None:
+    resolver_calls = 0
+
+    def resolve_key() -> str:
+        nonlocal resolver_calls
+        resolver_calls += 1
+        return "sk-resolved-once"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["authorization"] == "Bearer sk-resolved-once"
+        return httpx.Response(
+            200,
+            json={
+                "model": "model-v1",
+                "choices": [{"message": {"content": "Bonjour"}}],
+            },
+        )
+
+    _mock_client(monkeypatch, handler)
+    provider = _provider(api_key=None, api_key_resolver=resolve_key)
+
+    assert provider.translate(_request()).text == "Bonjour"
+    assert resolver_calls == 1
+
+
+@pytest.mark.parametrize("non_finite", [float("nan"), float("inf"), float("-inf")])
+def test_provider_config_rejects_non_finite_timeout(non_finite: float) -> None:
+    with pytest.raises(ValueError):
+        OpenAIProviderConfig(timeout_seconds=non_finite)

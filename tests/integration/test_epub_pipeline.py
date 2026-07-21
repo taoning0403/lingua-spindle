@@ -287,6 +287,81 @@ def test_second_identical_epub_job_reuses_every_translation_without_provider_cal
     assert json.loads(segment_payload)["reused_segment_count"] == len(second_segments)
 
 
+def test_translation_reuse_is_bound_to_provider_execution_contract(
+    service: ApplicationService,
+    tmp_path: Path,
+) -> None:
+    source_bytes = _write_epub(tmp_path / "provider-bound-reuse.epub")
+    project = _create_epub_project(service, source_bytes, target_language="fr")
+    mock = service.providers.get("mock")
+
+    class AlternateProvider:
+        id = "alternate"
+
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        def translate(self, request: TranslationRequest) -> TranslationResult:
+            self.calls.append(request.text)
+            return TranslationResult(text=f"<alt>{request.text}", model="alternate-v1")
+
+    alternate = AlternateProvider()
+    service.providers = ProviderRegistry([mock, alternate])
+
+    first_job = service.create_job(project_id=project["id"], provider_id="mock")
+    assert JobRunner(service).run_once() is True
+    first_segments = service.list_segments(project["id"], job_id=first_job["id"])
+
+    second_job = service.create_job(project_id=project["id"], provider_id=alternate.id)
+    assert JobRunner(service).run_once() is True
+    second_segments = service.list_segments(project["id"], job_id=second_job["id"])
+
+    assert len(alternate.calls) == len(second_segments)
+    assert all(segment["reused_from_segment_id"] is None for segment in second_segments)
+    assert {segment["translation_input_hash"] for segment in first_segments}.isdisjoint(
+        {segment["translation_input_hash"] for segment in second_segments}
+    )
+
+    alternate.calls.clear()
+    third_job = service.create_job(project_id=project["id"], provider_id=alternate.id)
+    assert JobRunner(service).run_once() is True
+    third_segments = service.list_segments(project["id"], job_id=third_job["id"])
+
+    assert alternate.calls == []
+    assert {segment["reused_from_segment_id"] for segment in third_segments} == {
+        segment["id"] for segment in second_segments
+    }
+
+    class EndpointProvider(AlternateProvider):
+        id = "openai-compatible"
+
+    endpoint_provider = EndpointProvider()
+    service.providers = ProviderRegistry([endpoint_provider])
+    service.settings.openai_base_url = "https://first.example.invalid/v1"
+    first_endpoint_job = service.create_job(
+        project_id=project["id"], provider_id=endpoint_provider.id
+    )
+    assert JobRunner(service).run_once() is True
+    first_endpoint_segments = service.list_segments(project["id"], job_id=first_endpoint_job["id"])
+    assert len(endpoint_provider.calls) == len(first_endpoint_segments)
+
+    endpoint_provider.calls.clear()
+    service.settings.openai_base_url = "https://second.example.invalid/v1"
+    second_endpoint_job = service.create_job(
+        project_id=project["id"], provider_id=endpoint_provider.id
+    )
+    assert JobRunner(service).run_once() is True
+    second_endpoint_segments = service.list_segments(
+        project["id"], job_id=second_endpoint_job["id"]
+    )
+
+    assert len(endpoint_provider.calls) == len(second_endpoint_segments)
+    assert all(segment["reused_from_segment_id"] is None for segment in second_endpoint_segments)
+    assert {segment["translation_input_hash"] for segment in first_endpoint_segments}.isdisjoint(
+        {segment["translation_input_hash"] for segment in second_endpoint_segments}
+    )
+
+
 def test_failed_epub_segment_falls_back_to_source_and_job_is_partial(
     service: ApplicationService,
     tmp_path: Path,
@@ -464,7 +539,11 @@ def test_runtime_provider_key_is_redacted_before_epub_reconstruction(tmp_path: P
         job = service.create_job(project_id=project["id"], provider_id="secret-echo")
 
         assert JobRunner(service).run_once() is True
-        assert service.get_job(job["id"])["status"] == "succeeded"
+        assert service.get_job(job["id"])["status"] == "partially_succeeded"
+        segments = service.list_segments(project["id"], job_id=job["id"])
+        assert segments
+        assert all(segment["status"] == "failed" for segment in segments)
+        assert all(segment["error"]["code"] == ErrorCode.MODEL_API for segment in segments)
         exported = next(
             artifact
             for artifact in service.list_artifacts(project_id=project["id"], job_id=job["id"])
@@ -477,7 +556,7 @@ def test_runtime_provider_key_is_redacted_before_epub_reconstruction(tmp_path: P
                 archive.read(member) for member in archive.infolist() if not member.is_dir()
             )
         assert runtime_key.encode() not in expanded_payload
-        assert b"[REDACTED]" in expanded_payload
+        assert b"[REDACTED]" not in expanded_payload
     finally:
         service.close()
 

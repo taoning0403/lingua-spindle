@@ -107,13 +107,14 @@ async def _openapi_flow(data_dir) -> None:
 
             response = await client.get("/")
             assert response.status_code == 200
-            assert "LinguaSpindle" in response.text
-            assert "No login" in response.text
-            assert (await client.get("/app.js")).status_code == 200
-            assert (await client.get("/styles.css")).status_code == 200
+            assert response.json()["name"] == "LinguaSpindle"
+            assert response.json()["mode"] == "headless"
+            assert (await client.get("/app.js")).status_code == 404
+            assert (await client.get("/styles.css")).status_code == 404
+            assert (await client.get("/reader/anything")).status_code == 404
 
 
-def test_openapi_and_web_gui_surface(tmp_path) -> None:
+def test_openapi_and_headless_surface(tmp_path) -> None:
     asyncio.run(_openapi_flow(tmp_path / "data"))
 
 
@@ -217,7 +218,7 @@ def test_cli_export_streams_one_selected_artifact_to_output(tmp_path) -> None:
     )
 
     assert exported.exit_code == 0, exported.output
-    assert output.read_text(encoding="utf-8") == "[fr] Export this paragraph.\n"
+    assert output.read_text(encoding="utf-8") == "[fr] Export this paragraph."
     assert json.loads(exported.output)["output"] == str(output.resolve())
 
 

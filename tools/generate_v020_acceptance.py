@@ -700,8 +700,8 @@ def _generate_samples(repository: Path) -> dict[str, Any]:
             ]
             source_epub_path = samples_root / "epub" / "source-multichapter.epub"
             output_epub_path = samples_root / "epub" / "translated-multichapter.epub"
-            source_inspection = inspect_epub(source_epub_path, settings)
-            output_inspection = inspect_epub(output_epub_path, settings)
+            source_inspection = inspect_epub(source_epub_path, settings.archive_limits())
+            output_inspection = inspect_epub(output_epub_path, settings.archive_limits())
             epub_verification = {
                 "source_archive": _verify_zip(source_epub_path, ".epub"),
                 "output_archive": _verify_zip(output_epub_path, ".epub"),
@@ -932,7 +932,7 @@ def _peak_rss_bytes() -> tuple[int | None, str]:
 def _measurement_worker(epub_path: Path, data_root: Path) -> dict[str, Any]:
     settings = Settings(data_dir=data_root.resolve(), openai_api_key=None)
     started = time.perf_counter()
-    inspection = inspect_epub(epub_path.resolve(), settings)
+    inspection = inspect_epub(epub_path.resolve(), settings.archive_limits())
     elapsed = time.perf_counter() - started
     peak_rss, peak_rss_basis = _peak_rss_bytes()
     validation = inspection["validation"]

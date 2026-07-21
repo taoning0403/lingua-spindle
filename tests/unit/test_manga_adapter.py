@@ -5,7 +5,10 @@ import json
 import httpx
 import pytest
 
-from linguaspindle.adapters.manga_image_translator import MangaImageTranslatorHttpAdapter
+from linguaspindle.adapters.manga_image_translator import (
+    MangaImageTranslatorConfig,
+    MangaImageTranslatorHttpAdapter,
+)
 from linguaspindle.config import Settings
 from linguaspindle.errors import ErrorCode, LinguaError
 
@@ -30,6 +33,12 @@ def test_manifest_declares_automation_and_safe_boundary_limits(tmp_path) -> None
     assert manifest.supports_progress is False
     assert manifest.upstream_license.startswith("GPL-3.0-only")
     assert manifest.modified is False
+
+
+@pytest.mark.parametrize("non_finite", [float("nan"), float("inf"), float("-inf")])
+def test_manga_adapter_config_rejects_non_finite_timeout(non_finite: float) -> None:
+    with pytest.raises(ValueError):
+        MangaImageTranslatorConfig(timeout_seconds=non_finite)
 
 
 def test_health_reports_missing_and_unreachable_service(
@@ -155,6 +164,41 @@ def test_http_failure_is_redacted_and_retryable_only_for_server_errors(
         )
     assert server_error.value.code == ErrorCode.EXTERNAL_COMMAND
     assert server_error.value.retryable is True
+
+
+def test_http_failure_redacts_secret_values_echoed_from_request_config(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private_marker = "mit-" + "private-marker"
+    adapter = MangaImageTranslatorHttpAdapter(
+        Settings(
+            data_dir=tmp_path / "data",
+            mit_base_url="http://manga.test",
+            mit_config_json=json.dumps(
+                {"translator": {"api_key": private_marker, "nested": {"mode": "safe"}}}
+            ),
+        )
+    )
+    monkeypatch.setattr(
+        httpx,
+        "post",
+        lambda *_args, **_kwargs: httpx.Response(
+            500,
+            text=json.dumps({"request": {"api_key": private_marker}}),
+        ),
+    )
+
+    with pytest.raises(LinguaError) as caught:
+        adapter.translate_image(
+            image=b"source",
+            filename="page.png",
+            source_language="ja",
+            target_language="en",
+        )
+
+    assert private_marker not in str(caught.value.to_dict())
+    assert "[REDACTED]" in str(caught.value.to_dict())
+    assert private_marker not in repr(adapter.config)
 
 
 def test_invalid_adapter_configuration_is_rejected(tmp_path) -> None:
