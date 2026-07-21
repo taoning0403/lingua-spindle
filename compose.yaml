@@ -2,7 +2,7 @@ services:
   linguaspindle:
     build:
       context: .
-    image: lingua-spindle:0.2.0
+    image: lingua-spindle:0.3.0
     init: true
     restart: unless-stopped
     ports:

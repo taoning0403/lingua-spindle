@@ -3,8 +3,9 @@
 Last reviewed against the v0.3.0 execution contract and the current working implementation on
 2026-07-21. The active milestone is the v0.3.0 headless/library-first refactor. Development is
 based on the released v0.2.0 commit `b0b5ef20dff65e7ecb6ace495a82fbe855e5d930` without moving or
-rewriting its tag. The package/version metadata remains `0.2.0` until all mandatory v0.3.0 gates
-and the checksummed acceptance archive are complete.
+rewriting its tag. Mandatory source, static-analysis, migration, and local runtime gates passed;
+package metadata is now `0.3.0` so the exact final Wheel, image, extras, and checksummed archive can
+be verified before any publication decision.
 
 ## Current milestone direction
 
