@@ -6,9 +6,9 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
-The v0.2.0 tag and GitHub Release remain pending acceptance-report review.
+No changes recorded after the v0.2.0 release baseline.
 
-## 0.2.0 - 2026-07-20
+## [0.2.0] - 2026-07-20
 
 ### Added
 
@@ -95,5 +95,6 @@ The v0.2.0 tag and GitHub Release remain pending acceptance-report review.
 - The real manga Adapter exposes page-boundary cancellation and no streaming progress in v0.1.0.
 - Upstream manga model/font redistribution terms require operator revalidation.
 
-[Unreleased]: https://github.com/taoning0403/lingua-spindle/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/taoning0403/lingua-spindle/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/taoning0403/lingua-spindle/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/taoning0403/lingua-spindle/releases/tag/v0.1.0

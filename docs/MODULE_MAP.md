@@ -16,7 +16,7 @@ migration, tests, generated OpenAPI, and runtime evidence.
 | `acceptance/v0.1.0/` | Indexed v0.1.0 reports, Docker/WSL supplemental matrix, machine-readable evidence, command transcript, and Release checksums. |
 | `acceptance/v0.2.0/` | v0.2.0 acceptance report, machine-readable evidence, command/environment logs, checksums, and generated EPUB/TXT/manga/build/browser artifacts. |
 | `tools/generate_v020_acceptance.py` | Deterministic Mock EPUB/TXT/manga sample generation, output verification, and measured temporary large-EPUB evidence. |
-| `docs/releases/v0.1.0.md` | Technical Preview highlights, verified surface, limitations, security, and installation notes. |
+| `docs/releases/v0.1.0.md`, `docs/releases/v0.2.0.md` | Versioned Technical Preview highlights, verified surface, limitations, security, upgrade, and installation notes. |
 | `docs/epub.md` | EPUB 2/3 subset, text-node rules, lineage/reuse, reconstruction, validation, resource guards, and limitations. |
 | `acceptance/*/artifacts/` | Versioned acceptance fixtures and generated outputs; large/private runtime artifacts remain Release-only or checksum-only. |
 
@@ -70,6 +70,7 @@ migration, tests, generated OpenAPI, and runtime evidence.
 | Path | Responsibility |
 | --- | --- |
 | `pyproject.toml`, `constraints-v020.txt` | v0.2.0 package metadata, direct dependencies, scripts, gates, and development/acceptance direct versions. |
+| `.github/workflows/ci.yml` | Python 3.11–3.14 default tests, static/configuration gates, Chromium tests, and Python 3.12 Wheel/resource verification. |
 | `constraints-v010.txt` | Historical v0.1.0 acceptance direct-version constraint retained for reproducibility. |
 | `Dockerfile`, `compose.yaml`, `.dockerignore`, `.env.example` | Non-root core image, loopback host publish, Volume/health, runtime configuration. |
 | `README.md`, `README.zh-CN.md` | Quick start, examples, trust and integration overview. |

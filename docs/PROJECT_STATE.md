@@ -1,8 +1,9 @@
 # Project state
 
-Last reviewed against the v0.2.0 development contract and working implementation on 2026-07-20.
-The active milestone is v0.2.0. Its package version is `0.2.0`, but no v0.2.0 tag or GitHub Release
-is created automatically; publication remains gated on review of the versioned acceptance report.
+Last reviewed against the v0.2.0 development contract, working implementation, and publication
+baseline on 2026-07-21. The active milestone is v0.2.0. Its package version is `0.2.0`, and the
+evidence baseline `6c6f99590950f460c3d32f38437f56c39492177f` is on remote `main`. The annotated
+`v0.2.0` tag and GitHub prerelease remain pending the separately authorized publication step.
 
 ## Current milestone outcome
 
@@ -73,7 +74,10 @@ Provider execution.
 The v0.2.0 source candidate `f662c4844bd7990b3197f39314841b9c903deae1` has completed the
 required local acceptance matrix with final status **Pass / release pending**. Evidence belongs
 only under `acceptance/v0.2.0/`; the human-readable conclusion is in
-`acceptance/v0.2.0/reports/acceptance-report.md`. No v0.2.0 tag, push, or GitHub Release was created.
+`acceptance/v0.2.0/reports/acceptance-report.md`. The later evidence-only commit
+`6c6f99590950f460c3d32f38437f56c39492177f` is now on remote `main` and contains no runtime-source
+change from that candidate. The acceptance report's statement that no push had occurred records
+its historical execution point and remains unchanged. No v0.2.0 tag or GitHub Release exists.
 
 Final executable evidence includes 149 passing tests with 3 explicit default skips and 83% total
 branch-aware coverage; a real Chromium rerun with 2 browser tests passing and only the paid
@@ -82,6 +86,17 @@ migration-resource smoke checks; and an isolated Linux/arm64 Docker Compose run 
 loopback publication, non-root/read-only execution, HTTP Artifact integrity, and restart
 persistence. Native Windows/WSL, a real paid Provider, a real manga model, and external
 `epubcheck` remain accurately marked as optional external tests not executed in this run.
+
+Release preparation on 2026-07-21 added `.github/workflows/ci.yml` without changing `src/`,
+migrations, dependencies, Docker runtime configuration, or product behavior. Local default suites
+on Python 3.11.13, 3.12.11, 3.13.7, and stable 3.14.6 each completed with 149 passing tests and the
+same 3 explicit skips. The Python 3.12 coverage rerun remained 149 passed, 3 skipped, and 83%.
+The browser command first failed only because the sandbox denied `127.0.0.1` binding; the same
+command in an approved loopback environment completed with 2 passed and 1 paid-Provider skip. A
+fresh isolated Linux/arm64 Compose image and project repeated health, non-root/read-only/loopback
+security, empty-key Mock Job, download integrity, restart persistence, and test-only Volume
+cleanup. Hosted GitHub Actions remain pending until the exact release-preparation commit is
+separately authorized for remote `main`.
 
 Required v0.2.0 gates include EPUB unit/integration/interface/browser coverage, malicious and
 resource-limit fixtures, export re-import/resource equality, controls/recovery/reuse, TXT/manga
