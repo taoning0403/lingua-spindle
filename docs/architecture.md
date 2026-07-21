@@ -1,213 +1,242 @@
 # Architecture
 
-LinguaSpindle v0.2.0 is a local-first Python modular monolith with process-separated external
-capabilities. Windows, Linux, server, Docker, Web, CLI, and API use one business implementation.
+LinguaSpindle v0.3.0 is a Python modular monolith with a pure, synchronous translation core and
+optional persistence/interfaces. “Headless” removes the browser product surface and caller-side
+business workflow; TXT, EPUB, and manga remain formal engine capabilities.
+
+## Dependency rule
 
 ```text
-Static Web GUI       Typer CLI       FastAPI / OpenAPI
-       \                |                 /
-        +-------- interface adapters ----+
-                         |
-                ApplicationService
-                         |
-          durable sequential JobRunner
-             /             |             \
-    Translation Providers  |       capability Adapters
-                            |               |
-                     Artifact API     external HTTP service
-                       /       \
-               SQLite metadata  local immutable payloads
+optional interfaces
+  Typer CLI / FastAPI JSON server
+                 |
+optional local runtime
+  ApplicationService/LocalRuntime / SQLite / Artifact store / JobRunner
+                 |
+pure public core
+  typed models / I/O / TXT / EPUB / manga / orchestration
+        /                              \
+TranslationProvider              MangaTranslationAdapter
 ```
 
-ADRs 0001–0007 own the durable boundaries. The implementation is intentionally one-host and does
-not introduce a broker, distributed worker, external database, frontend build service, or
-application identity layer.
+Dependencies point downward only. The core does not import optional interfaces/runtime or their
+frameworks. It receives explicit values for the current call and does not resolve environment
+variables or global Settings.
 
-## Concrete stack
+Top-level `import linguaspindle` exports the public core, Mock Provider, and Mock Manga Adapter.
+It performs no filesystem, database, network, environment, or worker action. Explicit operations
+may read caller input and write only to caller-supplied output.
 
-- Python 3.11+ packaged with setuptools.
-- FastAPI 0.115/Uvicorn for HTTP, multipart input, static GUI, and OpenAPI.
-- Typer for CLI commands.
-- SQLAlchemy 2 over SQLite WAL; package-owned forward-only SQL migrations.
-- Atomic local Artifact payload store under one configurable data root.
-- Durable in-process polling worker with a SQLite compare-and-update claim.
-- HTTPX for OpenAI-compatible and manga HTTP integrations.
-- Server-served HTML/CSS/ES-module GUI; polling is the only progress transport.
-- pytest, Ruff, mypy, coverage, and opt-in Playwright Chromium acceptance.
+## Pure public core
 
-ADR 0004 records why this stack fits a single-instance deployment. EPUB inspection/reconstruction
-uses the Python standard library ZIP/XML implementation plus the existing storage and Job
-boundaries; it does not add an EPUB service or external runtime dependency.
+### Typed contracts
 
-## Interface and application boundary
+`core/models.py` defines immutable dataclasses and Enums for document manifests, stable Segments/
+locators, manga pages/manifests, translation options/records/batches, events, cancellation, page
+results, and build results. Provider and Manga Adapter are runtime-checkable Protocols in their
+respective modules. Public persistent payloads carry an explicit schema version and reject unknown
+versions during recovery.
 
-`interfaces/api.py`, `interfaces/cli.py`, and `web/app.js` adapt requests and responses only.
-They call `ApplicationService`; neither interface defines Pipelines, calls Providers/Adapters, or
-writes Artifact storage directly. CLI and API integration tests create data through one surface
-and observe it through the other.
+Core models contain no SQLAlchemy objects, Project/Job identity, Artifact storage key, secret,
+global data path, or calling-product review state. `DocumentManifest.structure` is a documented,
+versioned opaque EPUB compatibility payload used by the already accepted rebuilder; typed
+Segments and metadata are the stable integration surface.
 
-The FastAPI lifespan constructs one `ApplicationService` and one `JobRunner`. Creating an HTTP Job
-returns `202` immediately; the runner claims it from SQLite. CLI `run` creates the same Job and may
-drive the same runner synchronously. The GUI polls persisted Job detail.
+### Caller-owned I/O
 
-Multipart source bodies are bounded before parsing, then copied from `UploadFile` into the managed
-Artifact store as a stream. The application layer independently enforces the exact source-byte
-limit. HTTP downloads use a verified private Artifact path with a file response, and CLI output
-uses an atomic streamed copy. Interfaces never expose storage keys or read the whole payload merely
-to transfer it.
+Core input is a path/path-like object, binary stream, or bounded bytes value. Output is an explicit
+path/path-like object or binary stream. Path output is atomically replaced only when the caller
+sets `overwrite=True`; document output may never resolve to the immutable source path.
 
-The GUI opens directly to the dashboard. There are no login/account/profile pages, auth
-dependencies, permission filters, or identity-shaped routes. Translation Profiles are
-instance-scoped translation policy, not personal profiles.
+Path/stream/bytes values are transport, not persistent identity. `source_sha256`, source size,
+stable Segment/page IDs, locators, and schema versions bind saved results to source content. A
+rebuild with a mismatched source fails before publication.
 
-## Orchestration and recovery
+### Document flow
 
-Pipelines are versioned ordered code definitions in `orchestration/pipelines.py`:
+```text
+caller source
+  -> bounded read + TXT/EPUB detection
+  -> inspect_document -> DocumentManifest + ordered Segment tuple
+  -> translate_segments (selected/all/none, existing/manual precedence)
+  -> TranslationBatchResult
+  -> rebuild_document from the same immutable source
+  -> caller output + BuildResult
+```
 
-- `novel_txt_v1`: encoding → extraction → segmentation → Provider translation → QA → TXT/JSON.
-- `novel_epub_v1`: package inspection → located visible-text segmentation → Provider translation
-  → QA → reconstructed and validated EPUB.
-- `manga_full_v1`: safe import → `manga_full_pipeline` Adapter → CBZ.
+`translate_document` composes those same calls; it is not a second implementation.
 
-Project kind and immutable Source kind select a compatible Preset. Novel remains the domain kind;
-TXT and EPUB are Source formats, not competing Project or task models.
+TXT decoding and segmentation live in `core/txt.py`. Segments use deterministic source offsets,
+content roles, hashes, and preserved source gaps. Rebuild substitutes only successful/manual
+text, retains all other spans, then emits UTF-8/LF.
 
-Each Job snapshots Pipeline version, Provider/Adapter ID, and a secret-free Translation Profile.
-Each ordered Step persists state, attempt count, timestamps, progress, input/output Artifact IDs,
-configuration, normalized error, and append-only logs.
+EPUB processing delegates archive/package/XML mechanics to dependency-light `epub.py`. Inspection
+checks package structure and extracts ordered visible text into stable XML-slot locators. Rebuild
+starts from the immutable ZIP, modifies declared slots and language metadata, preserves unmapped
+source text and unmodified resources, then independently reopens/reinspects and validates output.
+Explicit `ArchiveLimits` control member count, total/per-member expansion, compression ratio, and
+path depth.
 
-The runner selects work by status and atomically changes one queued Job to running. It persists at
-Step and segment/page boundaries. A Step passes only Artifact identities through orchestration;
-`ExecutionContext` resolves payload bytes privately at the storage boundary.
+### Novel orchestration
 
-Pause and cancellation are cooperative:
+`translate_segments` is synchronous and persistence-free. `selected_segment_ids=None` selects all;
+an explicit empty iterable selects none. It rejects unknown selected/existing IDs before calling
+the Provider. Existing successful or caller-authored translations take precedence.
 
-- queued pause is immediate; active pause remains requested until the next segment/page boundary;
-- active cancel first becomes `cancelling` and becomes `cancelled` only at a safe boundary;
-- pending downstream Steps are then marked cancelled; and
-- the real manga HTTP Adapter declares no immediate cancellation, so the current image call is
-  allowed to return or time out before cancellation completes.
+The core owns deterministic final order, bounded concurrency, bounded exponential retry, attempt
+and usage normalization, retryable/terminal classification, progress events, cooperative
+cancellation, partial results, and redaction. A caller decides whether to run this synchronous
+operation in a thread/task/queue and where to persist returned records.
 
-Retry reopens the earliest failed/partial Step and downstream Steps. Successful upstream Steps and
-successful translation segments are reused. Attempt counts and prior error evidence remain in
-Step logs. A process restart classifies an active Step/Job as failed with `PROCESS_INTERRUPTED`;
-the operator retries explicitly. Already completed Steps are never unconditionally rerun.
+### Manga flow
 
-EPUB Segments add the source Artifact, source document, XML-slot locator, content role, source
-hash, translation-input hash, and optional reused Segment lineage. Reuse across Jobs is allowed
-only when the exact immutable location/content and effective non-secret translation policy match.
+```text
+caller image/CBZ
+  -> bounded read + image signature / safe archive inspection
+  -> MangaManifest + stable naturally ordered pages
+  -> translate_manga through MangaTranslationAdapter
+  -> page images + normalized raw/log/error results
+  -> build_manga_output
+  -> caller image/CBZ + BuildResult
+```
 
-This is not a DAG editor or distributed scheduler.
+Image and CBZ input is validated before Adapter calls. Successful page outputs remain when another
+page fails. Cancellation is checked between page calls. The core does not claim mid-image
+cancellation or streaming internal progress from an Adapter that does not provide it.
+
+## Provider and Manga Adapter boundaries
+
+Text Providers and Manga Adapters deliberately remain different contracts:
+
+- `TranslationProvider.translate(TranslationRequest)` returns text/model/usage for one Segment.
+- `MangaTranslationAdapter` declares a capability manifest and health result, then translates one
+  image into an image plus raw metadata.
+
+Both are caller-implementable and use shared orchestration semantics, but their health,
+capabilities, request fields, and binary/text outputs cannot be made one meaningful method.
+
+The deterministic Mock implementations are default core components. The optional
+OpenAI-compatible Provider uses HTTPX and accepts an explicit key or key resolver. It makes one
+transport attempt; core orchestration owns retries. Optional interface configuration may read
+`LINGUASPINDLE_OPENAI_API_KEY`, but the core and serialized options do not.
+
+The optional `manga-image-translator` Adapter calls a separately operated HTTP service. ADR 0006
+remains authoritative: LinguaSpindle neither starts/downloads the upstream nor redistributes its
+GPL source, models, fonts, container, or GPU runtime.
+
+## Optional local runtime
+
+`LocalRuntime` is the named facade over the v0.2-compatible `ApplicationService`. It opens the
+configured SQLite database and Artifact store only when constructed. `JobRunner` is explicit and
+does not start as a constructor/import side effect.
+
+The runtime retains Projects, immutable Sources, Jobs, ordered StepRuns/logs, Segments, QA,
+Profiles, Provider configuration, and Artifacts. Its responsibility is to:
+
+- map database/Artifact records to public core inputs and DTOs;
+- select a versioned TXT/EPUB/manga Preset;
+- checkpoint Job/Step/Segment/page state at safe boundaries;
+- map core events/errors/results back into durable state and Artifacts;
+- claim queued Jobs conditionally and recover interrupted work; and
+- expose use cases to optional interfaces without leaking SQLAlchemy models or storage paths.
+
+The runtime remains a local one-host scheduler. It is not a second format engine, a distributed
+queue, or a general DAG. Existing v0.2.0 records migrate forward through additive schema 0003.
+
+### Job lifecycle
+
+```text
+queued -> running -> succeeded | partially_succeeded | failed
+   |          |  \-> cancelling -> cancelled
+   |          \----> paused -> queued
+   \---------------------------> paused | cancelled
+failed | partially_succeeded -> queued (explicit retry)
+```
+
+Step/segment/page boundaries are durable control points. A process exit classifies active work as
+`PROCESS_INTERRUPTED`; successful prior boundaries stay reusable. An Adapter without immediate
+cancellation may finish or time out its current image before the Job becomes cancelled.
 
 ## Persistence and Artifact boundary
 
-All mutable state is below `LINGUASPINDLE_DATA_DIR`. SQLite holds metadata and small structured
-records; payload bytes live under `artifacts/`. WAL, foreign keys, a busy timeout, and bounded
-single-row Job claims support one local process/host boundary.
+All optional runtime mutable state is below one configured data root. SQLite stores small metadata
+and structured records; payload bytes live under the private Artifact store. WAL, foreign keys, a
+busy timeout, conditional claims, safe relative keys, checksums, and atomic payload publication
+support one local process/host boundary.
 
-Imported Source bytes are copied once and never modified. Every source, extracted text, segments,
-translation set, QA report, manga page, Adapter raw output, and export has a UUID Artifact,
-checksum, size, media type, provenance, safe relative storage key, and metadata. Writes use a
-same-directory temporary file, `fsync`, and atomic replacement before the database row is
-published; a metadata failure removes the payload. Filenames and storage resolution prevent path
-traversal. Archive member count, expanded size, and path are validated before extraction.
+Runtime imported Sources are copied once and never modified. Generated manifests, extracted text,
+translations, page images, raw Adapter results, QA, and outputs receive Artifact identity,
+checksum, media type, provenance, and safe storage location. Cross-runtime layers use Artifact IDs
+and typed metadata rather than machine-specific paths. The runtime alone resolves a private
+Artifact path at storage/Adapter boundaries.
 
-Project deletion requires explicit confirmation and is rejected while any queued, running,
-paused, or cancelling Job exists; the operator must cancel it to a terminal state first. A
-confirmed eligible deletion removes relational metadata and only the generated Project subtree
-under the configured Artifact root. Backups must include the whole data root so metadata and
-payloads remain consistent.
+Project deletion remains explicit and is rejected while a Job is non-terminal. Backups copy the
+entire stopped data root so SQLite and payload identity remain consistent.
 
-### EPUB package boundary
+### Stable Segment migration
 
-The EPUB inspector treats ZIP/XML as untrusted data. It validates the uncompressed first
-`mimetype`, container/OPF, EPUB 2/3 version, manifest, spine, navigation, parseable XML/XHTML, and
-internal resource references. It rejects encryption metadata, traversal/absolute/backslash paths,
-symlinks, duplicate or portable-name-conflicting entries, unsafe compression, and configurable
-member-count, total expansion, per-member expansion, compression-ratio, and path-depth excess.
-Archive hashing, secret scanning, and resource verification use bounded reads. XML parsing,
-reconstruction, and byte comparison may buffer at most one member whose announced and observed
-size is already bounded by the per-member limit. Members are never extracted to
-caller-controlled paths.
+Migration 0003 adds nullable `translation_segments.segment_key` plus a partial unique index on
+Job/key. New document rows can store the public stable Segment ID. Existing v0.2.0 rows remain
+unchanged with a deterministic legacy key supplied at read time. The migration deletes no novel,
+manga, or Artifact state.
 
-The inspection Artifact owns the structural manifest and ordered visible-text locators. Export
-starts from the immutable source ZIP, modifies only located XML text slots plus OPF/XHTML language,
-preserves failed/missing translations as source text, and keeps other payload bytes identical.
-Before atomic publication it reopens and re-inspects the temporary EPUB, validates package and
-reference invariants, and compares unchanged members. See ADR 0007 and `docs/epub.md`.
+## Optional CLI and HTTP
 
-## Provider and secret boundary
+The console entry module can report a missing `[cli]` extra without importing Typer. Core document
+and manga commands call public functions directly. Runtime and server modules are loaded only for
+persistent or serve commands.
 
-The Mock Provider is a first-class deterministic implementation. The OpenAI-compatible Provider
-uses Chat Completions with configured base URL/model, a process semaphore, timeout, bounded
-exponential retry, and stable rate-limit/model/output errors.
+The FastAPI service is optional, typed, JSON/OpenAPI-only, and backed by the optional runtime for
+long Jobs. It retains health/capability, Project/Job/control, Segment, Artifact/download, and
+export surfaces, including caller-oriented selected translation/rebuild operations. It serves no
+HTML, JavaScript, CSS, reader, editor, or SPA fallback. `/` returns a compact headless descriptor.
 
-ADR 0005 permits only runtime resolution from `LINGUASPINDLE_OPENAI_API_KEY`. ProviderConfig,
-TranslationProfile, Job/Step snapshots, and public status contain no secret field. Base URLs reject
-credentials/query strings. API requests forbid unknown secret fields. Before managed persistence,
-known runtime values, bearer headers, key assignments, and secret-shaped mapping keys are
-redacted in diagnostics and configuration payloads. User-authored book text and metadata use a
-content-safe policy that removes only the exact active runtime key, so ordinary phrases such as
-`password: castle` are not rewritten. Imported sources containing that key are rejected before
-publication. Binary and ZIP-based output Artifacts are checked for the key in raw bytes and in
-bounded expanded members. Tests scan databases/WAL, logs, Artifacts, exports, and compressed
-members for the test key.
-When a compatible endpoint returns standard prompt/completion/total token counts, only those
-non-negative integers are retained in a redacted Step log for audit; raw Provider responses and
-headers are not persisted.
+Interfaces normalize public errors but do not implement translation/rebuild algorithms or access
+private core helpers/SQLAlchemy tables.
 
-This protects application-managed serialization, not arbitrary credentials unknown to the
-process. Imported content and external data remain sensitive and should not be publicly shared.
+## Trust and secrets
 
-## Adapter boundary
+There is no User, Account, Session, Role, Permission, Organization, Tenant, Membership, owner, or
+creator. All optional runtime state belongs to one instance. Anyone with network access has full
+instance capability.
 
-`AdapterManifest` declares identity, versions, invocation type, capability, formats, languages,
-GPU/cancel/progress support, health/configuration, upstream/license, and modification status.
-`AdapterRegistry` validates a requested capability. Application and orchestration code do not
-branch on upstream product names.
+Non-container server startup defaults to `127.0.0.1`. Compose publishes only host
+`127.0.0.1` while the process binds inside its isolated container network. Remote operation needs
+an explicit outer perimeter whose identity never enters LinguaSpindle.
 
-v0.1.0 includes a built-in Mock Manga Adapter and a protocol-only
-`MangaImageTranslatorHttpAdapter`. The real Adapter expects an operator-managed
-`manga-image-translator` service, health-checks `/openapi.json`, and posts each image to
-`/translate/with-form/image`. It validates image output and records translated plus redacted raw
-Artifacts. Partial pages remain exportable.
-
-No external source, model, font, container, or GPU dependency is in the core repository/image.
-ADR 0006 and `third-party-components.toml` record the GPL process boundary and incomplete upstream
-asset inventory.
-
-## Trust, networking, and deployment
-
-All durable state belongs directly to the instance. There is no User, Account, Session, Role,
-Permission, Organization, Tenant, Membership, owner, or creator concept. Anyone with network
-reachability has full instance capability.
-
-Non-container startup binds to `127.0.0.1` by default. The container listens on its isolated
-network interface, while supplied Compose publishes only to host `127.0.0.1`. Remote deployment
-must add an outer private network/access proxy deliberately; its identity remains outside the
-domain. See ADR 0001 and `docs/docker.md`.
-
-The core image runs as UID/GID 10001, keeps external heavyweight tools out, uses a persistent
-`/data` volume, and has a read-only root filesystem under Compose.
+Provider credentials are supplied at call/runtime configuration. Secret-shaped fields and known
+runtime values are redacted before managed persistence. Raw Provider responses/headers are not
+persisted. Imported user content receives content-safe exact-key scanning rather than deletion of
+ordinary words such as “password” or “secret.” Archive output checks bounded expanded members.
 
 ## Errors and observability
 
-Stable codes cover configuration, upload/archive limits, unsafe archives, invalid/unsupported/
-protected EPUB, export validation, Adapter unavailable, external command, timeout, invalid format,
-model API, rate limit, task cancellation, missing output, not found, invalid state, process
-interruption, storage, and unknown errors. API and CLI present readable normalized envelopes.
-Step logs keep redacted details; raw Adapter metadata is a separate Artifact. Progress is derived
-from persisted Step weights and real segment/page boundaries—unsupported external progress is not
-invented.
+`LinguaError`/`ErrorCode` are shared across the public core and optional layers. Stable codes cover
+configuration/dependency, source/archive bounds, unsafe/invalid/protected EPUB, source mismatch,
+unknown Segment, Adapter/provider availability, transport/model/rate errors, timeout,
+cancellation, missing output, invalid state, interruption, storage, and unknown failures.
 
-## Deliberate v0.2.0 limits
+Core events report start, retry, success/failure, progress, cancellation, and completion. They are
+synchronous notifications and contain no credential. Optional runtime logs persist redacted
+evidence; interfaces render stable envelopes. Unsupported progress is never invented.
 
-- one host/data root and in-process worker;
-- polling only;
-- TXT and common unencrypted EPUB 2/3 novels plus CBZ/image manga;
-- basic read-only result inspection, not a full editor;
-- no transparent mid-call resume after process death;
-- no streaming manga protocol/progress; and
-- no built-in installation or redistribution of external tools/assets;
-- no DRM bypass, dynamic browser rendering of book content, or broad publisher-format repair; and
-- no PDF, DOCX, MOBI, or AZW3 support.
+## Packaging and deployment
+
+The default Wheel contains the pure core, mocks, and migrations but no static Web resources. Its
+only direct runtime dependency is TXT charset detection. Optional extras provide HTTP clients,
+persistence, CLI, or server frameworks. Playwright/browser binaries are not package or v0.3.0
+acceptance dependencies.
+
+The supplied container is a headless server/runtime deployment, not the default library. It runs
+non-root, uses a read-only root under Compose, persists `/data`, bounds `/tmp`, and contains no
+external manga stack, model, font, GPU runtime, browser, or paid key.
+
+## Deliberate limits
+
+- TXT and common valid unencrypted EPUB 2/3 novels; PNG/JPEG/WebP and CBZ/ZIP manga.
+- One synchronous pure execution; embedding scheduling is caller-owned.
+- Optional one-host SQLite/local-Artifact runtime only.
+- No GUI, reader, proofreader, revision/approval workflow, caller bookshelf/content model, CAT
+  editor, plugin market, distributed scheduler, PDF/DOCX/MOBI/AZW3, DRM bypass, or bubble-level
+  manga editing.
+- No streaming manga protocol or immediate mid-image cancellation in the current real Adapter.

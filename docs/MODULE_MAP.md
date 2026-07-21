@@ -1,122 +1,134 @@
 # Module map
 
-Use this map to choose a narrow inspection path, then verify behavior against implementation,
-migration, tests, generated OpenAPI, and runtime evidence.
+Use this map to choose a narrow inspection path, then verify current behavior against code,
+migrations, tests, generated contracts, and runtime evidence.
 
 ## Product and repository context
 
 | Path | Responsibility |
 | --- | --- |
 | `AGENTS.md`, `.agents/skills/repo-context/` | Required context-first workflow and refresh rules. |
-| `docs/PRODUCT_SPEC.md` | Durable v0.2.0 product and acceptance contract. |
-| `docs/PROJECT_STATE.md` | Actual capabilities, verification, limits, and environment blockers. |
-| `docs/architecture.md`, `docs/data-model.md` | Consolidated implemented boundaries and invariants. |
-| `docs/DECISIONS.md`, `docs/adr/` | Durable decisions and rationale. |
-| `docs/research/` | Name/tool/license evidence captured before selection. |
-| `acceptance/v0.1.0/` | Indexed v0.1.0 reports, Docker/WSL supplemental matrix, machine-readable evidence, command transcript, and Release checksums. |
-| `acceptance/v0.2.0/` | v0.2.0 acceptance report, machine-readable evidence, command/environment logs, checksums, and generated EPUB/TXT/manga/build/browser artifacts. |
-| `tools/generate_v020_acceptance.py` | Deterministic Mock EPUB/TXT/manga sample generation, output verification, and measured temporary large-EPUB evidence. |
-| `docs/releases/v0.1.0.md`, `docs/releases/v0.2.0.md` | Versioned Technical Preview highlights, verified surface, limitations, security, upgrade, and installation notes. |
-| `docs/epub.md` | EPUB 2/3 subset, text-node rules, lineage/reuse, reconstruction, validation, resource guards, and limitations. |
-| `acceptance/*/artifacts/` | Versioned acceptance fixtures and generated outputs; large/private runtime artifacts remain Release-only or checksum-only. |
+| `docs/PRODUCT_SPEC.md` | Durable v0.3.0 product and acceptance contract. |
+| `docs/PROJECT_STATE.md` | Actual milestone, implemented candidate surface, verification ownership, and known limits. |
+| `docs/architecture.md`, `docs/data-model.md` | Consolidated pure-core, optional-runtime, and persistence boundaries. |
+| `docs/DECISIONS.md`, `docs/adr/` | Durable decisions; ADR 0008 owns headless/library-first layering. |
+| `docs/library-api.md` | Stable Python API examples, selection/manual mapping, extension protocols, events, errors, and serialization. |
+| `docs/migrations/v0.2-to-v0.3.md` | Full-data-root backup, additive migration 0003, verification, and restore rollback. |
+| `docs/epub.md` | EPUB 2/3 subset, visible-text/locator policy, reconstruction, validation, and archive guards. |
+| `docs/adapter-development.md` | Provider/Manga Adapter separation, manifest contract, tests, and external service operation. |
+| `docs/releases/v0.1.0.md`, `v0.2.0.md`, `v0.3.0.md` | Versioned highlights, security, upgrade, and limitations. |
+| `acceptance/v0.1.0/`, `acceptance/v0.2.0/` | Immutable historical reports, evidence, checksums, and samples. |
+| `acceptance/v0.3.0/` *(planned until evidence is generated)* | Required headless core/extras/migration/sample acceptance archive; never contains GUI screenshots or browser traces. |
+| `tools/generate_v030_acceptance.py` | Deterministic TXT/EPUB2/EPUB3/image/CBZ core samples, manifests, results, output validation, import-boundary evidence, and checksums. |
+| `tools/verify_v030_extras.py` | Enforces the exact clean source commit and v0.3.0 Wheel identity, then installs and smoke-tests every dependency extra in isolation. |
 
-## Application modules
+## Pure public core
 
 | Path | Responsibility | Primary verification |
 | --- | --- | --- |
-| `src/linguaspindle/config.py` | Environment validation, loopback default, data paths, runtime-only key. | `tests/unit/test_config.py` |
-| `database.py`, `migrations/` | SQLite WAL/foreign keys, sessions, atomic forward-only schema migration; 0002 adds EPUB Source/Segment fields. | `test_database_migrations.py`, recovery tests |
-| `models.py` | Instance-scoped relational records, EPUB source metadata and Segment lineage/reuse, with no identity model. | migration, EPUB pipeline, boundary scans |
-| `storage.py` | Safe filename/key resolution, bounded streamed/atomic immutable payload write/read/copy/removal. | `test_storage.py`, `test_artifacts_and_secrets.py` |
-| `security.py`, `errors.py` | Recursive redaction and stable error vocabulary. | security/provider/Adapter tests |
-| `application.py` | Shared Project/Profile/Job/Artifact use cases, lifecycle, diagnostics. | all integration tests |
-| `epub.py` | Dependency-light safe EPUB inspection, text-unit manifests, reconstruction, output validation, and resource equality. | `test_epub.py`, `test_epub_pipeline.py` |
-| `orchestration/state.py` | Explicit Job and Step transitions. | `tests/unit/test_state.py` |
-| `orchestration/pipelines.py` | Versioned TXT, EPUB, and manga ordered Presets selected by Project/Source kind. | pipeline catalog/integration tests |
-| `orchestration/engine.py` | Claim/execute/recover plus TXT, EPUB, and manga Step handlers. | job-control, recovery, pipeline tests |
-| `providers/` | Mock and OpenAI-compatible Provider contracts/implementations. | `test_provider.py`, novel tests |
-| `adapters/` | Manifest/registry, Mock Manga, manga-image-translator HTTP Adapter. | Adapter unit/orchestration tests |
-| `interfaces/api.py` | FastAPI lifespan/routes/errors/OpenAPI, bounded multipart upload, streamed Artifact download, and static asset delivery. | `test_api_cli_shared.py`, `test_openapi_contract.py`, `test_epub_pipeline.py` |
-| `interfaces/cli.py` | Typer commands over ApplicationService/JobRunner, including explicit Pipeline and streamed output copy. | cross-interface tests |
-| `web/` | No-login polling GUI for TXT/EPUB/manga Projects, Jobs, results, downloads, and capabilities. | `test_web_epub_gui.py`, `tests/browser/test_gui_flow.py` |
+| `src/linguaspindle/__init__.py`, `core/__init__.py` | Side-effect-free stable exports and version. | `tests/core/test_import_and_public_api.py` |
+| `core/models.py`, `json_types.py` | Typed/versioned manifests, Segments, pages, events, cancellation, records, and results. | `test_dto_serialization.py`, public API tests |
+| `errors.py`, `security.py` | Stable errors plus sensitive-value redaction. | core partial/error tests, `test_security.py` |
+| `limits.py` | Explicit immutable archive limits shared by EPUB and manga operations. | EPUB/manga limit tests |
+| `core/io.py` | Bounded path/bytes/binary-stream reads and caller-targeted atomic output writes. | document/manga core tests |
+| `core/txt.py` | TXT decode/inspection, source-span segmentation, stable IDs, and UTF-8/LF rebuild. | `tests/core/test_documents.py`, segmentation tests |
+| `core/documents.py` | TXT/EPUB inspect, extract, rebuild, and high-level translate APIs. | `test_documents.py`, EPUB unit/integration tests |
+| `core/orchestration.py` | Synchronous selected Segment translation, existing/manual precedence, retry, events, cancellation, and deterministic order. | `test_documents.py`, DTO/error tests |
+| `epub.py` | Dependency-light safe EPUB package inspection and source-based reconstruction/validation implementation. | `tests/unit/test_epub.py`, EPUB pipeline tests |
+| `core/manga.py` | Image/CBZ inspection, page extraction, Adapter orchestration, partial results, and image/CBZ build. | `tests/core/test_manga.py`, manga integration tests |
+| `providers/base.py`, `providers/mock.py` | Minimal text Provider Protocol/request/result and deterministic offline Mock. | core Provider tests, `tests/unit/test_provider.py` |
+| `adapters/base.py`, `adapters/mock_manga.py` | Distinct Manga Adapter manifest/health/result Protocol and offline Mock. | core manga tests, `test_manga_adapter.py` |
 
-## Tests
+The pure core must never import `runtime`, `interfaces`, FastAPI, Uvicorn, Typer, SQLAlchemy, or
+Playwright. It accepts no global `Settings`.
+
+## Optional integrations and runtime
+
+| Path | Responsibility | Extra / verification |
+| --- | --- | --- |
+| `providers/openai_compatible.py` | Caller-keyed OpenAI-compatible Chat Completions transport; core owns retries. | `[openai]`; Provider fake-HTTP tests |
+| `adapters/manga_image_translator.py` | Protocol-only client for the separately operated real manga service. | `[manga]`; fake-HTTP Adapter tests |
+| `runtime/__init__.py` | `LocalRuntime` facade and explicit `JobRunner`; construction does not start a worker. | `[runtime]`; migration/recovery tests |
+| `config.py` | Optional interface/runtime environment resolution and validation. | config tests |
+| `database.py`, `migrations/` | SQLite and atomic forward-only migrations 0001–0003. | `test_database_migrations.py` |
+| `models.py` | Private SQLAlchemy records; migration 0003 adds nullable `segment_key`. | migration/runtime tests |
+| `storage.py` | Private safe immutable Artifact payload store and atomic publication/copy. | storage/Artifact tests |
+| `application.py` | Optional Project/Profile/Job/Artifact use cases and core DTO mapping. | integration/interface tests |
+| `orchestration/state.py`, `pipelines.py` | Persisted state machine and versioned TXT/EPUB/manga runtime Presets. | state/control tests |
+| `orchestration/engine.py` | Durable claim/recover/checkpoint runner delegating format work to public core. | recovery/control/pipeline tests |
+
+## Optional interfaces
+
+| Path | Responsibility | Extra / verification |
+| --- | --- | --- |
+| `interfaces/cli.py` | Dependency-light console entry and actionable missing-extra message. | core/CLI isolation tests |
+| `interfaces/_typer_cli.py` | Headless core commands plus lazy optional runtime/server commands. | `[cli]`; interface tests |
+| `interfaces/api.py` | JSON/OpenAPI-only persistent API, bounded upload/download, errors, and headless root. | `[server]`; OpenAPI/API tests |
+| `docs/cli.md`, `docs/api.md` | Command and HTTP contracts without GUI behavior. | examples checked against implementations |
+
+`src/linguaspindle/web/` and v0.3.0 GUI/browser tests do not exist. Historical v0.2.0 browser
+artifacts remain only in the immutable acceptance archive.
+
+## Test routing
 
 | Path | Coverage |
 | --- | --- |
-| `tests/unit/test_state.py` | Job/Step state-machine valid and invalid transitions. |
-| `test_config.py`, `test_security.py` | Scalar/URL/JSON configuration and redaction. |
-| `test_provider.py` | Auth contract, usage normalization, bounded retry, rate-limit/server/timeout/output errors. |
-| `test_manga_adapter.py` | Manifest, health, HTTP mapping, timeout/error/output/config contract. |
-| `test_doctor.py` | Real Docker-engine probe semantics and diagnostic redaction. |
-| `tests/integration/test_novel_pipeline.py` | Offline TXT end-to-end, exports, persistence, latest results. |
-| `test_epub_pipeline.py` | EPUB Project/Job/Mock/export/re-import, source/resource preservation, reuse/fallback, and content/secret separation. |
-| `test_epub_controls.py` | EPUB pause/resume/cancel/retry plus process-interruption recovery and Segment reuse/lineage. |
-| `test_database_migrations.py` | Fresh and v0.1-to-v0.2 atomic forward migration. |
-| `tests/unit/test_epub.py` | EPUB package/text rules, rejection codes, reconstruction, and archive limits. |
-| `tests/unit/test_storage.py` | Bounded stream publication and atomic file copy. |
-| `test_web_epub_gui.py` | No-login EPUB GUI labels/actions over the shared API surface. |
-| `test_manga_pipeline.py` | Offline CBZ end-to-end plus member/size/ratio/path/portable-name guards. |
-| `test_job_controls.py` | Active pause/resume/cancel, segment retry, attempt/log preservation. |
-| `test_recovery.py` | Persisted running-state recovery, EPUB-style Segment recovery, and runner race resilience. |
-| `test_adapter_orchestration.py` | Page-boundary cancellation, partial pages/raw logs, unavailable real Adapter. |
-| `test_artifacts_and_secrets.py` | Provenance, atomicity, active-Job deletion guard, content-safe redaction, and raw/expanded whole-root key scans. |
-| `test_api_cli_shared.py` | Async/streaming upload and download, CLI↔API shared data, and no-identity contract. |
-| `test_openapi_contract.py` | Typed Project/Job/Artifact responses and stable HTTP error envelopes. |
-| `tests/browser/test_gui_flow.py` | Local or externally targeted Chromium flow covering TXT/JSON, Mock manga/CBZ, failures, capability status, console/network checks, optional evidence capture, and an explicit-cost real Provider opt-in with existing-Job replay. |
+| `tests/core/test_import_and_public_api.py` | Import side effects, optional-dependency boundary, and stable exports. |
+| `tests/core/test_dto_serialization.py` | Versioned JSON-compatible manifest/result round trips. |
+| `tests/core/test_documents.py` | TXT/EPUB stable IDs, selection/manual mapping, rebuild, partial/errors, events, and immutability. |
+| `tests/core/test_manga.py` | Image/CBZ inspect/translate/build, archive guards, partial pages, and cancellation. |
+| `tests/unit/test_epub.py` | EPUB package/text/locator rules, rejection codes, reconstruction, and limits. |
+| `tests/unit/test_provider.py`, `test_manga_adapter.py` | Optional HTTP mapping, timeout/error/output/config behavior. |
+| `tests/integration/test_database_migrations.py` | Fresh and v0.1/v0.2-compatible forward migration through schema 0003. |
+| `test_novel_pipeline.py`, `test_epub_pipeline.py`, `test_manga_pipeline.py` | Optional runtime regression for all accepted formats and exports. |
+| `test_job_controls.py`, `test_epub_controls.py`, `test_recovery.py` | Durable controls, retry, checkpoints, lineage, and process recovery. |
+| `test_adapter_orchestration.py` | Runtime page-boundary cancellation, partial/raw Artifacts, unavailable real Adapter. |
+| `test_artifacts_and_secrets.py` | Provenance, atomicity, deletion guard, redaction, and root/archive secret scans. |
+| `test_api_cli_shared.py`, `test_headless_document_api.py`, `test_openapi_contract.py` | Optional headless interface sharing, selected Segment/rebuild APIs, typed responses, downloads, and no identity/GUI routes. |
 
-## Deployment and open-source surface
+## Packaging, deployment, and open-source surface
 
 | Path | Responsibility |
 | --- | --- |
-| `pyproject.toml`, `constraints-v020.txt` | v0.2.0 package metadata, direct dependencies, scripts, gates, and development/acceptance direct versions. |
-| `.github/workflows/ci.yml` | Python 3.11–3.14 default tests, static/configuration gates, Chromium tests, and Python 3.12 Wheel/resource verification. |
-| `constraints-v010.txt` | Historical v0.1.0 acceptance direct-version constraint retained for reproducibility. |
-| `Dockerfile`, `compose.yaml`, `.dockerignore`, `.env.example` | Non-root core image, loopback host publish, Volume/health, runtime configuration. |
-| `README.md`, `README.zh-CN.md` | Quick start, examples, trust and integration overview. |
-| `docs/installation.md`, `docs/docker.md`, `docs/api.md` | Local/Windows operation, container deployment, HTTP lifecycle. |
-| `docs/adapter-development.md` | Adapter contract, tests, license checklist, real Adapter operation. |
-| `third-party-components.toml`, `THIRD_PARTY_NOTICES.md` | Structured inventory and license/integration notices. |
-| `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CHANGELOG.md` | Open-source policy and release surface. |
+| `pyproject.toml`, `constraints-v030.txt` | Minimal default dependency, extras, entry point, static gates, and accepted direct-version constraints. |
+| `.github/workflows/ci.yml` | Python 3.11–3.14 tests, Windows core smoke, static checks, Wheel contents, and isolated extras. |
+| `Dockerfile`, `compose.yaml`, `.dockerignore`, `.env.example` | Optional headless server image, loopback host publishing, persistent runtime data, and limits/secrets. |
+| `README.md`, `README.zh-CN.md` | Library-first quick start, extras, trust boundary, and integration overview. |
+| `docs/installation.md`, `docs/docker.md`, `docs/api.md`, `docs/cli.md` | Environment-specific core/runtime/server operation. |
+| `third-party-components.toml`, `THIRD_PARTY_NOTICES.md` | Default/optional dependency inventory and external manga separation. |
+| `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CHANGELOG.md` | Open-source and release policy. |
 
 ## Verification commands
 
 ```bash
-.venv/bin/ruff format --check src tests tools
-.venv/bin/ruff check src tests tools
-.venv/bin/mypy src tools/generate_v020_acceptance.py
-.venv/bin/python -m compileall -q src tests tools
-.venv/bin/pytest -q
-node --check src/linguaspindle/web/app.js
-.venv/bin/linguaspindle --version
-LINGUASPINDLE_RUN_BROWSER_TESTS=1 .venv/bin/pytest -q -m browser
-LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
-  LINGUASPINDLE_BROWSER_BASE_URL=http://127.0.0.1:8765 \
-  LINGUASPINDLE_BROWSER_EVIDENCE_DIR=acceptance/v0.2.0/artifacts/browser \
-  .venv/bin/pytest -q -m browser
-LINGUASPINDLE_RUN_BROWSER_TESTS=1 \
-  LINGUASPINDLE_RUN_REAL_PROVIDER_TESTS=1 \
-  LINGUASPINDLE_BROWSER_BASE_URL=http://127.0.0.1:8765 \
-  .venv/bin/pytest -q -m browser -k real_provider_minimal_translation
-.venv/bin/python -m pip wheel --no-deps --wheel-dir /tmp/linguaspindle-wheel-v020 .
-docker compose config
-docker compose up --build -d
+python -m pip install -c constraints-v030.txt -e '.[dev]'
+python -m ruff format --check src tests tools
+python -m ruff check --no-cache src tests tools
+python -m mypy src tools/generate_v020_acceptance.py tools/generate_v030_acceptance.py \
+  tools/verify_v030_extras.py
+python -m compileall -q src tests tools
+python -m pytest -q
+python -m pytest --cov=linguaspindle --cov-branch --cov-report=term-missing
+python -m build --wheel
+python -m pip check
+docker compose --env-file /dev/null config
 ```
 
-The image build/start command requires a functional Docker Engine; `docker compose config` does
-not. The isolated wheel build may download declared build requirements. Browser acceptance
-requires installed Playwright Chromium and loopback socket/browser permissions.
+The acceptance matrix additionally installs the built Wheel into isolated environments for core,
+openai, manga, runtime, cli, server, and all. Docker start requires a working engine. The v0.3.0
+default suite neither installs a browser nor accesses paid/network/model services.
 
 ## Task routing
 
 | Change | Start with | Then verify/update |
 | --- | --- | --- |
 | Product scope/acceptance | `PRODUCT_SPEC.md` + user request | `PROJECT_STATE.md`; ADR if durable |
-| Job/Step lifecycle | architecture + state/application/engine | controls/recovery tests, data model |
-| Artifact/import/export | architecture + storage/application | atomicity/traversal/pipeline tests |
-| EPUB package/text/rebuild | ADR 0007 + `docs/epub.md` + `epub.py` | EPUB unit/integration/interface/browser tests |
-| Provider/secrets | ADR 0005 + config/security/providers | Provider and whole-root secret tests |
-| External Adapter | ADR 0003/0006 + research | contract/orchestration/license inventory |
-| Web/CLI/API | shared-core ADR + interface module | cross-interface/OpenAPI/browser tests |
-| Deployment/networking | ADR 0001 + Docker docs | loopback, health, persistence, real commands |
-| Persistent schema | data model + migration | fresh migration, recovery, model/map refresh |
+| Public API/DTO | ADR 0008 + `library-api.md` + `core/` | core isolation/serialization tests, map/docs |
+| TXT/select/manual | core documents/txt/orchestration | core document tests and runtime regression |
+| EPUB package/text/rebuild | ADR 0007 + `epub.md` + `epub.py` | core/EPUB/runtime structure/security tests |
+| Manga core/Adapter | ADRs 0003/0006/0008 + Adapter docs | core manga, fake HTTP, runtime Artifact tests |
+| Provider/secrets | ADRs 0005/0008 + providers/security | fake HTTP, core redaction, full-root scans |
+| Persistent runtime/schema | data model + migration guide | migration/recovery/controls/Artifact tests |
+| CLI/API | public core + optional runtime | isolation, shared interface, OpenAPI/no-GUI tests |
+| Packaging/extras | pyproject + notices | isolated Wheels, `pip check`, resource/dependency scans |
+| Deployment/network | ADR 0001 + Docker docs | loopback, health, persistence, non-root/read-only checks |

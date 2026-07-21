@@ -6,7 +6,48 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
-No changes recorded after the v0.2.0 release baseline.
+### Added
+
+- Side-effect-free typed Python APIs for TXT/EPUB inspection, stable Segment extraction,
+  all/selected/empty translation, caller/manual translation precedence, immutable-source rebuild,
+  and high-level document translation.
+- Pure image/CBZ manga inspection, stable page manifests, page-level retry/cancellation/partial
+  results, output build, and a public `MangaTranslationAdapter` contract.
+- Versioned JSON-compatible manifests, translation records/batches, document/manga results,
+  build results, events, cancellation, stable source-mismatch/unknown-Segment/dependency errors,
+  and explicit `ArchiveLimits`.
+- Optional extras for OpenAI-compatible HTTP, the real manga HTTP Adapter, local runtime, CLI,
+  headless server, and the combined surface; isolated package/extra CI and Windows core smoke.
+- Headless API operations for stable Segment retrieval, exact selected translation, and
+  Provider-free caller-mapping TXT/EPUB reconstruction.
+- Forward-only migration `0003_headless_core.sql` for a nullable stable Segment key while
+  retaining v0.2.0 novel/manga data.
+
+### Changed
+
+- The default installation is the pure core with Mock Provider/Mock Manga Adapter and only the
+  minimal TXT/EPUB dependency; FastAPI, Uvicorn, Typer, SQLAlchemy, Pydantic, platformdirs, HTTPX,
+  and multipart support moved to extras.
+- TXT segmentation/rebuild, EPUB processing, manga processing, retry, events, cancellation, and
+  partial-result behavior are callable without a Project, Job, database, or Artifact store.
+- OpenAI-compatible credentials are caller-supplied directly or by resolver; only optional
+  CLI/server configuration reads environment variables.
+- SQLite/Artifact/Project/Job recovery is an optional `LocalRuntime`; worker startup is explicit.
+- CLI and JSON server are optional thin adapters over public core/runtime behavior.
+
+### Removed
+
+- Browser GUI static HTML/JavaScript/CSS, GUI routes and package data, SPA fallback, GUI-specific
+  tests, Playwright dependency, browser acceptance, and Node/browser checks.
+
+### Security
+
+- Core import performs no environment, filesystem, database, network, or thread action.
+- Selected/manual translation validates unknown IDs and source/manifest checksums before Provider
+  invocation or output publication; path output cannot overwrite the immutable document source.
+- Explicit archive limits and the accepted EPUB/CBZ traversal, duplicate, symlink, encryption,
+  expansion, compression-ratio, and resource checks remain in the pure core.
+- The no-user/no-auth/no-tenant and loopback-default server boundaries remain unchanged.
 
 ## [0.2.0] - 2026-07-20
 

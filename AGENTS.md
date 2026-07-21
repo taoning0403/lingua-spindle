@@ -27,13 +27,15 @@ only when the maintained context is missing, stale, or inconsistent.
   `user_id`, `owner_id`, `tenant_id`, `created_by`, `/api/users`, `/api/me`, or `/api/auth`.
 - Keep LinguaSpindle standalone. It may later expose an API to `novel-platform`, but it must not
   depend on that repository, its database, its domain objects, or an identity supplied by it.
-- Make Web GUI, CLI, and HTTP API call the same application layer and orchestration core. An
-  interface must not run pipelines or third-party tools directly.
+- Keep the side-effect-free Python core as the shared TXT/EPUB/manga implementation boundary.
+  Optional CLI, HTTP, and persistent-runtime layers may call it; an interface must not duplicate
+  pipelines or invoke third-party tools outside the Provider/Adapter contracts.
 - Bind to loopback by default. Remote access belongs behind an explicitly configured reverse
   proxy, private network, Tailscale, Cloudflare Access, or equivalent perimeter; do not turn
   perimeter access control into an application user model.
-- Keep imported sources immutable. Pass data between pipelines and adapters as Artifact
-  identities, never as an implicit contract of machine-specific absolute paths.
+- Keep sources immutable. The pure core accepts caller-owned paths, binary streams, or bytes and
+  returns typed manifests/results. The optional runtime passes private Artifact identities across
+  persistence layers; machine-specific storage paths are never durable public contracts.
 - Select adapters by declared capability and configuration, never by product-name conditionals.
   Keep third-party tools outside the core repository and record code, model, and font licenses.
 - Never expose API keys in database views, logs, job snapshots, artifacts, exports, fixtures, or
@@ -58,8 +60,9 @@ context documents.
 
 ## Verification
 
-Run checks proportional to the changed surface and record real commands and outcomes. The
-application stack and full quality gates have not yet been selected; update this section and
-`docs/MODULE_MAP.md` when executable tooling is added. Until then, validate the repository-local
-skill, check Markdown links and formatting, and inspect the final diff. Never invent a passing
-result or weaken tests and acceptance criteria merely to make a gate pass.
+Run checks proportional to the changed surface and record real commands and outcomes. The v0.3
+baseline uses Ruff format/check, strict mypy, compileall, pytest with branch coverage, isolated
+Wheel/extras checks, and Docker/available-platform checks described in `docs/MODULE_MAP.md` and
+the matching versioned acceptance archive. The default suite has no GUI, Playwright, or browser
+gate. Check documentation links and the final diff as well. Never invent a passing result or
+weaken tests and acceptance criteria merely to make a gate pass.

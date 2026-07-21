@@ -1,188 +1,230 @@
-# Local installation and operation
+# Installation and operation
 
-## Requirements
+LinguaSpindle requires Python 3.11 or newer. The default installation is a pure headless library;
+it needs no data directory, API key, server, database, Docker, browser, GPU, model, or external
+service.
 
-- Python 3.11 or newer on Windows, Linux, macOS, or WSL.
-- A writable data directory.
-- No API key, Docker, GPU, model, external EPUB validator, or external service for Mock TXT/EPUB.
+## Choose an installation
 
-The package and CLI use the same implementation in every environment. SQLite and all payloads
-live below one data root.
+| Command | Adds |
+| --- | --- |
+| `pip install linguaspindle` | TXT/EPUB/manga core contracts, archive processing, Mock Provider, Mock Manga Adapter. |
+| `pip install 'linguaspindle[openai]'` | HTTPX OpenAI-compatible Provider. |
+| `pip install 'linguaspindle[manga]'` | HTTPX client for the separately operated real manga service. |
+| `pip install 'linguaspindle[runtime]'` | SQLite, Artifact store, persistent Projects/Jobs/recovery. |
+| `pip install 'linguaspindle[cli]'` | Typer headless CLI and pure core commands. |
+| `pip install 'linguaspindle[server]'` | FastAPI/Uvicorn JSON server and persistent runtime. |
+| `pip install 'linguaspindle[all]'` | Every supported optional layer. |
 
-## Linux, macOS, and WSL
+Use `[server,cli]` when starting the server through the `linguaspindle serve` command. The default
+Wheel does not install FastAPI, Uvicorn, Typer, SQLAlchemy, Pydantic, python-multipart,
+platformdirs, HTTPX, or Playwright.
+
+## Create an environment
+
+Linux, macOS, or WSL:
 
 ```bash
-git clone https://github.com/taoning0403/lingua-spindle.git
-cd lingua-spindle
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e .
-linguaspindle doctor
-linguaspindle serve
+python -m pip install linguaspindle
+python -m pip check
 ```
 
-Open <http://127.0.0.1:8765>. Stop with Ctrl-C.
-
-If the Python distribution omits `venv`/`ensurepip`, install its OS package first (for example,
-`python3-venv` on Debian/Ubuntu) or use a standards-compatible virtual-environment tool. Do not
-install LinguaSpindle as root merely to bypass a missing virtual environment.
-
-## Windows PowerShell
-
-Install a supported 64-bit Python from python.org or Windows Package Manager, then:
+Windows PowerShell:
 
 ```powershell
-git clone https://github.com/taoning0403/lingua-spindle.git
-Set-Location lingua-spindle
 py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -e .
-linguaspindle doctor
-linguaspindle serve
+python -m pip install linguaspindle
+python -m pip check
 ```
 
-When local policy prevents activation, use explicit executables:
+If policy blocks script activation, use `.venv\Scripts\python.exe` and the explicit
+`.venv\Scripts\linguaspindle.exe` path.
 
-```powershell
-.venv\Scripts\python.exe -m pip install -e .
-.venv\Scripts\linguaspindle.exe doctor
-.venv\Scripts\linguaspindle.exe serve
+## First core-only run
+
+```python
+from pathlib import Path
+
+from linguaspindle import MockProvider, TranslationOptions, translate_document
+
+translate_document(
+    Path("sample.txt"),
+    Path("sample.fr.txt"),
+    MockProvider(),
+    TranslationOptions(source_language="en", target_language="fr"),
+)
 ```
 
-Paths are handled through `pathlib` and platformdirs. Avoid placing the data root on a network
-filesystem: SQLite WAL and atomic Artifact publication are supported on a local filesystem.
+The same high-level function handles `.epub`. Image/CBZ examples, selected translation, manual
+rebuild, custom extensions, events, and serialization are in the
+[Python library API](library-api.md).
 
-## Data location
+## Headless CLI
 
-The default comes from the platform application-data convention. For predictable backups, set it
-explicitly:
+```bash
+python -m pip install 'linguaspindle[cli]'
+linguaspindle --version
+linguaspindle document inspect sample.txt --target-language fr
+linguaspindle document translate sample.txt --target-language fr --output sample.fr.txt
+linguaspindle manga inspect chapter.cbz
+linguaspindle manga translate chapter.cbz --target-language en --output chapter.en.cbz
+linguaspindle validate sample.fr.txt
+```
+
+These commands use deterministic Mock implementations and need no runtime database. Persistent
+Project/Job/Artifact commands additionally need `[runtime]`. See [CLI reference](cli.md).
+
+## Optional local runtime
+
+```bash
+python -m pip install 'linguaspindle[runtime,cli]'
+linguaspindle doctor --data-dir ./data
+```
+
+The runtime data root contains SQLite metadata and private Artifact payloads. The platform default
+is resolved only when runtime configuration is constructed; for predictable backup, set it:
 
 ```bash
 export LINGUASPINDLE_DATA_DIR="$PWD/data"
-linguaspindle serve
+linguaspindle doctor
 ```
 
 PowerShell:
 
 ```powershell
 $env:LINGUASPINDLE_DATA_DIR = "$PWD\data"
+linguaspindle doctor
+```
+
+Use a local filesystem for SQLite WAL and atomic Artifact publication. Back up/move the whole
+stopped root, never only SQLite or only Artifacts. Constructing `LocalRuntime` does not start a
+background worker; callers explicitly run/start `JobRunner`.
+
+## Optional headless server
+
+```bash
+python -m pip install 'linguaspindle[server,cli]'
 linguaspindle serve
 ```
 
-The root contains `database/linguaspindle.sqlite3`, `artifacts/`, `exports/`, `logs/`, and
-`cache/`. Artifact payloads currently live under `artifacts/projects/<project-id>/...`; callers
-use Artifact IDs, never these private paths.
+Open <http://127.0.0.1:8765/docs> for OpenAPI. The root is JSON, not a GUI. Stop with Ctrl-C.
+Default loopback binding is a security boundary; read [HTTP API](api.md) before remote operation.
 
-Back up or move the entire root while the service is stopped. Copying only SQLite or only
-Artifacts creates an incomplete backup.
+## Configuration for optional interfaces/runtime
 
-## Configuration
-
-All settings are process environment variables; CLI `--data-dir`, `serve --host`, and
-`serve --port` can override the most common values.
+The pure library receives explicit options and never reads these variables. CLI/server/runtime
+configuration may resolve:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `LINGUASPINDLE_DATA_DIR` | platform data directory | Mutable state root. |
-| `LINGUASPINDLE_HOST` | `127.0.0.1` | HTTP bind address. Non-loopback requires an outer perimeter. |
-| `LINGUASPINDLE_PORT` | `8765` | HTTP port. |
+| `LINGUASPINDLE_DATA_DIR` | platform application-data path | Optional runtime root. |
+| `LINGUASPINDLE_HOST` | `127.0.0.1` | Server bind; non-loopback needs an outer perimeter. |
+| `LINGUASPINDLE_PORT` | `8765` | Server port. |
 | `LINGUASPINDLE_LOG_LEVEL` | `INFO` | Uvicorn log level. |
-| `LINGUASPINDLE_WORKER_POLL_SECONDS` | `0.25` | Durable queue polling interval. |
-| `LINGUASPINDLE_MAX_UPLOAD_BYTES` | `104857600` | Source upload limit. |
-| `LINGUASPINDLE_MAX_ARCHIVE_FILES` | `2000` | Maximum EPUB/CBZ ZIP members. |
-| `LINGUASPINDLE_MAX_ARCHIVE_BYTES` | `1048576000` | Maximum total expanded archive bytes. |
-| `LINGUASPINDLE_MAX_ARCHIVE_MEMBER_BYTES` | `104857600` | Maximum expanded bytes for one member. |
-| `LINGUASPINDLE_MAX_ARCHIVE_COMPRESSION_RATIO` | `100` | Maximum per-member expanded/compressed ratio. |
-| `LINGUASPINDLE_MAX_ARCHIVE_PATH_DEPTH` | `20` | Maximum ZIP member path components. |
-| `LINGUASPINDLE_OPENAI_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible base URL. |
+| `LINGUASPINDLE_WORKER_POLL_SECONDS` | `0.25` | Explicitly started durable worker poll interval. |
+| `LINGUASPINDLE_MAX_UPLOAD_BYTES` | `104857600` | Runtime/server source bound. |
+| `LINGUASPINDLE_MAX_ARCHIVE_FILES` | `2000` | ZIP member bound. |
+| `LINGUASPINDLE_MAX_ARCHIVE_BYTES` | `1048576000` | Total expanded archive bytes. |
+| `LINGUASPINDLE_MAX_ARCHIVE_MEMBER_BYTES` | `104857600` | One expanded member. |
+| `LINGUASPINDLE_MAX_ARCHIVE_COMPRESSION_RATIO` | `100` | Per-member expansion ratio. |
+| `LINGUASPINDLE_MAX_ARCHIVE_PATH_DEPTH` | `20` | ZIP path depth. |
+| `LINGUASPINDLE_OPENAI_BASE_URL` | `https://api.openai.com/v1` | Optional compatible endpoint. |
 | `LINGUASPINDLE_OPENAI_API_KEY` | unset | Runtime-only Provider secret. |
-| `LINGUASPINDLE_OPENAI_MODEL` | `gpt-4.1-mini` | Provider model string. |
-| `LINGUASPINDLE_OPENAI_TIMEOUT_SECONDS` | `60` | Per-call timeout. |
-| `LINGUASPINDLE_OPENAI_CONCURRENCY` | `2` | Process-local Provider concurrency bound. |
-| `LINGUASPINDLE_OPENAI_MAX_RETRIES` | `3` | Retries after the initial call. |
-| `LINGUASPINDLE_MIT_BASE_URL` | unset | Separate manga-image-translator service URL. |
-| `LINGUASPINDLE_MIT_TIMEOUT_SECONDS` | `600` | Per-image Adapter timeout. |
-| `LINGUASPINDLE_MIT_CONFIG_JSON` | `{}` | Upstream form configuration JSON. |
+| `LINGUASPINDLE_OPENAI_MODEL` | `gpt-4.1-mini` | Optional Provider model. |
+| `LINGUASPINDLE_OPENAI_TIMEOUT_SECONDS` | `60` | One transport call timeout. |
+| `LINGUASPINDLE_OPENAI_CONCURRENCY` | `2` | Runtime process concurrency policy. |
+| `LINGUASPINDLE_OPENAI_MAX_RETRIES` | `3` | Runtime orchestration retry policy. |
+| `LINGUASPINDLE_MIT_BASE_URL` | unset | Separately operated manga service. |
+| `LINGUASPINDLE_MIT_TIMEOUT_SECONDS` | `600` | One image call timeout. |
+| `LINGUASPINDLE_MIT_CONFIG_JSON` | `{}` | Upstream form configuration object. |
 
-Base URLs must be HTTP(S) and cannot contain credentials, query strings, or fragments. JSON
-configuration must be an object. Numeric settings are bounded and reject NaN/infinity.
+Base URLs must be HTTP(S) without credentials, query strings, or fragments. Numeric limits are
+positive/bounded. Raising archive/upload limits requires matching disk, `/tmp`, reverse-proxy,
+time, and Provider-cost budgets.
 
-The source body is streamed and capped independently of archive expansion. EPUB/ZIP inspection
-also rejects unsafe paths, duplicate portable names, symlinks, unsupported compression, and
-announced or observed resource excess. See [EPUB support](epub.md) for exact rules and stable
-errors. Raising a limit requires matching local disk, container `/tmp`, reverse-proxy body limit,
-Provider cost, and processing-time budgets.
+## OpenAI-compatible Provider
 
-## First offline run
+Install `[openai]`. Library callers pass the key directly or through a resolver:
 
-Create `sample.txt`, then:
+```python
+from linguaspindle.providers.openai_compatible import (
+    OpenAICompatibleProvider,
+    OpenAIProviderConfig,
+)
 
-```bash
-linguaspindle projects create \
-  --name "Offline sample" --kind novel \
-  --source-language en --target-language fr \
-  --source sample.txt
-linguaspindle projects list
-linguaspindle run PROJECT_ID --provider mock
-linguaspindle export PROJECT_ID
+provider = OpenAICompatibleProvider(
+    OpenAIProviderConfig(
+        base_url="https://api.example.test/v1",
+        model="example-model",
+        api_key_resolver=read_from_your_secret_store,
+    )
+)
 ```
 
-The last command returns Artifact metadata and download URLs. CLI and Web use the same data root;
-the Project appears in the GUI immediately.
-
-An offline EPUB run uses the same core:
+For CLI/server, environment injection is supported:
 
 ```bash
-linguaspindle projects create \
-  --name "Offline EPUB" --kind novel \
-  --source-language en --target-language fr \
-  --source book.epub
-linguaspindle run PROJECT_ID --provider mock
-linguaspindle export PROJECT_ID --format epub --output book.fr.epub
+export LINGUASPINDLE_OPENAI_API_KEY='set-outside-version-control'
+export LINGUASPINDLE_OPENAI_MODEL='example-model'
 ```
 
-The source extension selects `novel_epub_v1`. Use `--pipeline novel_epub_v1` to make that choice
-explicit. Export refuses an existing output path unless `--overwrite` is supplied.
+Never commit a populated `.env`. Keys are not API fields and are excluded from managed
+serialization, errors, logs, Artifacts, and output.
 
-## Upgrade and recovery
+## Real manga HTTP Adapter
 
-Back up the full, stopped data root before upgrading. Package-owned migrations are forward-only,
-atomic, and run at startup. v0.2.0 migration `0002_epub.sql` adds defaulted/nullable Source and
-Segment fields plus indexes; existing v0.1.0 TXT/manga Projects, Jobs, and Artifacts remain in the
-same data root.
-
-Recommended upgrade:
+Install `[manga]`, then independently install/license/run
+`zyddnys/manga-image-translator`. LinguaSpindle downloads or starts none of its GPL source,
+models, fonts, containers, or GPU runtime.
 
 ```bash
-linguaspindle doctor --data-dir /path/to/data
-# Stop the service, copy /path/to/data as one consistent unit, then install v0.2.0.
-python -m pip install --upgrade .
-linguaspindle doctor --data-dir /path/to/data
+export LINGUASPINDLE_MIT_BASE_URL=http://127.0.0.1:5003
+export LINGUASPINDLE_MIT_CONFIG_JSON='{}'
+linguaspindle adapters doctor
 ```
 
-If the process exits during a running Step, startup marks that Job/Step failed with
-`PROCESS_INTERRUPTED`; use the Job retry action. Completed earlier Steps and successful matching
-EPUB Segments retain reusable outputs.
+The Mock Manga Adapter remains available without this extra. See
+[Provider and Manga Adapter development](adapter-development.md).
 
-There is no in-place schema downgrade. To roll back, stop v0.2.0, restore the complete pre-upgrade
-data-root backup (database and Artifact bytes together), then reinstall/run v0.1.0. Never run
-v0.1.0 against a database already migrated to schema 0002.
+## Upgrade from v0.2.0
+
+Core-only use has no managed database. To retain the optional v0.2.0 runtime, stop all writers,
+back up the complete data root, install `[runtime]`, and run `doctor` against the same root.
+Migration 0003 is additive and retains old novel/manga rows/Artifacts. Follow the
+[v0.2-to-v0.3 migration guide](migrations/v0.2-to-v0.3.md); rollback restores the whole backup.
+
+## Development checkout
+
+```bash
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -c constraints-v030.txt -e '.[dev]'
+python -m ruff format --check src tests tools
+python -m ruff check --no-cache src tests tools
+python -m mypy src tools/generate_v020_acceptance.py tools/generate_v030_acceptance.py \
+  tools/verify_v030_extras.py
+python -m compileall -q src tests tools
+python -m pytest -q
+```
+
+The v0.3.0 default test contract installs no browser and accesses no paid/network/model service.
+Exact candidate outcomes belong in `acceptance/v0.3.0/` after they are captured.
 
 ## Troubleshooting
 
-`linguaspindle doctor` checks directories, SQLite, a real Docker Engine probe when the command is
-present, port availability, Provider status, Adapter health, and external model/font ownership.
-Docker and the real manga Adapter are optional for the offline path and therefore appear as
-optional failures when unavailable.
+- CLI commands and optional facades normalize a missing feature as `DEPENDENCY_MISSING` and name
+  the extra to install. Importing an optional implementation module directly follows ordinary
+  Python behavior and raises an actionable `ModuleNotFoundError` when its dependency is absent.
+- `linguaspindle doctor` checks optional runtime storage/database and configured Provider/Adapter
+  status; an absent real manga service is optional for Mock/core use.
+- `SOURCE_MISMATCH` means a saved manifest/result does not bind to the current source bytes.
+- `SEGMENT_NOT_FOUND` means a selected/manual mapping used an ID outside the current manifest.
+- Archive/EPUB error meanings and limits are in [EPUB support](epub.md).
 
-For a clean diagnostic with explicit state:
-
-```bash
-linguaspindle doctor --data-dir ./diagnostic-data
-linguaspindle adapters doctor --data-dir ./diagnostic-data
-```
-
-Do not paste populated keys, source content, database files, or Artifact payloads into public bug
-reports.
+Do not paste keys, source content, databases, or private Artifact payloads into public reports.

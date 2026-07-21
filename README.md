@@ -1,219 +1,245 @@
 # LinguaSpindle
 
-LinguaSpindle is an open-source translation orchestration engine for novels and manga. It keeps
-imported sources immutable, runs restart-safe ordered Pipelines, and exposes the same application
-core through a no-login Web GUI, the `linguaspindle` CLI, and an asynchronous HTTP API.
+LinguaSpindle is a headless, embeddable translation orchestration engine for novels and manga.
+The default Python package is a side-effect-free library: it does not need a GUI, database,
+server, account, API key, or worker.
 
-v0.2.0 provides three paths through the same Project/Job/Step/Segment/Artifact model:
+It supports:
 
-- TXT → paragraph-aware segments → Mock or OpenAI-compatible translation → QA → TXT/JSON; and
-- unencrypted EPUB 2/3 → structure-aware visible text → translation/QA → validated EPUB; and
-- image/CBZ → capability-selected manga Adapter → translated pages/raw output → CBZ.
+- TXT inspection, stable segmentation, selected translation, and UTF-8/LF reconstruction;
+- structure-preserving common unencrypted EPUB 2/3 translation;
+- PNG/JPEG/WebP and CBZ/ZIP manga translation;
+- caller-implementable text Providers and distinct Manga Adapters;
+- deterministic Mock Provider and Mock Manga Adapter for offline use;
+- bounded retry/concurrency, progress events, cooperative cancellation, partial results, and
+  stable errors; and
+- optional SQLite/Artifact/Job recovery, CLI, OpenAI-compatible transport, real manga HTTP
+  Adapter, and headless FastAPI server.
 
-The EPUB path preserves reading order, navigation, links, anchors, cover, images, CSS, fonts, and
-other non-text resources. Missing or failed translated text falls back to its immutable source
-text. See [EPUB support and reconstruction rules](docs/epub.md) for the exact text-node policy,
-validation, safety limits, and known limits.
-
-The built-in mocks make the complete core demonstrable offline. The first real manga integration
-is a protocol-only Adapter for a separately operated
-[`manga-image-translator`](https://github.com/zyddnys/manga-image-translator) HTTP service. Its
-GPL code, models, fonts, and GPU stack are not copied, installed, or redistributed by this project.
+Imported input remains immutable. Every output path or stream is supplied explicitly by the
+caller. Readers, proofreading UI, revision/approval history, bookshelves, and calling-product
+state belong to the embedding application.
 
 [简体中文说明](README.zh-CN.md)
 
-## Trust boundary
-
-LinguaSpindle is a single-instance tool. It has no registration, login, account, role,
-permission, tenant, owner, or collaboration model. Anyone who can reach the HTTP port can operate
-the instance.
-
-The non-container server binds to `127.0.0.1` by default. Docker Compose publishes only on the
-host's `127.0.0.1` by default. **Do not expose LinguaSpindle directly to the public Internet.** Use
-a private network, VPN/Tailscale, Cloudflare Access, or a deliberately configured reverse proxy
-as an outer perimeter when remote access is needed.
-
-## Quick start
+## Install the core
 
 Python 3.11 or newer is required.
 
-### Linux, macOS, or WSL
-
 ```bash
-python3 -m venv .venv
+python -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e .
-linguaspindle doctor
+```
+
+The default dependency set contains only core TXT/EPUB needs. It does not install FastAPI,
+Uvicorn, Typer, SQLAlchemy, HTTPX, Pydantic, Playwright, a browser, an external manga tool, models,
+fonts, or a GPU runtime.
+
+## Translate TXT or EPUB
+
+```python
+from pathlib import Path
+
+from linguaspindle import MockProvider, TranslationOptions, translate_document
+
+result = translate_document(
+    Path("book.epub"),  # .txt works through the same API
+    Path("book.zh-CN.epub"),
+    MockProvider(),
+    TranslationOptions(source_language="en", target_language="zh-CN"),
+)
+
+print(result.translations.status)
+print(result.build.output_sha256)
+```
+
+EPUB output preserves reading order, navigation, links, anchors, cover, images, CSS, fonts, and
+other non-text resources. The core rebuilds from the immutable source, retains source text for
+unmapped/failed Segments, updates target language, then reopens and validates the output.
+
+See [EPUB support](docs/epub.md) for visible-text, locator, archive-limit, and validation rules.
+
+## Selected translation and caller edits
+
+```python
+from linguaspindle import (
+    MockProvider,
+    TranslationOptions,
+    inspect_document,
+    rebuild_document,
+    translate_segments,
+)
+
+options = TranslationOptions(source_language="en", target_language="fr")
+manifest = inspect_document("novel.txt", options=options)
+selected = [manifest.segments[0].segment_id]
+
+batch = translate_segments(
+    manifest,
+    MockProvider(),
+    options,
+    selected_segment_ids=selected,
+)
+
+# A caller can rebuild with reviewed text and no Provider call.
+rebuild_document(
+    "novel.txt",
+    manifest,
+    {selected[0]: "A human-edited first paragraph."},
+    "novel.reviewed.txt",
+    target_language="fr",
+)
+```
+
+`selected_segment_ids=None` means all; an explicit empty list means none. Unknown IDs fail before
+Provider calls. Existing/manual text wins and is never silently overwritten. Result records stay
+in source order under concurrency and can be serialized for later retry/rebuild.
+
+## Translate image or CBZ manga
+
+```python
+from linguaspindle import (
+    MockMangaAdapter,
+    TranslationOptions,
+    build_manga_output,
+    translate_manga,
+)
+
+translated = translate_manga(
+    "chapter.cbz",
+    MockMangaAdapter(),
+    TranslationOptions(source_language="ja", target_language="en"),
+)
+build_manga_output(translated, "chapter.en.cbz")
+```
+
+The Mock returns input image bytes for deterministic offline tests; it is not real OCR,
+translation, inpainting, or typesetting. Real whole-page output is provided by an optional,
+separately operated Adapter.
+
+## Optional extras
+
+```bash
+python -m pip install -e '.[openai]'   # OpenAI-compatible HTTP Provider
+python -m pip install -e '.[manga]'    # real manga HTTP Adapter client
+python -m pip install -e '.[runtime]'  # SQLite + Artifacts + persistent Jobs
+python -m pip install -e '.[cli]'      # headless Typer CLI
+python -m pip install -e '.[server]'   # FastAPI/Uvicorn JSON server + runtime
+python -m pip install -e '.[all]'      # all supported optional layers
+```
+
+Missing optional features return an actionable extra-install message. More detail:
+[Installation](docs/installation.md).
+
+## Headless CLI
+
+```bash
+python -m pip install -e '.[cli]'
+
+linguaspindle document inspect sample.txt --target-language fr
+linguaspindle document translate sample.txt --target-language fr --output sample.fr.txt
+linguaspindle manga inspect chapter.cbz
+linguaspindle manga translate chapter.cbz --target-language en --output chapter.en.cbz
+linguaspindle validate sample.fr.txt
+```
+
+These core commands use offline mocks and need no database. Persistent Project/Job/Artifact
+commands require `[runtime,cli]`. See [CLI reference](docs/cli.md).
+
+## Headless HTTP server
+
+```bash
+python -m pip install -e '.[server,cli]'
 linguaspindle serve
 ```
 
-Open <http://127.0.0.1:8765>. No login page is expected.
+Open <http://127.0.0.1:8765/docs> for OpenAPI. `/` returns JSON; there is no Web GUI or reader.
+The API retains asynchronous Project/Job/Artifact flows and adds stable novel Segment listing,
+explicit selected translation, and Provider-free caller-mapping rebuild.
 
-### Windows PowerShell
+See [HTTP API](docs/api.md) and [Docker deployment](docs/docker.md).
 
-```powershell
-py -3.12 -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e .
-linguaspindle doctor
-linguaspindle serve
-```
+## Trust boundary
 
-If script execution is restricted, invoke `.venv\Scripts\linguaspindle.exe` directly. Mutable
-data defaults to the platform application-data directory; use `--data-dir PATH` or
-`LINGUASPINDLE_DATA_DIR` to make it explicit.
+LinguaSpindle is a single-instance engine. It has no registration, login, account, role,
+permission, tenant, owner, or collaboration model. Anyone who can reach the optional HTTP port
+can operate it.
 
-More details: [local installation](docs/installation.md).
-
-## Docker Compose
-
-```bash
-cp .env.example .env
-docker compose up --build -d
-docker compose ps
-```
-
-Open <http://127.0.0.1:8765>. The named `linguaspindle-data` volume contains SQLite state and all
-Artifact payloads. The core image runs as UID/GID 10001, has a read-only root filesystem under
-Compose, and contains no external manga tool or heavyweight model.
-
-See [Docker deployment](docs/docker.md) before changing the loopback port mapping.
-
-## CLI examples
-
-```bash
-linguaspindle projects create \
-  --name "Sample novel" \
-  --kind novel \
-  --source-language en \
-  --target-language zh-CN \
-  --source ./sample.txt
-
-linguaspindle projects list
-linguaspindle run PROJECT_ID --provider mock
-linguaspindle jobs show JOB_ID
-linguaspindle artifacts list PROJECT_ID
-linguaspindle export PROJECT_ID --format txt
-```
-
-For EPUB, use the same commands with an `.epub` source. The source kind selects the EPUB Pipeline
-unless `--pipeline` is supplied explicitly:
-
-```bash
-linguaspindle projects create \
-  --name "Sample EPUB" \
-  --kind novel \
-  --source-language en \
-  --target-language zh-CN \
-  --source ./sample.epub
-linguaspindle run PROJECT_ID --provider mock
-linguaspindle export PROJECT_ID --format epub --output ./sample.zh-CN.epub
-```
-
-`--output` copies the immutable export Artifact without loading it all into memory. It refuses to
-replace an existing path unless `--overwrite` is given.
-
-Successful CLI commands exit `0`; failed doctor/availability checks exit `1`; normalized
-configuration/application errors print a JSON error envelope and exit `2`, suitable for scripts.
-
-`linguaspindle run` waits by default. The Web/API background worker claims queued Jobs
-asynchronously. Pause and cancel requests take effect at safe segment/page boundaries; an
-external Adapter that cannot interrupt immediately remains `cancelling` until that boundary.
-
-Run `linguaspindle --help` and each subcommand's `--help` for the complete command surface.
-
-## HTTP API example
-
-Create a Project with multipart input, then queue a Job:
-
-```bash
-curl -sS -X POST http://127.0.0.1:8765/api/projects \
-  -F 'name=API sample' \
-  -F 'kind=novel' \
-  -F 'source_language=en' \
-  -F 'target_language=fr' \
-  -F 'source=@sample.txt;type=text/plain'
-
-curl -sS -X POST http://127.0.0.1:8765/api/projects/PROJECT_ID/jobs \
-  -H 'Content-Type: application/json' \
-  -d '{"provider_id":"mock"}'
-
-curl -sS http://127.0.0.1:8765/api/jobs/JOB_ID
-```
-
-Use `source=@book.epub;type=application/epub+zip` for EPUB. Project uploads are streamed into the
-managed Artifact store with a configured byte limit; Artifact downloads use a file response
-instead of constructing the whole payload in application memory.
-
-Interactive OpenAPI documentation is at <http://127.0.0.1:8765/docs>. See the
-[API guide](docs/api.md) for lifecycle and error semantics.
+Server startup and Compose publish on `127.0.0.1` by default. **Do not expose LinguaSpindle
+directly to the public Internet.** Use an explicit private network, VPN/Tailscale, Cloudflare
+Access, or access-controlling reverse proxy for remote use. That outer identity is not copied into
+LinguaSpindle.
 
 ## Providers and secrets
 
-The Mock Provider is always ready and never uses a paid service. Configure an OpenAI-compatible
-endpoint only through the process environment:
+Library callers inject credentials directly or through a key resolver. The pure core never reads
+a fixed environment variable. Optional CLI/server configuration can resolve:
 
 ```bash
-export LINGUASPINDLE_OPENAI_BASE_URL=https://api.openai.com/v1
-export LINGUASPINDLE_OPENAI_API_KEY='set-this-outside-version-control'
-export LINGUASPINDLE_OPENAI_MODEL=gpt-4.1-mini
-linguaspindle serve
+export LINGUASPINDLE_OPENAI_BASE_URL=https://api.example.test/v1
+export LINGUASPINDLE_OPENAI_API_KEY='set-outside-version-control'
+export LINGUASPINDLE_OPENAI_MODEL=example-model
 ```
 
-PowerShell uses `$env:LINGUASPINDLE_OPENAI_API_KEY = '...'`. The API key is not accepted by the
-HTTP API and is never intentionally persisted in configuration, Job snapshots, database views,
-logs, Artifacts, or exports. Keep populated `.env` files out of version control.
+The key is not accepted by the HTTP API and is excluded from serialized models, database views,
+events, errors, logs, Artifacts, and exports. Keep populated `.env` files out of version control.
 
 ## External manga Adapter
 
-Operate and license `zyddnys/manga-image-translator` separately, enable its HTTP API, then set:
+The optional protocol client targets a separately operated
+[`manga-image-translator`](https://github.com/zyddnys/manga-image-translator) HTTP service:
 
 ```bash
+python -m pip install -e '.[manga,runtime,cli]'
 export LINGUASPINDLE_MIT_BASE_URL=http://127.0.0.1:5003
 export LINGUASPINDLE_MIT_CONFIG_JSON='{}'
 linguaspindle adapters doctor
 ```
 
-The Adapter calls `/translate/with-form/image`; it does not download or start the upstream. The
-inspected upstream snapshot did not provide a complete per-model and per-font redistribution
-inventory, so production operators must review those assets for their selected configuration.
-See [Adapter development and operations](docs/adapter-development.md) and the
-[tool research](docs/research/translation-tools.md).
+LinguaSpindle does not vendor, install, download, start, or redistribute its GPL source, models,
+fonts, container, or GPU stack. Operators must license and secure that service independently. The
+current Adapter reports no streaming progress or immediate mid-image cancellation; cancellation
+is observed between pages.
 
-## Development and verification
+See [Provider and Manga Adapter development](docs/adapter-development.md) and
+[third-party notices](THIRD_PARTY_NOTICES.md).
+
+## v0.2.0 runtime migration
+
+The core-only library owns no data root. Optional runtime users can retain all v0.2.0 TXT/EPUB/
+manga Projects, Jobs, Segments, and Artifacts through additive migration 0003. Stop writes and
+back up the complete data root first. Rollback restores that full backup; it is not an in-place
+schema downgrade.
+
+Read [v0.2-to-v0.3 migration](docs/migrations/v0.2-to-v0.3.md).
+
+## Development
 
 ```bash
-python -m pip install -c constraints-v020.txt -e '.[dev]'
-ruff format --check src tests tools
-ruff check src tests tools
-mypy src tools/generate_v020_acceptance.py
+python -m pip install -c constraints-v030.txt -e '.[dev]'
+python -m ruff format --check src tests tools
+python -m ruff check --no-cache src tests tools
+python -m mypy src tools/generate_v020_acceptance.py tools/generate_v030_acceptance.py \
+  tools/verify_v030_extras.py
 python -m compileall -q src tests tools
-pytest -q
+python -m pytest -q
 ```
 
-Browser acceptance uses Playwright and is opt-in because it needs a separately installed browser:
+Default tests access no paid service/network/model and install no browser. Exact release-candidate
+results belong in the versioned [acceptance archive](acceptance/README.md).
 
-```bash
-playwright install chromium
-LINGUASPINDLE_RUN_BROWSER_TESTS=1 pytest -q -m browser
-```
+## Documentation and licensing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), the factual
-[versioned acceptance archive](acceptance/README.md), and the current
-[project state](docs/PROJECT_STATE.md). v0.2.0 is not tagged or released until its acceptance
-report has been reviewed.
-
-## Architecture and licensing
-
+- [Python library API](docs/library-api.md)
 - [Architecture](docs/architecture.md)
 - [Data model](docs/data-model.md)
 - [Decision records](docs/DECISIONS.md)
+- [Current project state](docs/PROJECT_STATE.md)
+- [v0.3.0 release notes](docs/releases/v0.3.0.md)
 - [Structured third-party inventory](third-party-components.toml)
-- [Third-party notices](THIRD_PARTY_NOTICES.md)
 - [Security policy](SECURITY.md)
 
-LinguaSpindle core is licensed under [Apache-2.0](LICENSE). External services and Python
-dependencies retain their own licenses; no external project's license is replaced by the core
-license.
+LinguaSpindle core is [Apache-2.0](LICENSE). Dependencies and external services retain their own
+licenses; the core license does not replace them.

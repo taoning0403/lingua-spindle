@@ -24,5 +24,7 @@ original result remains visible and the later evidence is linked.
 ## Versions
 
 - [v0.1.0](v0.1.0/README.md) — accepted and published WSL2/Linux Technical Preview.
-- [v0.2.0](v0.2.0/README.md) — source candidate accepted on macOS and Linux/arm64 Docker;
-  publication remains pending and no v0.2.0 tag was created.
+- [v0.2.0](v0.2.0/README.md) — accepted on macOS and Linux/arm64 Docker and published as the
+  immutable `v0.2.0` tag. Its historical reports retain their original pre-publication wording.
+- `v0.3.0/` — reserved for the current headless/library-first candidate. It is not accepted or
+  published until its generated report, evidence, artifacts, and checksums are complete.

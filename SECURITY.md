@@ -2,8 +2,9 @@
 
 ## Supported version
 
-Until a later release exists, security fixes target the current `0.1.x` line on the default
-branch. This alpha software has not received an independent security audit.
+Security fixes target the latest published `0.2.x` line. The default branch may also contain the
+unreleased v0.3.0 candidate; it is supported for development and acceptance, not represented as a
+published release. This alpha software has not received an independent security audit.
 
 ## Reporting a vulnerability
 

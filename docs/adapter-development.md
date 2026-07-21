@@ -1,94 +1,156 @@
-# Adapter development and operation
+# Provider and Manga Adapter development
 
-Adapters isolate external-tool details from application and Pipeline code. A Pipeline requests a
-capability; only the Adapter knows an upstream's HTTP paths, process arguments, directories, raw
-responses, progress, and cancellation limitations.
+LinguaSpindle has two extension contracts because novel text translation and whole-page manga
+translation have different inputs, outputs, health, and capability requirements.
 
-## Manifest contract
+- `TranslationProvider` translates one `TranslationRequest` into text/model/usage.
+- `MangaTranslationAdapter` declares a manifest and health, then translates one image into an
+  image plus structured raw metadata.
 
-Every Adapter declares:
+Do not combine them into a vendor-shaped generic plugin. The pure core supplies ordering, bounded
+retry, events, cancellation, partial results, and error normalization around both contracts.
 
-- stable ID and display name;
-- Adapter and pinned/researched upstream version;
+## Translation Provider
+
+The structurally typed contract in `providers/base.py` is intentionally minimal:
+
+```python
+class TranslationProvider(Protocol):
+    id: str
+
+    def translate(self, request: TranslationRequest) -> TranslationResult: ...
+```
+
+A custom Provider receives explicit text, source/target language, style, prompt/version, and model
+parameters. It must return non-empty text and a model label. It may return non-negative token usage.
+
+Provider rules:
+
+- accept credentials/transport configuration through the constructor or caller-owned resolver;
+- never read the core's global environment/Settings;
+- never put a key/header/secret derivative in `repr`, serialization, results, exceptions, or logs;
+- make one logical transport attempt and let core orchestration own retry;
+- raise `LinguaError` with a stable code for expected failure; and
+- set `retryable=True` only for a condition that may succeed later.
+
+`MockProvider` is the default offline implementation. `OpenAICompatibleProvider` is installed by
+`linguaspindle[openai]` and takes `OpenAIProviderConfig(api_key=... | api_key_resolver=...)`.
+Environment lookup belongs to optional CLI/server configuration only.
+
+## Manga Adapter manifest
+
+Every `MangaTranslationAdapter` declares:
+
+- stable Adapter ID/display name and Adapter/upstream versions;
 - invocation type (`http_service`, future subprocess/container, or explicit mock);
-- capabilities;
-- input/output formats and supported languages;
+- capabilities, input/output formats, and languages;
 - GPU requirement;
-- immediate cancel/progress support;
-- health-check method and configuration guidance;
-- upstream URL and license; and
+- immediate cancel and internal progress support;
+- health-check/configuration guidance;
+- upstream URL/license; and
 - whether LinguaSpindle modifies the upstream.
 
-The current Python contract is `AdapterManifest` and `Adapter` in
-`src/linguaspindle/adapters/base.py`. `AdapterRegistry.get(id, capability)` validates capability;
-business code must not branch on a product name.
+`AdapterRegistry.get(id, capability)` validates declared capability. Application/Pipeline code
+must not branch on an upstream product name.
 
-## Payload contract
+## Manga call contract
 
-Pipeline and application code exchange Artifact IDs. The runtime may resolve a private local path
-or bytes only at the Adapter boundary. An Adapter returns normalized output bytes, media type, and
-structured raw metadata. The orchestration Step creates:
+```python
+class MangaTranslationAdapter(Protocol):
+    manifest: AdapterManifest
 
-- a final/intermediate output Artifact;
-- a redacted raw-output Artifact for diagnostics;
-- Step logs and a stable error when invocation fails; and
-- provenance pointing to Project, Job, Step, and source Artifact.
+    def health(self) -> AdapterHealth: ...
 
-Never let an upstream overwrite an imported Source. Never expose a private storage key or rely on
-a caller's machine-specific absolute path as the contract.
+    def translate_image(
+        self,
+        *,
+        image: bytes,
+        filename: str,
+        source_language: str,
+        target_language: str,
+    ) -> MangaAdapterResult: ...
+```
 
-## Error and control behavior
+Return a valid image, matching `image/*` media type, and bounded JSON-compatible raw metadata.
+Never overwrite input. Redact secrets and avoid unbounded response bodies.
 
-Map expected failures to `LinguaError` and stable `ErrorCode` values:
+The pure core accepts caller paths/streams/bytes and returns typed page results; it has no Project,
+Job, database, or Artifact requirement. The optional runtime maps immutable source/page input,
+translated images, raw results, logs/errors, and final CBZ to Artifacts with provenance.
 
-- missing service/dependency → `ADAPTER_UNAVAILABLE`;
-- upstream exit/HTTP rejection → `EXTERNAL_COMMAND_FAILED`;
-- timeout → `TIMEOUT`;
-- absent/wrong output → `OUTPUT_MISSING`;
-- invalid operator configuration → `CONFIGURATION_ERROR`.
+## Errors, retry, progress, and cancellation
 
-Set `retryable` only when repeating later is meaningful. Preserve useful status/type details after
-redaction, not secrets or entire unbounded bodies.
+Map expected failure to stable codes:
 
-Declare cancellation and progress truthfully. If an upstream call cannot stop, keep the Job
-`cancelling` while it finishes and checkpoint immediately afterward. Never fabricate percentage
-progress or terminal cancellation.
+| Failure | Code |
+| --- | --- |
+| Missing/unreachable service or dependency | `ADAPTER_UNAVAILABLE` |
+| Upstream HTTP/process rejection | `EXTERNAL_COMMAND_FAILED` |
+| Timeout | `TIMEOUT` |
+| Missing or invalid image output | `OUTPUT_MISSING` or `INVALID_FORMAT` |
+| Invalid caller/operator configuration | `CONFIGURATION_ERROR` |
 
-## Tests
+Core orchestration performs bounded retries only for retryable errors and keeps page-level partial
+results. Adapter methods should not implement a second conflicting retry policy.
 
-An Adapter contribution needs:
+Declare progress/cancellation truthfully. If a call cannot stop, do not claim immediate cancel.
+The core observes cancellation before the next page and emits no fabricated inside-page percentage.
+An optional persistent Job stays `cancelling` until the current Adapter call returns or times out.
 
-1. manifest and health tests;
-2. input/output and language/config mapping tests;
-3. timeout, unavailable, HTTP/process failure, invalid output, and redaction tests;
-4. cancellation/progress declaration tests;
-5. orchestration tests proving raw/output Artifact and log creation; and
-6. an offline fake or mock with no paid key, model download, GPU, or Internet dependency.
+## Tests required for an extension
 
-Live heavyweight validation is a separate, explicitly enabled acceptance step. A passing fake
-contract must not be described as a live upstream run.
+1. Protocol/manifest and health behavior.
+2. Input/output, media signature, language, and configuration mapping.
+3. Timeout, unavailable, upstream rejection, invalid/empty output, and redaction.
+4. Accurate cancellation/progress declarations.
+5. Pure-core orchestration with partial result and page-boundary cancellation.
+6. Optional-runtime output/raw/log Artifact provenance when applicable.
+7. An offline fake/mock with no paid key, Internet, model download, font, or GPU.
+
+Live service/model validation is an explicit optional external acceptance step. A passing fake
+HTTP contract is not a live upstream model run.
 
 ## Licensing checklist
 
-Before accepting an Adapter:
+Before accepting an external Adapter:
 
 - record upstream repository, exact release/commit, maintenance evidence, and integration method;
-- identify the code license and whether process separation is required;
-- inventory every downloaded/bundled model and its source/license;
-- inventory every font and its source/license/embedding terms;
-- state whether anything is copied, modified, built, installed, or redistributed;
+- identify code license and whether process separation is required;
+- inventory each downloaded/bundled model and its source/license;
+- inventory each font and its source/license/embedding terms;
+- state what is copied, modified, built, installed, downloaded, or redistributed;
 - update `third-party-components.toml`, `THIRD_PARTY_NOTICES.md`, and research; and
-- never silently download or execute Internet code during core installation.
+- never silently download or execute network code during core installation.
 
-An external process boundary does not erase an operator's upstream obligations.
+An external process boundary preserves the core's package boundary; it does not remove the
+operator's upstream obligations.
 
-## v0.1.0 manga-image-translator Adapter
+## manga-image-translator HTTP Adapter
 
-`MangaImageTranslatorHttpAdapter` targets the separately operated
-`zyddnys/manga-image-translator` HTTP service researched at commit
-`efdc229de8aa0f3d4051ad97664adc62dd5ac605`.
+Install the protocol client only:
 
-Configuration:
+```bash
+python -m pip install 'linguaspindle[manga]'
+```
+
+Programmatic configuration is explicit:
+
+```python
+from linguaspindle.adapters.manga_image_translator import (
+    MangaImageTranslatorConfig,
+    MangaImageTranslatorHttpAdapter,
+)
+
+adapter = MangaImageTranslatorHttpAdapter(
+    MangaImageTranslatorConfig(
+        base_url="http://127.0.0.1:5003",
+        timeout_seconds=600,
+        request_config={},
+    )
+)
+```
+
+The optional CLI/server environment adapter supports:
 
 ```bash
 export LINGUASPINDLE_MIT_BASE_URL=http://127.0.0.1:5003
@@ -97,12 +159,12 @@ export LINGUASPINDLE_MIT_CONFIG_JSON='{}'
 linguaspindle adapters doctor
 ```
 
-Health requests `/openapi.json`. Translation posts an image and JSON `config` to
-`/translate/with-form/image`; common target-language labels are mapped to upstream codes. The
-Adapter validates non-empty `image/*` output. Each page produces a translated-image Artifact and
-raw-metadata Artifact; a page failure produces a raw error Artifact and may yield partial success.
+Health requests `/openapi.json`. Translation posts one image and JSON `config` to
+`/translate/with-form/image`; common target labels map to upstream codes. The Adapter validates
+image output and returns redacted raw metadata.
 
-The manifest deliberately declares no immediate cancellation or streaming progress in v0.1.0.
-The core checkpoints between pages. The upstream is GPL-3.0-only and its inspected model/font
-inventory was incomplete, so none of it is distributed here. Operators must follow upstream
-installation and license documentation themselves.
+It targets the separately operated `zyddnys/manga-image-translator` service researched at commit
+`efdc229de8aa0f3d4051ad97664adc62dd5ac605`. It declares no immediate cancellation or streaming
+progress. Upstream is GPL-3.0-only and the inspected model/font inventory was incomplete, so
+LinguaSpindle distributes none of its source, container, weights, fonts, or GPU runtime. Operators
+install, license, run, and secure it independently.

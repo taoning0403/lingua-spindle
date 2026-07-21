@@ -1,75 +1,81 @@
-# HTTP API
+# Headless HTTP API
 
-LinguaSpindle exposes a single-instance, no-authentication API over the shared application and
-orchestration core. It is intended for loopback or an operator-controlled private perimeter.
+The optional FastAPI server exposes instance-scoped JSON/OpenAPI over the same pure core and local
+runtime. It serves no product GUI, reader, application HTML/JavaScript/CSS, static assets, or SPA
+fallback. FastAPI's operator-facing Swagger UI and ReDoc remain available at `/docs` and `/redoc`;
+the machine contract is `/openapi.json`.
 
-Interactive OpenAPI is served at `/docs`; the machine contract is `/openapi.json`.
+```bash
+python -m pip install 'linguaspindle[server,cli]'
+linguaspindle serve
+```
+
+The default bind is `127.0.0.1:8765`. `/` returns only a compact JSON descriptor containing name,
+version, `headless` mode, health, docs, and OpenAPI paths.
+
+There is no authentication or account model. Anyone with network reachability can operate the
+instance. Keep it on loopback or behind an explicit private/access-controlled outer perimeter.
 
 ## Resource flow
 
-1. Create a Project and immutable Source with multipart `POST /api/projects`.
-2. Optionally create a non-secret Translation Profile with `POST /api/profiles`.
-3. Queue a Job with `POST /api/projects/{project_id}/jobs`; the response is immediate (`202`).
-4. Poll `GET /api/jobs/{job_id}` for persisted Job, Step, log, error, and Artifact state.
-5. Inspect segments or download final Artifacts.
+Persistent asynchronous flow:
 
-The GUI uses polling as the only v0.2.0 progress transport. There is no SSE or WebSocket contract.
+1. `POST /api/projects` creates an instance-local Project and immutable Source Artifact.
+2. `POST /api/projects/{project_id}/jobs` queues a runtime Pipeline and returns `202` immediately.
+3. Poll `GET /api/jobs/{job_id}` for durable Steps, logs, errors, controls, and Artifacts.
+4. Download a completed Artifact through its `download_url`.
+
+Caller-controlled novel flow:
+
+1. `GET /api/projects/{project_id}/segments` returns stable core Segments from the immutable source,
+   optionally overlaid with one persisted Job's state.
+2. `POST /api/projects/{project_id}/segments/translate` translates exactly an explicit ID list and
+   returns/persists a versioned translation batch.
+3. The caller may edit/replace text in its own system.
+4. `POST /api/projects/{project_id}/rebuild` rebuilds TXT/EPUB from only the supplied ID-to-text
+   mapping, without calling a Provider, and returns a downloadable output Artifact.
+
+The server uses ordinary request/response and Job polling. It defines no SSE or WebSocket contract.
 
 ## Main endpoints
 
 | Method and path | Purpose |
 | --- | --- |
+| `GET /` | Headless service descriptor JSON. |
 | `GET /health` | Process and SQLite readiness. |
-| `GET /api/system` | Version, counts, recent Jobs, and bind default. |
-| `GET /api/adapters` | Manifest plus live Adapter health. |
-| `GET /api/providers` | Secret-free Provider configuration status. |
-| `GET /api/pipelines` | Versioned ordered Pipeline Presets. |
+| `GET /api/system` | Version, counts, recent Jobs, limits, and bind default. |
+| `GET /api/adapters` | Manga Adapter manifests and current health. |
+| `GET /api/providers` | Secret-free Provider status. |
+| `GET /api/pipelines` | Versioned runtime TXT/EPUB/manga Presets. |
 | `GET`, `POST /api/profiles` | List/create non-secret Translation Profiles. |
-| `GET`, `POST /api/projects` | List/create Projects. Create streams one multipart TXT/EPUB/CBZ/image Source. |
+| `GET`, `POST /api/projects` | List/create Projects; create accepts one bounded multipart Source. |
 | `GET`, `DELETE /api/projects/{id}` | Detail or confirmed deletion (`?confirmed=true`). |
-| `POST /api/projects/{id}/jobs` | Queue an asynchronous Job. |
-| `GET /api/jobs` | List Jobs, optionally filtering `project_id` and `status`. |
+| `POST /api/projects/{id}/jobs` | Queue an asynchronous persistent Job. |
+| `GET /api/jobs` | List Jobs; optional `project_id` and `status`. |
 | `GET /api/jobs/{id}` | Durable detail including Steps/logs/Artifacts. |
 | `POST /api/jobs/{id}/pause` | Request pause at a safe boundary. |
 | `POST /api/jobs/{id}/resume` | Requeue a paused Job. |
 | `POST /api/jobs/{id}/cancel` | Request cancellation at a safe boundary. |
 | `POST /api/jobs/{id}/retry` | Retry failed/partial work and downstream Steps. |
-| `GET /api/projects/{id}/segments` | Latest Job's novel results; optional `job_id`. |
+| `GET /api/projects/{id}/segments` | Stable TXT/EPUB source Segments; optional `job_id` overlay. |
+| `POST /api/projects/{id}/segments/translate` | Explicit selected translation plus versioned JSON Artifact. |
+| `POST /api/projects/{id}/rebuild` | Provider-free immutable-source rebuild from caller text. |
 | `GET /api/projects/{id}/artifacts` | Project Artifacts; optional `job_id`. |
 | `GET /api/artifacts/{id}` | Artifact metadata. |
-| `GET /api/artifacts/{id}/download` | Verified payload as a file/stream response with attachment disposition. |
-| `POST /api/projects/{id}/exports` | Return latest completed export Artifacts. |
+| `GET /api/artifacts/{id}/download` | Verified payload file response. |
+| `POST /api/projects/{id}/exports` | Latest completed export Artifacts. |
 
-## Create requests
+## Create a Project
 
-Project multipart fields:
+Multipart fields:
 
 ```text
-name, kind=novel|manga, source_language, target_language, source=<TXT|EPUB|CBZ|image file>
+name
+kind=novel|manga
+source_language
+target_language
+source=<TXT|EPUB|CBZ|PNG|JPEG|WebP>
 ```
-
-For EPUB, `target_language` must be a plausible BCP 47 tag (for example `en`, `fr`, or `zh-CN`),
-because it is written to OPF `dc:language` and XHTML `lang`/`xml:lang`.
-
-Job JSON:
-
-```json
-{
-  "pipeline_key": "novel_txt_v1",
-  "profile_id": null,
-  "provider_id": "mock",
-  "adapter_id": null
-}
-```
-
-Omitted Pipeline selects the default for Project kind. Manga Jobs default to `mock-manga`; use
-`manga-image-translator-http` only after its health is ready.
-
-For Novel Projects, omitted Pipeline also considers the immutable Source kind: TXT selects
-`novel_txt_v1`, and EPUB selects `novel_epub_v1`. A supplied incompatible Pipeline returns
-`CONFIGURATION_ERROR` rather than processing the file through the wrong parser.
-
-EPUB upload example:
 
 ```bash
 curl -sS -X POST http://127.0.0.1:8765/api/projects \
@@ -80,82 +86,156 @@ curl -sS -X POST http://127.0.0.1:8765/api/projects \
   -F 'source=@book.epub;type=application/epub+zip'
 ```
 
-Project detail returns compact Source metadata such as EPUB version, title/creator/language,
-cover/navigation display data, and chapter/document/resource/text-unit counts. Full package structure remains an
-Artifact rather than being duplicated into the Source row.
+EPUB target language must be a plausible BCP 47 tag such as `en`, `fr`, or `zh-CN`; rebuild writes
+it into OPF/XHTML language metadata. Import always enforces the exact source-byte bound and rejects
+empty or incompatible filename/kind combinations. EPUB and CBZ archives are inspected for archive
+safety before Project publication. TXT decoding/content checks and single-image structural checks
+run when the corresponding core operation prepares or inspects that immutable Source.
 
-The Profile endpoint accepts source/target language, style, prompt template/version, batch size,
-model parameters, Provider ID, and model. It does not accept an API key. Unknown fields are
-rejected, validation responses omit submitted values, and `model`/`messages` cannot override the
-Provider request envelope through model parameters.
+Queue a persistent Job:
+
+```json
+{
+  "pipeline_key": "novel_epub_v1",
+  "profile_id": null,
+  "provider_id": "mock",
+  "adapter_id": null
+}
+```
+
+Omitting the Pipeline selects a compatible Preset from Project/source kind: TXT →
+`novel_txt_v1`, EPUB → `novel_epub_v1`, manga → `manga_full_v1`. An incompatible explicit choice
+returns `CONFIGURATION_ERROR`.
+
+## Read stable Segments
+
+```bash
+curl -sS http://127.0.0.1:8765/api/projects/PROJECT_ID/segments
+```
+
+Each response includes `schema_version=segment.v1`, stable `segment_id`, `order`/`sequence`, source
+format/Artifact/document/text/role, typed locator, source and translation-input hashes, and joiner.
+With `?job_id=JOB_ID`, the server verifies that the Job belongs to the Project and overlays status,
+translated text, model, reuse lineage, error, and QA findings. Without a matching persisted row,
+status is `source`.
+
+The Segments are freshly inspected from the immutable TXT/EPUB Source through the public core;
+they are not SQLAlchemy row representations.
+
+## Translate an explicit selection
+
+```bash
+curl -sS -X POST \
+  http://127.0.0.1:8765/api/projects/PROJECT_ID/segments/translate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "selected_segment_ids": ["SEGMENT_ID_1", "SEGMENT_ID_3"],
+    "existing_translations": {"SEGMENT_ID_1": "Caller-owned text"},
+    "provider_id": "mock",
+    "style": "Preserve tone.",
+    "prompt_version": "v1",
+    "concurrency": 2,
+    "max_retries": 2,
+    "retry_backoff_seconds": 0.25
+  }'
+```
+
+`selected_segment_ids` is required and means exactly the supplied IDs. `[]` is a deliberate no-op
+and never translates all. Unknown IDs return `SEGMENT_NOT_FOUND` before a Provider call. Text in
+`existing_translations` wins and is not sent to the Provider.
+
+The response contains Project/source Artifact IDs, a `translation-batch.v1` result, and metadata/
+download URL for the persisted `novel_translations` JSON Artifact. Records remain in source order
+and retain source/manual/succeeded/failed/cancelled state, attempts, normalized usage, or per-
+Segment error. Partial failure preserves successful records.
+
+This endpoint is a synchronous core operation and is intended for an explicit caller-controlled
+selection. Use the persistent Job endpoint for long background whole-project work.
+
+## Rebuild from caller text
+
+```bash
+curl -sS -X POST http://127.0.0.1:8765/api/projects/PROJECT_ID/rebuild \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "translations": {
+      "SEGMENT_ID_1": "Reviewed first paragraph.",
+      "SEGMENT_ID_3": "Reviewed third paragraph."
+    }
+  }'
+```
+
+Rebuild invokes no Provider. It re-inspects the latest immutable novel Source, validates every ID,
+and substitutes only the supplied text. Unmapped TXT spans/EPUB slots preserve source text. An
+empty mapping therefore produces a source-text-preserving rebuilt output, not a Provider call.
+
+TXT output is UTF-8/LF. EPUB output retains the structure/resource/validation policy in
+[EPUB support](epub.md). The response contains `build-result.v1` and a downloadable immutable
+`novel_export_txt` or `novel_export_epub` Artifact.
 
 ## Job states and controls
 
-`queued`, `running`, `paused`, `cancelling`, `cancelled`, `succeeded`, `failed`, and
-`partially_succeeded` are persisted.
+Runtime states are `queued`, `running`, `paused`, `cancelling`, `cancelled`, `succeeded`, `failed`,
+and `partially_succeeded`.
 
-- Pause on a queued Job is immediate. Pause during translation is acknowledged through
-  `control_request=\"pause\"`; the Job becomes `paused` at the next segment/page boundary.
-- Resume changes a paused Step to pending and requeues the Job. Already successful segments and
-  Steps are reused.
-- Cancel on queued/paused work is immediate. Running work first becomes `cancelling`; pending
-  Steps become cancelled only after active work reaches a safe boundary.
-- Retry is valid for failed/partial Jobs. The earliest failed/partial Step and its downstream
-  Steps are reset; upstream successes and prior logs/attempt counts remain.
-- Process interruption marks the active Step and Job `failed` with `PROCESS_INTERRUPTED`.
-- Confirmed Project deletion is rejected while a Job is queued, running, paused, or cancelling;
-  cancel it to a terminal state first.
+- Queued pause/cancel can be immediate; active requests take effect at a Segment/page boundary.
+- Resume requeues paused work and retains completed boundaries.
+- Retry resets the earliest failed/partial Step and downstream work while preserving prior logs
+  and attempt counts.
+- Process interruption marks active work `PROCESS_INTERRUPTED`; retry is explicit.
+- A current real manga Adapter call may finish/time out before page-boundary cancellation.
+- Confirmed Project deletion is rejected while related Jobs are non-terminal.
 
-EPUB uses the same controls. Segment detail includes source Artifact/document, content role,
-locator, hashes, and reuse lineage. A retry or repeated compatible Job can reuse successful exact
-inputs; changed source/policy inputs are translated again.
+## Upload/download and archive bounds
 
-## Transfer behavior and limits
+An outer ASGI guard caps every POST/PUT/PATCH request body at the source limit plus 1 MiB framing
+allowance before FastAPI parses multipart or JSON content. Project publication additionally
+enforces the exact source limit while streaming into the managed store. A failed pre-publication
+EPUB/CBZ inspection removes staged bytes and publishes no usable Project. Request models also
+bound selected-ID lists and translation maps; reverse proxies should retain a compatible global
+request-body bound.
 
-`POST /api/projects` has an outer ASGI request guard before multipart parsing. The default request
-allowance is the configured source limit plus 1 MiB for multipart framing. The application then
-streams the uploaded file to a staged Artifact payload and enforces the exact
-`LINGUASPINDLE_MAX_UPLOAD_BYTES` source bound. EPUB validation completes before Project/Source/
-Artifact metadata is published; failures clean the staged payload.
+EPUB/CBZ member count, expanded/per-member bytes, compression ratio, and path depth use the
+runtime's explicit `ArchiveLimits`; [EPUB support](epub.md) lists defaults. Reverse proxies need a
+compatible but still bounded body limit.
 
-This protects application-managed reads. Operators using a reverse proxy should set its request
-limit at least large enough for the configured source plus multipart overhead, but should not make
-it unbounded. Archive expanded/member/count/ratio/path-depth limits are listed in
-`docs/epub.md` and exposed by `/api/system`.
+Artifact download verifies the database identity, resolves a private safe path, checks stored
+size, and returns an attachment `FileResponse` with `X-Content-Type-Options: nosniff`. Private
+storage keys are never returned.
 
-`GET /api/artifacts/{id}/download` verifies a real Artifact row, resolves its private path under
-the managed root, checks stored size, and returns a Starlette file response with attachment
-filename and `X-Content-Type-Options: nosniff`. It does not call `read_bytes()` or build the whole
-payload in a JSON/bytes response. Range/sendfile details remain server/framework behavior rather
-than an API guarantee.
+## Errors and secrets
 
-## Errors
-
-Application errors have a stable envelope:
+Stable envelope:
 
 ```json
 {
   "error": {
-    "code": "ADAPTER_UNAVAILABLE",
-    "message": "External service URL is not configured",
-    "details": {},
-    "retryable": true
+    "code": "SEGMENT_NOT_FOUND",
+    "message": "Selected Segment ID is not present in the manifest",
+    "details": {"unknown_segment_ids": ["..."]},
+    "retryable": false
   }
 }
 ```
 
-Stable categories include configuration, upload too large, archive unsafe/limit exceeded, EPUB
-invalid/unsupported/protected/validation failed, Adapter unavailable, external command, timeout,
-invalid format, model API, rate limit, cancellation, missing output, not found, invalid state,
-interrupted process, storage, and unknown errors. `UPLOAD_TOO_LARGE` and
-`ARCHIVE_LIMIT_EXCEEDED` use HTTP 413; errors retain the standard envelope. Managed diagnostics
-are redacted before persistence and serialization. User-authored book text only replaces the
-exact active runtime key and is not rewritten merely because it contains words such as `password`
-or `secret`. Never rely on raw third-party body text as a machine contract.
+Stable categories include configuration/dependency, upload/archive bounds, unsafe/invalid/
+unsupported/protected EPUB, source mismatch, unknown Segment, Adapter unavailable, external
+command, timeout, invalid format, model API, rate limit, cancellation, missing output, not found,
+invalid state, process interruption, storage, and unknown failure. The shared OpenAPI response map
+documents normalized envelopes for 400, 404, 409, 413, 422, 429, 500, 502, 503, and 504. Concrete
+status mapping includes 413 for source/archive limits, 404 for missing resources, 409 for invalid
+state, 429 for rate limiting, 502 for model transport, 503 for unavailable Adapters, and 504 for
+timeouts.
+
+Request models reject unknown fields. The API never accepts a key field; if a request body
+contains the active runtime Provider key as text, it is rejected. Managed diagnostics and response
+details are redacted. Configure Provider credentials only in the server process environment/
+secret mechanism.
 
 ## Compatibility
 
-v0.2.0 has no formal external client package. Use OpenAPI and treat undocumented response fields
-as internal. Artifact IDs are the cross-boundary payload identity; private filesystem storage keys
-are never returned. The API intentionally contains no user/account/tenant/permission routes or
-fields.
+The optional server retains the v0.2.0 Project/Job/Artifact lifecycle while adding stable public
+Segment operations. Migration 0003 preserves existing rows and payloads; see the
+[migration guide](migrations/v0.2-to-v0.3.md). Use the generated OpenAPI contract for clients and
+treat undocumented fields as internal. The API contains no user/account/tenant/permission routes
+or fields.
