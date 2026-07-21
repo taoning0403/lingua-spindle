@@ -1,0 +1,25 @@
+{
+  "schema_version": "linguaspindle-wheel-inspection.v1",
+  "status": "Pass",
+  "candidate_sha": "84270dec38b5f92fcc044b36c170f4230c15170f",
+  "path": "artifacts/wheels/linguaspindle-0.3.0-py3-none-any.whl",
+  "name": "linguaspindle",
+  "version": "0.3.0",
+  "tag": "py3-none-any",
+  "bytes": 121583,
+  "sha256": "9b8f2eb8ebf5d9ff17cbde8e9caceb4dc0dfc44fdb6fcf73c828a6292258bd48",
+  "file_count": 45,
+  "migrations": [
+    "linguaspindle/migrations/0001_initial.sql",
+    "linguaspindle/migrations/0002_epub.sql",
+    "linguaspindle/migrations/0003_headless_core.sql"
+  ],
+  "forbidden_gui_or_browser_files": [],
+  "default_dependencies": ["charset-normalizer>=3.4,<4"],
+  "isolated_core_dependencies": [
+    {"name": "charset-normalizer", "version": "3.4.9"},
+    {"name": "linguaspindle", "version": "0.3.0"},
+    {"name": "pip", "version": "25.0.1"}
+  ],
+  "extras_report": "evidence/extras-report.json"
+}

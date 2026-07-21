@@ -1,0 +1,106 @@
+{
+  "build": {
+    "details": {
+      "modified_documents": [
+        "EPUB/chapter-1.xhtml",
+        "EPUB/chapter-2.xhtml",
+        "EPUB/content.opf",
+        "EPUB/cover.xhtml",
+        "EPUB/nav.xhtml",
+        "EPUB/notes.xhtml"
+      ],
+      "output_sha256": "e7f6e5f96cbe1dcd8c9ce749331e7f103ca2c1a90e57bec53fd16b74306face2",
+      "preserved_unit_count": 0,
+      "reinspection": {
+        "document_count": 5,
+        "epub_version": "3.0",
+        "languages": [
+          "en"
+        ],
+        "package_document": "EPUB/content.opf",
+        "reading_order": [
+          "EPUB/cover.xhtml",
+          "EPUB/chapter-1.xhtml",
+          "EPUB/chapter-2.xhtml",
+          "EPUB/notes.xhtml"
+        ],
+        "resource_count": 9,
+        "text_unit_count": 26
+      },
+      "target_language": "en",
+      "text_unit_count": 26,
+      "translated_unit_count": 26,
+      "unchanged_payloads_verified": 6,
+      "valid": true,
+      "validation": {
+        "compressed_bytes": 3314,
+        "document_count": 5,
+        "expanded_bytes": 5767,
+        "limits": {
+          "max_archive_compression_ratio": 100.0,
+          "max_archive_files": 2000,
+          "max_archive_member_bytes": 104857600,
+          "max_archive_path_depth": 20,
+          "max_archive_uncompressed_bytes": 1048576000
+        },
+        "maximum_compression_ratio": 2.531587057010786,
+        "member_count": 12,
+        "package_document": "EPUB/content.opf",
+        "resource_count": 9,
+        "spine_document_count": 4,
+        "text_unit_count": 26,
+        "valid": true
+      }
+    },
+    "output_sha256": "e7f6e5f96cbe1dcd8c9ce749331e7f103ca2c1a90e57bec53fd16b74306face2",
+    "output_size": 4682,
+    "preserved_count": 0,
+    "schema_version": "build-result.v1",
+    "source_format": "epub3",
+    "translated_count": 26
+  },
+  "checks": {
+    "all_segments_translated": true,
+    "format_preserved": true,
+    "output_hash_matches_build": true,
+    "public_reinspection_succeeded": true,
+    "source_immutable": true
+  },
+  "output_manifest": {
+    "metadata": {
+      "epub_version": "3.0",
+      "package_document": "EPUB/content.opf",
+      "package_metadata": {
+        "creators": [
+          "陶宁"
+        ],
+        "descriptions": [
+          "[en] 一段跨越两章的短途航行。"
+        ],
+        "identifiers": [
+          "urn:uuid:4ee4af71-c1a8-5dcc-a1cb-86b48fc96397"
+        ],
+        "languages": [
+          "en"
+        ],
+        "subjects": [
+          "[en] 科幻"
+        ],
+        "titles": [
+          "[en] 星港纪事"
+        ]
+      },
+      "segment_count": 26,
+      "structure_contract": "epub-inspection.v1-opaque"
+    },
+    "segment_count": 26,
+    "source_format": "epub3",
+    "source_sha256": "e7f6e5f96cbe1dcd8c9ce749331e7f103ca2c1a90e57bec53fd16b74306face2",
+    "source_size": 4682
+  },
+  "output_sha256": "e7f6e5f96cbe1dcd8c9ce749331e7f103ca2c1a90e57bec53fd16b74306face2",
+  "schema_version": "acceptance-epub-validation.v1",
+  "scope": "linguaspindle-public-core-reinspection",
+  "source_format": "epub3",
+  "source_sha256": "b37e462e7381a8685481a0c81901f6827a073cb36bebd9954bb3c33ef3db0fae"
+}

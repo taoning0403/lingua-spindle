@@ -1,0 +1,34 @@
+{
+  "schema_version": "linguaspindle-container-inspection.v1",
+  "status": "Pass",
+  "candidate_sha": "84270dec38b5f92fcc044b36c170f4230c15170f",
+  "image": "lingua-spindle:v0.3.0-acceptance",
+  "image_digest": "sha256:f757c6c5430562632b7bcfdd57c4094735840db70a50312e11394c15d35d9b1e",
+  "image_bytes": 61012787,
+  "platform": "linux/arm64",
+  "oci_version": "0.3.0",
+  "application_version": "0.3.0",
+  "user": "10001:10001",
+  "read_only_root": true,
+  "network": "none",
+  "capabilities_dropped": true,
+  "no_new_privileges": true,
+  "installed_file_count": 85,
+  "forbidden_gui_or_browser_files": [],
+  "root_response": {
+    "name": "LinguaSpindle",
+    "version": "0.3.0",
+    "mode": "headless",
+    "health": "/health",
+    "docs": "/docs",
+    "openapi": "/openapi.json"
+  },
+  "health_response": {
+    "status": "ok",
+    "version": "0.3.0",
+    "database": "ok"
+  },
+  "temporary_containers_removed": true,
+  "residual_temporary_containers": [],
+  "local_image_retained": true
+}

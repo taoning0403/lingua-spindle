@@ -1,0 +1,19 @@
+{
+  "artifact_scope": "v0.3.0 core samples only",
+  "external_model_execution": false,
+  "git_commit": "84270dec38b5f92fcc044b36c170f4230c15170f",
+  "linguaspindle_version": "0.3.0",
+  "manga_adapter": "mock-manga",
+  "network_used": false,
+  "platform": {
+    "machine": "arm64",
+    "release": "25.5.0",
+    "system": "Darwin"
+  },
+  "provider": "mock",
+  "python": {
+    "implementation": "CPython",
+    "version": "3.12.11"
+  },
+  "schema_version": "acceptance-environment.v1"
+}

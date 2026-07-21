@@ -1,0 +1,27 @@
+LinguaSpindle v0.3.0 acceptance environment
+captured_at=2026-07-21T19:38:05+0800
+timezone=Asia/Shanghai
+candidate_sha=84270dec38b5f92fcc044b36c170f4230c15170f
+branch=codex/v0.3.0-headless-core
+candidate_worktree_clean_before_artifact_generation=true
+host_os=macOS 26.5.2 build 25F84
+host_kernel=Darwin 25.5.0 arm64
+host_python=CPython 3.12.11
+host_pip=25.0.1
+pytest=8.4.2
+ruff=0.15.22
+mypy=1.20.2
+docker_client=29.6.1
+docker_server=29.6.1
+docker_platform=linux/arm64
+docker_compose=5.3.0
+wheel=linguaspindle-0.3.0-py3-none-any.whl
+wheel_sha256=9b8f2eb8ebf5d9ff17cbde8e9caceb4dc0dfc44fdb6fcf73c828a6292258bd48
+image=lingua-spindle:v0.3.0-acceptance
+image_digest=sha256:f757c6c5430562632b7bcfdd57c4094735840db70a50312e11394c15d35d9b1e
+translation_network_used=false
+paid_credentials_used=false
+real_external_model_used=false
+dependency_and_base_image_network_used=true
+provider=mock
+manga_adapter=mock-manga

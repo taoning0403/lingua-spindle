@@ -1,0 +1,128 @@
+{
+  "manual_rebuild": {
+    "build": {
+      "details": {
+        "encoding": "utf-8",
+        "newline": "lf"
+      },
+      "output_sha256": "fdb5c9284acb4a55e37528dd03bc184ab9d507b2f05115c7c098c2c504403002",
+      "output_size": 126,
+      "preserved_count": 3,
+      "schema_version": "build-result.v1",
+      "source_format": "txt",
+      "translated_count": 1
+    },
+    "segment_id": "d2458512eb24a567548ec23030786c43e67ecb45d9ca0c91370600eee38a4e02",
+    "translated_text": "人工校订：发条港的夜航船已经离岸。"
+  },
+  "schema_version": "acceptance-segment-manifest.v1",
+  "segment_count": 4,
+  "segments": [
+    {
+      "content_role": "heading",
+      "joiner": "\n\n",
+      "locator": {
+        "attribute": null,
+        "document_order": null,
+        "document_path": "text",
+        "document_type": null,
+        "element_index": null,
+        "end": 11,
+        "kind": "txt-span",
+        "part_count": null,
+        "part_index": null,
+        "slot": null,
+        "start": 0,
+        "unit_sequence": null
+      },
+      "order": 0,
+      "schema_version": "segment.v1",
+      "segment_id": "ad77c61ed7aca3d5dd6c121a79d971eded60d552bf6ef685bbf3d9c242ea9b05",
+      "source_document": "text",
+      "source_format": "txt",
+      "source_hash": "3e93ded328010c26b2176cdc15e10c360110a14f9f60379e2d83f093ad3f3e2e",
+      "source_text": "Chapter One",
+      "translation_input_hash": "90e492a3af4fdfbc2170e1ec696daf293fd7a564c3722c32e31a93165470f535"
+    },
+    {
+      "content_role": "paragraph",
+      "joiner": "\n\n",
+      "locator": {
+        "attribute": null,
+        "document_order": null,
+        "document_path": "text",
+        "document_type": null,
+        "element_index": null,
+        "end": 55,
+        "kind": "txt-span",
+        "part_count": null,
+        "part_index": null,
+        "slot": null,
+        "start": 13,
+        "unit_sequence": null
+      },
+      "order": 1,
+      "schema_version": "segment.v1",
+      "segment_id": "d2458512eb24a567548ec23030786c43e67ecb45d9ca0c91370600eee38a4e02",
+      "source_document": "text",
+      "source_format": "txt",
+      "source_hash": "952faf5acb8bbdc02d79f35e68332804678c86973572cb9a3f447fbcb1e58eaf",
+      "source_text": "The night ferry left the clockwork harbor.",
+      "translation_input_hash": "5d14ea0049068730a07bb11b9c5a2af8c20780587def8994178b92d8af40080c"
+    },
+    {
+      "content_role": "heading",
+      "joiner": "\n\n",
+      "locator": {
+        "attribute": null,
+        "document_order": null,
+        "document_path": "text",
+        "document_type": null,
+        "element_index": null,
+        "end": 68,
+        "kind": "txt-span",
+        "part_count": null,
+        "part_index": null,
+        "slot": null,
+        "start": 57,
+        "unit_sequence": null
+      },
+      "order": 2,
+      "schema_version": "segment.v1",
+      "segment_id": "618cd590e6b3a5ff47f3c2557c7038bfc3efa933868104dff84971210c7b222b",
+      "source_document": "text",
+      "source_format": "txt",
+      "source_hash": "85c0e5bd4d6773ceb9de1387cd86919a2874abb0d75022ac342bfc765b568fcb",
+      "source_text": "Chapter Two",
+      "translation_input_hash": "dcd3e23a13512ea1f4ec68b4b2646f75aa571cfea0c078c2c756c7b637482c42"
+    },
+    {
+      "content_role": "paragraph",
+      "joiner": "\n",
+      "locator": {
+        "attribute": null,
+        "document_order": null,
+        "document_path": "text",
+        "document_type": null,
+        "element_index": null,
+        "end": 116,
+        "kind": "txt-span",
+        "part_count": null,
+        "part_index": null,
+        "slot": null,
+        "start": 70,
+        "unit_sequence": null
+      },
+      "order": 3,
+      "schema_version": "segment.v1",
+      "segment_id": "fc5d721f4d3f3da82c96b6ac82b68e958f3465d67a27d4ea94b82d15d53db73d",
+      "source_document": "text",
+      "source_format": "txt",
+      "source_hash": "fff98bc8a73d79830b63ea974a961b5285d7b86521e5bb179f6ca635a763dd10",
+      "source_text": "At dawn, its bell answered from the far shore.",
+      "translation_input_hash": "f1f30cd6dad360b02ca3c4ead977574fb7e2f1e2bed5e4d91e0c0e9c1ee6621d"
+    }
+  ],
+  "source_format": "txt",
+  "source_sha256": "80674ac632a0198318346ac9cb9d995948f9147208b7785bc727a4b21af0900b"
+}

@@ -1,0 +1,2023 @@
+{
+  "build": {
+    "details": {
+      "modified_documents": [
+        "EPUB/chapter-1.xhtml",
+        "EPUB/chapter-2.xhtml",
+        "EPUB/content.opf",
+        "EPUB/cover.xhtml",
+        "EPUB/nav.xhtml",
+        "EPUB/notes.xhtml"
+      ],
+      "output_sha256": "e7f6e5f96cbe1dcd8c9ce749331e7f103ca2c1a90e57bec53fd16b74306face2",
+      "preserved_unit_count": 0,
+      "reinspection": {
+        "document_count": 5,
+        "epub_version": "3.0",
+        "languages": [
+          "en"
+        ],
+        "package_document": "EPUB/content.opf",
+        "reading_order": [
+          "EPUB/cover.xhtml",
+          "EPUB/chapter-1.xhtml",
+          "EPUB/chapter-2.xhtml",
+          "EPUB/notes.xhtml"
+        ],
+        "resource_count": 9,
+        "text_unit_count": 26
+      },
+      "target_language": "en",
+      "text_unit_count": 26,
+      "translated_unit_count": 26,
+      "unchanged_payloads_verified": 6,
+      "valid": true,
+      "validation": {
+        "compressed_bytes": 3314,
+        "document_count": 5,
+        "expanded_bytes": 5767,
+        "limits": {
+          "max_archive_compression_ratio": 100.0,
+          "max_archive_files": 2000,
+          "max_archive_member_bytes": 104857600,
+          "max_archive_path_depth": 20,
+          "max_archive_uncompressed_bytes": 1048576000
+        },
+        "maximum_compression_ratio": 2.531587057010786,
+        "member_count": 12,
+        "package_document": "EPUB/content.opf",
+        "resource_count": 9,
+        "spine_document_count": 4,
+        "text_unit_count": 26,
+        "valid": true
+      }
+    },
+    "output_sha256": "e7f6e5f96cbe1dcd8c9ce749331e7f103ca2c1a90e57bec53fd16b74306face2",
+    "output_size": 4682,
+    "preserved_count": 0,
+    "schema_version": "build-result.v1",
+    "source_format": "epub3",
+    "translated_count": 26
+  },
+  "manifest": {
+    "encoding": null,
+    "encoding_confidence": null,
+    "filename": "source.epub",
+    "metadata": {
+      "epub_version": "3.0",
+      "package_document": "EPUB/content.opf",
+      "package_metadata": {
+        "creators": [
+          "陶宁"
+        ],
+        "descriptions": [
+          "一段跨越两章的短途航行。"
+        ],
+        "identifiers": [
+          "urn:uuid:4ee4af71-c1a8-5dcc-a1cb-86b48fc96397"
+        ],
+        "languages": [
+          "zh-CN"
+        ],
+        "subjects": [
+          "科幻"
+        ],
+        "titles": [
+          "星港纪事"
+        ]
+      },
+      "segment_count": 26,
+      "structure_contract": "epub-inspection.v1-opaque"
+    },
+    "newline": null,
+    "schema_version": "document-manifest.v1",
+    "segmentation_version": "epub-visible-text.v1",
+    "segments": [
+      {
+        "content_role": "opf_metadata",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 0,
+          "document_path": "EPUB/content.opf",
+          "document_type": "opf_metadata",
+          "element_index": 3,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 0
+        },
+        "order": 0,
+        "schema_version": "segment.v1",
+        "segment_id": "700f715979d549da2244681d09dda57639cd347975b1ca63e37ab90a509340f4",
+        "source_document": "EPUB/content.opf",
+        "source_format": "epub3",
+        "source_hash": "34220f9c131262a523cc81449844b03021da38e4cbe84d581b61fe2f95839a05",
+        "source_text": "星港纪事",
+        "translation_input_hash": "6d59fccc72e3c9a269a2d0413e32ba02d5d9c945955bb1ff7a7ab48864969397"
+      },
+      {
+        "content_role": "opf_metadata",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 0,
+          "document_path": "EPUB/content.opf",
+          "document_type": "opf_metadata",
+          "element_index": 6,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 1
+        },
+        "order": 1,
+        "schema_version": "segment.v1",
+        "segment_id": "518a97fefca96445da77a29f9ac62bf982540f9c05a06120b4554141df26d5b2",
+        "source_document": "EPUB/content.opf",
+        "source_format": "epub3",
+        "source_hash": "c1613bc333ed5654b1e19b16fa65cee7f2bfad1cfb7c3bbafb99b5f10c2cb6a4",
+        "source_text": "科幻",
+        "translation_input_hash": "09efeffb3bd8a9a1eca9d95f14e1bf41f2813c3b2ce26fcad6f82257d4adb817"
+      },
+      {
+        "content_role": "opf_metadata",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 0,
+          "document_path": "EPUB/content.opf",
+          "document_type": "opf_metadata",
+          "element_index": 7,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 2
+        },
+        "order": 2,
+        "schema_version": "segment.v1",
+        "segment_id": "289a8bf3615003e0d4eb478109bdfac5fa07edbe2f385a8b912e9649d5e55ad4",
+        "source_document": "EPUB/content.opf",
+        "source_format": "epub3",
+        "source_hash": "a41dd10f59ffa01903b56c1c089c31ff8f1fd8b41561e18748bbf809d80f0bd8",
+        "source_text": "一段跨越两章的短途航行。",
+        "translation_input_hash": "4b742b41f468e0fccfd3e4a1d7a24f20bb301e83b629e20092dc0b26d540f166"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 1,
+          "document_path": "EPUB/cover.xhtml",
+          "document_type": "xhtml",
+          "element_index": 5,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 3
+        },
+        "order": 3,
+        "schema_version": "segment.v1",
+        "segment_id": "8807127d589f713412803920e113c03ab199d794f9c7cfd5450d08a4a2a31096",
+        "source_document": "EPUB/cover.xhtml",
+        "source_format": "epub3",
+        "source_hash": "34220f9c131262a523cc81449844b03021da38e4cbe84d581b61fe2f95839a05",
+        "source_text": "星港纪事",
+        "translation_input_hash": "a5c5af515ea3fe3a9662a1494897042ae7bd6e69f6ba8926e2e71032af85f212"
+      },
+      {
+        "content_role": "alt",
+        "joiner": "",
+        "locator": {
+          "attribute": "alt",
+          "document_order": 1,
+          "document_path": "EPUB/cover.xhtml",
+          "document_type": "xhtml",
+          "element_index": 6,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "attribute",
+          "start": null,
+          "unit_sequence": 4
+        },
+        "order": 4,
+        "schema_version": "segment.v1",
+        "segment_id": "742df694a5dd32f78f810d2b7ca118e4766aa8e26b876e2781c6643f15b5ca63",
+        "source_document": "EPUB/cover.xhtml",
+        "source_format": "epub3",
+        "source_hash": "e663b252b932e9d28120845972f8814f0d9e15182b65dadd726c066a4610b6bb",
+        "source_text": "蓝色星港封面",
+        "translation_input_hash": "99372db7181c02349026e3c9f9422f5527778ed5b7248e8495eaa15f5109b2ac"
+      },
+      {
+        "content_role": "title",
+        "joiner": "",
+        "locator": {
+          "attribute": "title",
+          "document_order": 1,
+          "document_path": "EPUB/cover.xhtml",
+          "document_type": "xhtml",
+          "element_index": 6,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "attribute",
+          "start": null,
+          "unit_sequence": 5
+        },
+        "order": 5,
+        "schema_version": "segment.v1",
+        "segment_id": "15ba34cc73dc4a161650046bac3eb058ee89f12ba7ce13a39a311b0acf71c097",
+        "source_document": "EPUB/cover.xhtml",
+        "source_format": "epub3",
+        "source_hash": "5421a0e3a71e6c1fce697d502657969f9aaa4c2008990b5906b5f5ce464448c2",
+        "source_text": "封面图",
+        "translation_input_hash": "a66d61e58bafe0e19030584e24e7385b5e0241e004786390ba5bb04fc161066a"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 2,
+          "document_path": "EPUB/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 6,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 6
+        },
+        "order": 6,
+        "schema_version": "segment.v1",
+        "segment_id": "1a2894320a01f9f18fc432e156a7698ac3dc460c9104ae75a63f715d4da300e4",
+        "source_document": "EPUB/chapter-1.xhtml",
+        "source_format": "epub3",
+        "source_hash": "b70587ba8885d09caa87bb85050a650613d90a01080e91c82e3f9909f0894224",
+        "source_text": "第一章 启航",
+        "translation_input_hash": "fd60b5816ff104b2667ab9a2d42ada436668b8d5920682034c003b174be0475d"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 2,
+          "document_path": "EPUB/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 7,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 7
+        },
+        "order": 7,
+        "schema_version": "segment.v1",
+        "segment_id": "130f552b6690f39bba5ca97496fd122592e81ab558d1c71e35ba72e18ea4e76d",
+        "source_document": "EPUB/chapter-1.xhtml",
+        "source_format": "epub3",
+        "source_hash": "f05ba54e155108df3e66edd4d65f85d0da09342108170e538c8f0fdb3d74f27e",
+        "source_text": "黎明时，星港的灯逐一熄灭。",
+        "translation_input_hash": "8841e803095e8c4c7bbe541a8febd5ee127a9bd43383d54faaa2504ef5e22734"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 2,
+          "document_path": "EPUB/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 8,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 8
+        },
+        "order": 8,
+        "schema_version": "segment.v1",
+        "segment_id": "ffd460e6a4e2c9994726a912f0e2033837a5af10c518e707751c0accc4a9400b",
+        "source_document": "EPUB/chapter-1.xhtml",
+        "source_format": "epub3",
+        "source_hash": "46ce0720d5421cb9f4480c4bc0c6b301186c91be79eda11cbe1793a1163f92ef",
+        "source_text": "“准备好了吗？”领航员问。",
+        "translation_input_hash": "9a9eb9b762ea2eaa3041679e46192ea53f53c2442e343dda86debf3fced7b12d"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 2,
+          "document_path": "EPUB/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 9,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 9
+        },
+        "order": 9,
+        "schema_version": "segment.v1",
+        "segment_id": "0fde422630f389238807b2ffb4f500cccf198826e7b69ce6dd4bc350dda59710",
+        "source_document": "EPUB/chapter-1.xhtml",
+        "source_format": "epub3",
+        "source_hash": "5abd815ad323c0050a0de74d29d75afc99ce6d7d913c061e0d39232704721c63",
+        "source_text": "舷窗外写着",
+        "translation_input_hash": "87ca3288f476efa69951ae7b8276c8d6898995d34c542cf86af4aee4387a31b2"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 2,
+          "document_path": "EPUB/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 10,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 10
+        },
+        "order": 10,
+        "schema_version": "segment.v1",
+        "segment_id": "057cb451c8e70907a12d4fde0d86421ab861f745fc137d4cddf5e4740153c79d",
+        "source_document": "EPUB/chapter-1.xhtml",
+        "source_format": "epub3",
+        "source_hash": "83e9c51b3d7ade97d596df3f0fc32e87f3830d63bd4de2a8d2cc889d75180ba5",
+        "source_text": "星",
+        "translation_input_hash": "abeacd57be59beec1732114d5abb7ebfb37aea9ebf15834483fb83c7f789d940"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 2,
+          "document_path": "EPUB/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 10,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "tail",
+          "start": null,
+          "unit_sequence": 11
+        },
+        "order": 11,
+        "schema_version": "segment.v1",
+        "segment_id": "b3ea1b896c6f77ebae8fb62f910542683fa790dc90dd2573a57c8e4b76e58735",
+        "source_document": "EPUB/chapter-1.xhtml",
+        "source_format": "epub3",
+        "source_hash": "6b06362afa0579154b83e8ca6999b20f7d106b26719aaaa4170ccea2407c2dce",
+        "source_text": "的旧标记仍然清晰。",
+        "translation_input_hash": "7656ac40732d898290ab0248e2804cc423c162d5aa8751311b81d102c3d11e94"
+      },
+      {
+        "content_role": "alt",
+        "joiner": "",
+        "locator": {
+          "attribute": "alt",
+          "document_order": 2,
+          "document_path": "EPUB/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 12,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "attribute",
+          "start": null,
+          "unit_sequence": 12
+        },
+        "order": 12,
+        "schema_version": "segment.v1",
+        "segment_id": "e6d569586710b8da3d944ff9734faef2ac91ec016fe8556df5ff763cbf859fe7",
+        "source_document": "EPUB/chapter-1.xhtml",
+        "source_format": "epub3",
+        "source_hash": "7c1e29392f4e2ff10e322b10df7cce47da2117998d3092bd8cb53921148a3a1e",
+        "source_text": "星港航线图",
+        "translation_input_hash": "7038292cc7ac63e635fa64c63103d537f4408c101ea8571c62381ca995bc7626"
+      },
+      {
+        "content_role": "title",
+        "joiner": "",
+        "locator": {
+          "attribute": "title",
+          "document_order": 2,
+          "document_path": "EPUB/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 12,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "attribute",
+          "start": null,
+          "unit_sequence": 13
+        },
+        "order": 13,
+        "schema_version": "segment.v1",
+        "segment_id": "fbd9a4bcccc11cd732f8b22154d20905ab58b6ee9206cb71d3dd4f77c06c4062",
+        "source_document": "EPUB/chapter-1.xhtml",
+        "source_format": "epub3",
+        "source_hash": "b67f80faf00fdecaffe5e45e3ae10688e60a847f746e009d2af5ffdbb368e2ce",
+        "source_text": "第一幅航线图",
+        "translation_input_hash": "91e18d2e66e54c6aa5bcb52eaa7483b85bb58ccaef465cf50b2019f41c4465a6"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 2,
+          "document_path": "EPUB/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 14,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 14
+        },
+        "order": 14,
+        "schema_version": "segment.v1",
+        "segment_id": "b7d13555ef24469f70cfcbf1df761957c092eab286b5c6c0a6080ffdf2b2fde5",
+        "source_document": "EPUB/chapter-1.xhtml",
+        "source_format": "epub3",
+        "source_hash": "a6a99cddf234e144b82154367b1697e83d07a022e8673441d3662a7424840f4a",
+        "source_text": "继续前往第二章",
+        "translation_input_hash": "6e5910abcb0ac12ddbf4df465c7a7f00c6de96ecdd475d7a1df63c186499988c"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 3,
+          "document_path": "EPUB/chapter-2.xhtml",
+          "document_type": "xhtml",
+          "element_index": 6,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 15
+        },
+        "order": 15,
+        "schema_version": "segment.v1",
+        "segment_id": "0eead771b8e317d3921ec221b487fb97c08da2d06264c714b4132f028f500357",
+        "source_document": "EPUB/chapter-2.xhtml",
+        "source_format": "epub3",
+        "source_hash": "3976507441f9003d55d383bd887c0702c8b19fbcf5d5010c6f3db5618681681b",
+        "source_text": "第二章 抵达",
+        "translation_input_hash": "afd70df23d0eacd0f2405c5892621e46e61f225f4d9b2572c3000971f37598a7"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 3,
+          "document_path": "EPUB/chapter-2.xhtml",
+          "document_type": "xhtml",
+          "element_index": 7,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 16
+        },
+        "order": 16,
+        "schema_version": "segment.v1",
+        "segment_id": "4c6fd08f5b107d7a74faa7403f5b8a6825156b9e58efdfe00b46318796bb787a",
+        "source_document": "EPUB/chapter-2.xhtml",
+        "source_format": "epub3",
+        "source_hash": "09a066062deb6c6d1002899b16f7c4eabb805385519c1308e781e08f8ddd8b09",
+        "source_text": "短暂的跃迁之后，新世界出现在眼前。",
+        "translation_input_hash": "af53721c6f5830b234791835ac1a6034365146e2850deef1b43c0c9cfa76ad71"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 3,
+          "document_path": "EPUB/chapter-2.xhtml",
+          "document_type": "xhtml",
+          "element_index": 8,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 17
+        },
+        "order": 17,
+        "schema_version": "segment.v1",
+        "segment_id": "8fd88266872af44dc6150587221653a9064816f49fe39bc317a3cbcae7dd4844",
+        "source_document": "EPUB/chapter-2.xhtml",
+        "source_format": "epub3",
+        "source_hash": "1535370e5d22ad76f2fb4e6df0becd70169a05f5f0a3e6ba3a86310600acb78c",
+        "source_text": "船员把这一天写进共同的航海日志。",
+        "translation_input_hash": "31de3af33fd4a170cc4cb72e64e0c17962d9927b16537a37502e26f987bcb3c1"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 3,
+          "document_path": "EPUB/chapter-2.xhtml",
+          "document_type": "xhtml",
+          "element_index": 9,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 18
+        },
+        "order": 18,
+        "schema_version": "segment.v1",
+        "segment_id": "e50b792117deeccb19d743194f8c8da7c687b2c4d7528cf2549f3dbe20f2d2ed",
+        "source_document": "EPUB/chapter-2.xhtml",
+        "source_format": "epub3",
+        "source_hash": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+        "source_text": "1",
+        "translation_input_hash": "81e97a28a9f38761e6e45c3b9405173563605e08c09d0fd7331d9a7b6d914e62"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 3,
+          "document_path": "EPUB/chapter-2.xhtml",
+          "document_type": "xhtml",
+          "element_index": 11,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 19
+        },
+        "order": 19,
+        "schema_version": "segment.v1",
+        "segment_id": "ae7ccc2ed61e4c58984801b36de0fc5037c593613b7b4ee7d9b0a1f5213fbc46",
+        "source_document": "EPUB/chapter-2.xhtml",
+        "source_format": "epub3",
+        "source_hash": "6f77fe4883f7bcf0e0281133e29af67449e102e1cbc80bf4bbeec580ac680599",
+        "source_text": "返回第一章",
+        "translation_input_hash": "233db763373a7bf67b9db8edd7584b497680fae9fa26784b91480fb1e1af18e7"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 4,
+          "document_path": "EPUB/notes.xhtml",
+          "document_type": "xhtml",
+          "element_index": 6,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 20
+        },
+        "order": 20,
+        "schema_version": "segment.v1",
+        "segment_id": "659d13219e7055d6b7dffba14a70e2a6ebf43196d669bee0e1794753c122f9b6",
+        "source_document": "EPUB/notes.xhtml",
+        "source_format": "epub3",
+        "source_hash": "508bf3307053298f697c510b8a115c02ad1bc6d0860c4aa7dafc2d877df0e610",
+        "source_text": "注释",
+        "translation_input_hash": "1d007e69e36daae6662608e4fb52bb3c124806aeb1a92c8b05fdfea43dde94fb"
+      },
+      {
+        "content_role": "xhtml",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 4,
+          "document_path": "EPUB/notes.xhtml",
+          "document_type": "xhtml",
+          "element_index": 7,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 21
+        },
+        "order": 21,
+        "schema_version": "segment.v1",
+        "segment_id": "a6ae723e0991b73e8c5b76bfaf32258cfd9f9e184769403c935356cb3d8d7685",
+        "source_document": "EPUB/notes.xhtml",
+        "source_format": "epub3",
+        "source_hash": "63445b2a76487c4ae37fdf949da9dc8ebbf086167b60713f416dc08a6fe59ee7",
+        "source_text": "这是一条保留内部链接的脚注。",
+        "translation_input_hash": "0c729e3c5abb3b2db51f4cd3fa8815cc34cbc0b3ee48227c48acbfc1a76efefd"
+      },
+      {
+        "content_role": "nav",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 5,
+          "document_path": "EPUB/nav.xhtml",
+          "document_type": "nav",
+          "element_index": 6,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 22
+        },
+        "order": 22,
+        "schema_version": "segment.v1",
+        "segment_id": "8e986bf1c25eaa0c24d6e7a7b2004448bc615aa3bc6a50861c91ef857d367ace",
+        "source_document": "EPUB/nav.xhtml",
+        "source_format": "epub3",
+        "source_hash": "52daa71ebc31058156b21dc21c01ed18eb4e9a723749259cacd1558afe32dfea",
+        "source_text": "目录",
+        "translation_input_hash": "de689d073ea58086b600cb3db3f2d5b0abf1e8d9f10fe59d49cdd74f7e0e7852"
+      },
+      {
+        "content_role": "nav",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 5,
+          "document_path": "EPUB/nav.xhtml",
+          "document_type": "nav",
+          "element_index": 9,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 23
+        },
+        "order": 23,
+        "schema_version": "segment.v1",
+        "segment_id": "e9eb1db88666ce4c7b733c76c2f015c52794b45d2dda7df20294a866e4d87cb4",
+        "source_document": "EPUB/nav.xhtml",
+        "source_format": "epub3",
+        "source_hash": "b70587ba8885d09caa87bb85050a650613d90a01080e91c82e3f9909f0894224",
+        "source_text": "第一章 启航",
+        "translation_input_hash": "3007979bd844e8e5d8a7fe2ae22a551d676ea78f713d6b21b2325d83100be8e4"
+      },
+      {
+        "content_role": "nav",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 5,
+          "document_path": "EPUB/nav.xhtml",
+          "document_type": "nav",
+          "element_index": 11,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 24
+        },
+        "order": 24,
+        "schema_version": "segment.v1",
+        "segment_id": "6ecd778956fe5a0cf26b23bf1228748374aa367ea6a14a54d218c0361a7397d9",
+        "source_document": "EPUB/nav.xhtml",
+        "source_format": "epub3",
+        "source_hash": "3976507441f9003d55d383bd887c0702c8b19fbcf5d5010c6f3db5618681681b",
+        "source_text": "第二章 抵达",
+        "translation_input_hash": "ef6199d8995a0a6f570bb6918628b0a79fc660f4888bd360d13016e768bb86ca"
+      },
+      {
+        "content_role": "nav",
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 5,
+          "document_path": "EPUB/nav.xhtml",
+          "document_type": "nav",
+          "element_index": 13,
+          "end": null,
+          "kind": "epub-xml-slot",
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text",
+          "start": null,
+          "unit_sequence": 25
+        },
+        "order": 25,
+        "schema_version": "segment.v1",
+        "segment_id": "f6d511701d50931c6f127fae414227c5bdbbc67046abe989b52d9d216d335e7f",
+        "source_document": "EPUB/nav.xhtml",
+        "source_format": "epub3",
+        "source_hash": "508bf3307053298f697c510b8a115c02ad1bc6d0860c4aa7dafc2d877df0e610",
+        "source_text": "注释",
+        "translation_input_hash": "4ec731ee2a06e7601cacfb6645cc9440f53314c7aefe86377a1bdbd63303ea28"
+      }
+    ],
+    "source_format": "epub3",
+    "source_sha256": "b37e462e7381a8685481a0c81901f6827a073cb36bebd9954bb3c33ef3db0fae",
+    "source_size": 4587,
+    "structure": {
+      "archive_sha256": "b37e462e7381a8685481a0c81901f6827a073cb36bebd9954bb3c33ef3db0fae",
+      "cover_path": "EPUB/images/cover.png",
+      "documents": [
+        {
+          "document_order": 1,
+          "document_type": "xhtml",
+          "manifest_id": "cover-page",
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/cover.xhtml",
+          "text_unit_count": 3,
+          "text_unit_start": 3
+        },
+        {
+          "document_order": 2,
+          "document_type": "xhtml",
+          "manifest_id": "chapter-1",
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/chapter-1.xhtml",
+          "text_unit_count": 9,
+          "text_unit_start": 6
+        },
+        {
+          "document_order": 3,
+          "document_type": "xhtml",
+          "manifest_id": "chapter-2",
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/chapter-2.xhtml",
+          "text_unit_count": 5,
+          "text_unit_start": 15
+        },
+        {
+          "document_order": 4,
+          "document_type": "xhtml",
+          "manifest_id": "notes",
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/notes.xhtml",
+          "text_unit_count": 2,
+          "text_unit_start": 20
+        },
+        {
+          "document_order": 5,
+          "document_type": "nav",
+          "manifest_id": "nav",
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/nav.xhtml",
+          "text_unit_count": 4,
+          "text_unit_start": 22
+        }
+      ],
+      "entries": [
+        {
+          "compressed_size": 20,
+          "compression": "stored",
+          "crc32": "2cab616f",
+          "directory": false,
+          "path": "mimetype",
+          "size": 20
+        },
+        {
+          "compressed_size": 175,
+          "compression": "deflated",
+          "crc32": "c2c215eb",
+          "directory": false,
+          "path": "META-INF/container.xml",
+          "size": 257
+        },
+        {
+          "compressed_size": 635,
+          "compression": "deflated",
+          "crc32": "7d810155",
+          "directory": false,
+          "path": "EPUB/content.opf",
+          "size": 1531
+        },
+        {
+          "compressed_size": 337,
+          "compression": "deflated",
+          "crc32": "f0914999",
+          "directory": false,
+          "path": "EPUB/nav.xhtml",
+          "size": 518
+        },
+        {
+          "compressed_size": 233,
+          "compression": "deflated",
+          "crc32": "7d4e0342",
+          "directory": false,
+          "path": "EPUB/cover.xhtml",
+          "size": 294
+        },
+        {
+          "compressed_size": 528,
+          "compression": "deflated",
+          "crc32": "ceb12290",
+          "directory": false,
+          "path": "EPUB/chapter-1.xhtml",
+          "size": 723
+        },
+        {
+          "compressed_size": 427,
+          "compression": "deflated",
+          "crc32": "b1ba0066",
+          "directory": false,
+          "path": "EPUB/chapter-2.xhtml",
+          "size": 583
+        },
+        {
+          "compressed_size": 308,
+          "compression": "deflated",
+          "crc32": "03924134",
+          "directory": false,
+          "path": "EPUB/notes.xhtml",
+          "size": 408
+        },
+        {
+          "compressed_size": 116,
+          "compression": "deflated",
+          "crc32": "730ebf16",
+          "directory": false,
+          "path": "EPUB/styles/book.css",
+          "size": 127
+        },
+        {
+          "compressed_size": 236,
+          "compression": "stored",
+          "crc32": "3a417582",
+          "directory": false,
+          "path": "EPUB/images/cover.png",
+          "size": 236
+        },
+        {
+          "compressed_size": 130,
+          "compression": "stored",
+          "crc32": "c580ab84",
+          "directory": false,
+          "path": "EPUB/images/diagram.png",
+          "size": 130
+        },
+        {
+          "compressed_size": 74,
+          "compression": "stored",
+          "crc32": "13da72d7",
+          "directory": false,
+          "path": "EPUB/images/paper.png",
+          "size": 74
+        }
+      ],
+      "epub_version": "3.0",
+      "format": "epub",
+      "inspection_version": 1,
+      "manifest_items": [
+        {
+          "fallback": null,
+          "href": "nav.xhtml",
+          "id": "nav",
+          "media_overlay": null,
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/nav.xhtml",
+          "properties": [
+            "nav"
+          ]
+        },
+        {
+          "fallback": null,
+          "href": "cover.xhtml",
+          "id": "cover-page",
+          "media_overlay": null,
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/cover.xhtml",
+          "properties": []
+        },
+        {
+          "fallback": null,
+          "href": "chapter-1.xhtml",
+          "id": "chapter-1",
+          "media_overlay": null,
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/chapter-1.xhtml",
+          "properties": []
+        },
+        {
+          "fallback": null,
+          "href": "chapter-2.xhtml",
+          "id": "chapter-2",
+          "media_overlay": null,
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/chapter-2.xhtml",
+          "properties": []
+        },
+        {
+          "fallback": null,
+          "href": "notes.xhtml",
+          "id": "notes",
+          "media_overlay": null,
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/notes.xhtml",
+          "properties": []
+        },
+        {
+          "fallback": null,
+          "href": "styles/book.css",
+          "id": "style",
+          "media_overlay": null,
+          "media_type": "text/css",
+          "path": "EPUB/styles/book.css",
+          "properties": []
+        },
+        {
+          "fallback": null,
+          "href": "images/cover.png",
+          "id": "cover",
+          "media_overlay": null,
+          "media_type": "image/png",
+          "path": "EPUB/images/cover.png",
+          "properties": [
+            "cover-image"
+          ]
+        },
+        {
+          "fallback": null,
+          "href": "images/diagram.png",
+          "id": "diagram",
+          "media_overlay": null,
+          "media_type": "image/png",
+          "path": "EPUB/images/diagram.png",
+          "properties": []
+        },
+        {
+          "fallback": null,
+          "href": "images/paper.png",
+          "id": "paper",
+          "media_overlay": null,
+          "media_type": "image/png",
+          "path": "EPUB/images/paper.png",
+          "properties": []
+        }
+      ],
+      "metadata": {
+        "creators": [
+          "陶宁"
+        ],
+        "descriptions": [
+          "一段跨越两章的短途航行。"
+        ],
+        "identifiers": [
+          "urn:uuid:4ee4af71-c1a8-5dcc-a1cb-86b48fc96397"
+        ],
+        "languages": [
+          "zh-CN"
+        ],
+        "subjects": [
+          "科幻"
+        ],
+        "titles": [
+          "星港纪事"
+        ]
+      },
+      "navigation_documents": [
+        "EPUB/nav.xhtml"
+      ],
+      "package_document": "EPUB/content.opf",
+      "processing_rules": {
+        "excluded_elements": [
+          "code",
+          "rp",
+          "rt",
+          "script",
+          "style",
+          "svg"
+        ],
+        "included": [
+          "visible XHTML body/nav text",
+          "NCX navLabel and title text",
+          "img alt and title attributes",
+          "OPF title, description, and subject metadata (creator is display-only)"
+        ],
+        "language": "existing dc:language values are set to the export target; one is added if absent; XHTML and nav html roots receive matching lang and xml:lang",
+        "links": "URLs, paths, anchors, element names, and non-image attributes are never translated",
+        "missing_translation": "missing, failed, non-string, or blank translations keep source text",
+        "order": "OPF metadata, spine order, remaining XHTML manifest order, then NCX",
+        "ruby": "ruby base text is translated; rt and rp pronunciation/fallback text is kept",
+        "splitting": "each XML slot is deterministically split at sentence/whitespace boundaries to at most 1800 source characters; joiner stores the exact separator after a part",
+        "version": 1,
+        "whitespace": "leading and trailing whitespace in every XML slot is preserved"
+      },
+      "reading_order": [
+        "EPUB/cover.xhtml",
+        "EPUB/chapter-1.xhtml",
+        "EPUB/chapter-2.xhtml",
+        "EPUB/notes.xhtml"
+      ],
+      "resource_references": [
+        {
+          "reference": "nav.xhtml",
+          "target": "EPUB/nav.xhtml"
+        },
+        {
+          "reference": "cover.xhtml",
+          "target": "EPUB/cover.xhtml"
+        },
+        {
+          "reference": "chapter-1.xhtml",
+          "target": "EPUB/chapter-1.xhtml"
+        },
+        {
+          "reference": "chapter-2.xhtml",
+          "target": "EPUB/chapter-2.xhtml"
+        },
+        {
+          "reference": "notes.xhtml",
+          "target": "EPUB/notes.xhtml"
+        },
+        {
+          "reference": "styles/book.css",
+          "target": "EPUB/styles/book.css"
+        },
+        {
+          "reference": "images/cover.png",
+          "target": "EPUB/images/cover.png"
+        },
+        {
+          "reference": "images/diagram.png",
+          "target": "EPUB/images/diagram.png"
+        },
+        {
+          "reference": "images/paper.png",
+          "target": "EPUB/images/paper.png"
+        },
+        {
+          "reference": "images/cover.png",
+          "target": "EPUB/images/cover.png"
+        },
+        {
+          "reference": "styles/book.css",
+          "target": "EPUB/styles/book.css"
+        },
+        {
+          "reference": "images/diagram.png",
+          "target": "EPUB/images/diagram.png"
+        },
+        {
+          "reference": "chapter-2.xhtml#arrival",
+          "target": "EPUB/chapter-2.xhtml"
+        },
+        {
+          "reference": "styles/book.css",
+          "target": "EPUB/styles/book.css"
+        },
+        {
+          "reference": "notes.xhtml#note-1",
+          "target": "EPUB/notes.xhtml"
+        },
+        {
+          "reference": "chapter-1.xhtml#departure",
+          "target": "EPUB/chapter-1.xhtml"
+        },
+        {
+          "reference": "styles/book.css",
+          "target": "EPUB/styles/book.css"
+        },
+        {
+          "reference": "styles/book.css",
+          "target": "EPUB/styles/book.css"
+        },
+        {
+          "reference": "chapter-1.xhtml#departure",
+          "target": "EPUB/chapter-1.xhtml"
+        },
+        {
+          "reference": "chapter-2.xhtml#arrival",
+          "target": "EPUB/chapter-2.xhtml"
+        },
+        {
+          "reference": "notes.xhtml#notes",
+          "target": "EPUB/notes.xhtml"
+        },
+        {
+          "reference": "../images/paper.png",
+          "target": "EPUB/images/paper.png"
+        }
+      ],
+      "spine": [
+        {
+          "idref": "cover-page",
+          "linear": false,
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/cover.xhtml"
+        },
+        {
+          "idref": "chapter-1",
+          "linear": true,
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/chapter-1.xhtml"
+        },
+        {
+          "idref": "chapter-2",
+          "linear": true,
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/chapter-2.xhtml"
+        },
+        {
+          "idref": "notes",
+          "linear": true,
+          "media_type": "application/xhtml+xml",
+          "path": "EPUB/notes.xhtml"
+        }
+      ],
+      "text_units": [
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 0,
+            "document_path": "EPUB/content.opf",
+            "document_type": "opf_metadata",
+            "element_index": 3,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":0,\"document_path\":\"EPUB/content.opf\",\"document_type\":\"opf_metadata\",\"element_index\":3,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 0,
+          "source_text": "星港纪事"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 0,
+            "document_path": "EPUB/content.opf",
+            "document_type": "opf_metadata",
+            "element_index": 6,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":0,\"document_path\":\"EPUB/content.opf\",\"document_type\":\"opf_metadata\",\"element_index\":6,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 1,
+          "source_text": "科幻"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 0,
+            "document_path": "EPUB/content.opf",
+            "document_type": "opf_metadata",
+            "element_index": 7,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":0,\"document_path\":\"EPUB/content.opf\",\"document_type\":\"opf_metadata\",\"element_index\":7,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 2,
+          "source_text": "一段跨越两章的短途航行。"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 1,
+            "document_path": "EPUB/cover.xhtml",
+            "document_type": "xhtml",
+            "element_index": 5,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":1,\"document_path\":\"EPUB/cover.xhtml\",\"document_type\":\"xhtml\",\"element_index\":5,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 3,
+          "source_text": "星港纪事"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": "alt",
+            "document_order": 1,
+            "document_path": "EPUB/cover.xhtml",
+            "document_type": "xhtml",
+            "element_index": 6,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "attribute"
+          },
+          "locator_key": "{\"attribute\":\"alt\",\"document_order\":1,\"document_path\":\"EPUB/cover.xhtml\",\"document_type\":\"xhtml\",\"element_index\":6,\"part_count\":1,\"part_index\":0,\"slot\":\"attribute\"}",
+          "sequence": 4,
+          "source_text": "蓝色星港封面"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": "title",
+            "document_order": 1,
+            "document_path": "EPUB/cover.xhtml",
+            "document_type": "xhtml",
+            "element_index": 6,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "attribute"
+          },
+          "locator_key": "{\"attribute\":\"title\",\"document_order\":1,\"document_path\":\"EPUB/cover.xhtml\",\"document_type\":\"xhtml\",\"element_index\":6,\"part_count\":1,\"part_index\":0,\"slot\":\"attribute\"}",
+          "sequence": 5,
+          "source_text": "封面图"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 2,
+            "document_path": "EPUB/chapter-1.xhtml",
+            "document_type": "xhtml",
+            "element_index": 6,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":2,\"document_path\":\"EPUB/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":6,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 6,
+          "source_text": "第一章 启航"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 2,
+            "document_path": "EPUB/chapter-1.xhtml",
+            "document_type": "xhtml",
+            "element_index": 7,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":2,\"document_path\":\"EPUB/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":7,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 7,
+          "source_text": "黎明时，星港的灯逐一熄灭。"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 2,
+            "document_path": "EPUB/chapter-1.xhtml",
+            "document_type": "xhtml",
+            "element_index": 8,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":2,\"document_path\":\"EPUB/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":8,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 8,
+          "source_text": "“准备好了吗？”领航员问。"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 2,
+            "document_path": "EPUB/chapter-1.xhtml",
+            "document_type": "xhtml",
+            "element_index": 9,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":2,\"document_path\":\"EPUB/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":9,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 9,
+          "source_text": "舷窗外写着"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 2,
+            "document_path": "EPUB/chapter-1.xhtml",
+            "document_type": "xhtml",
+            "element_index": 10,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":2,\"document_path\":\"EPUB/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":10,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 10,
+          "source_text": "星"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 2,
+            "document_path": "EPUB/chapter-1.xhtml",
+            "document_type": "xhtml",
+            "element_index": 10,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "tail"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":2,\"document_path\":\"EPUB/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":10,\"part_count\":1,\"part_index\":0,\"slot\":\"tail\"}",
+          "sequence": 11,
+          "source_text": "的旧标记仍然清晰。"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": "alt",
+            "document_order": 2,
+            "document_path": "EPUB/chapter-1.xhtml",
+            "document_type": "xhtml",
+            "element_index": 12,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "attribute"
+          },
+          "locator_key": "{\"attribute\":\"alt\",\"document_order\":2,\"document_path\":\"EPUB/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":12,\"part_count\":1,\"part_index\":0,\"slot\":\"attribute\"}",
+          "sequence": 12,
+          "source_text": "星港航线图"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": "title",
+            "document_order": 2,
+            "document_path": "EPUB/chapter-1.xhtml",
+            "document_type": "xhtml",
+            "element_index": 12,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "attribute"
+          },
+          "locator_key": "{\"attribute\":\"title\",\"document_order\":2,\"document_path\":\"EPUB/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":12,\"part_count\":1,\"part_index\":0,\"slot\":\"attribute\"}",
+          "sequence": 13,
+          "source_text": "第一幅航线图"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 2,
+            "document_path": "EPUB/chapter-1.xhtml",
+            "document_type": "xhtml",
+            "element_index": 14,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":2,\"document_path\":\"EPUB/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":14,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 14,
+          "source_text": "继续前往第二章"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 3,
+            "document_path": "EPUB/chapter-2.xhtml",
+            "document_type": "xhtml",
+            "element_index": 6,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":3,\"document_path\":\"EPUB/chapter-2.xhtml\",\"document_type\":\"xhtml\",\"element_index\":6,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 15,
+          "source_text": "第二章 抵达"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 3,
+            "document_path": "EPUB/chapter-2.xhtml",
+            "document_type": "xhtml",
+            "element_index": 7,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":3,\"document_path\":\"EPUB/chapter-2.xhtml\",\"document_type\":\"xhtml\",\"element_index\":7,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 16,
+          "source_text": "短暂的跃迁之后，新世界出现在眼前。"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 3,
+            "document_path": "EPUB/chapter-2.xhtml",
+            "document_type": "xhtml",
+            "element_index": 8,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":3,\"document_path\":\"EPUB/chapter-2.xhtml\",\"document_type\":\"xhtml\",\"element_index\":8,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 17,
+          "source_text": "船员把这一天写进共同的航海日志。"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 3,
+            "document_path": "EPUB/chapter-2.xhtml",
+            "document_type": "xhtml",
+            "element_index": 9,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":3,\"document_path\":\"EPUB/chapter-2.xhtml\",\"document_type\":\"xhtml\",\"element_index\":9,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 18,
+          "source_text": "1"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 3,
+            "document_path": "EPUB/chapter-2.xhtml",
+            "document_type": "xhtml",
+            "element_index": 11,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":3,\"document_path\":\"EPUB/chapter-2.xhtml\",\"document_type\":\"xhtml\",\"element_index\":11,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 19,
+          "source_text": "返回第一章"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 4,
+            "document_path": "EPUB/notes.xhtml",
+            "document_type": "xhtml",
+            "element_index": 6,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":4,\"document_path\":\"EPUB/notes.xhtml\",\"document_type\":\"xhtml\",\"element_index\":6,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 20,
+          "source_text": "注释"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 4,
+            "document_path": "EPUB/notes.xhtml",
+            "document_type": "xhtml",
+            "element_index": 7,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":4,\"document_path\":\"EPUB/notes.xhtml\",\"document_type\":\"xhtml\",\"element_index\":7,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 21,
+          "source_text": "这是一条保留内部链接的脚注。"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 5,
+            "document_path": "EPUB/nav.xhtml",
+            "document_type": "nav",
+            "element_index": 6,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":5,\"document_path\":\"EPUB/nav.xhtml\",\"document_type\":\"nav\",\"element_index\":6,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 22,
+          "source_text": "目录"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 5,
+            "document_path": "EPUB/nav.xhtml",
+            "document_type": "nav",
+            "element_index": 9,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":5,\"document_path\":\"EPUB/nav.xhtml\",\"document_type\":\"nav\",\"element_index\":9,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 23,
+          "source_text": "第一章 启航"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 5,
+            "document_path": "EPUB/nav.xhtml",
+            "document_type": "nav",
+            "element_index": 11,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":5,\"document_path\":\"EPUB/nav.xhtml\",\"document_type\":\"nav\",\"element_index\":11,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 24,
+          "source_text": "第二章 抵达"
+        },
+        {
+          "joiner": "",
+          "locator": {
+            "attribute": null,
+            "document_order": 5,
+            "document_path": "EPUB/nav.xhtml",
+            "document_type": "nav",
+            "element_index": 13,
+            "part_count": 1,
+            "part_index": 0,
+            "slot": "text"
+          },
+          "locator_key": "{\"attribute\":null,\"document_order\":5,\"document_path\":\"EPUB/nav.xhtml\",\"document_type\":\"nav\",\"element_index\":13,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+          "sequence": 25,
+          "source_text": "注释"
+        }
+      ],
+      "validation": {
+        "compressed_bytes": 3219,
+        "document_count": 5,
+        "expanded_bytes": 4901,
+        "limits": {
+          "max_archive_compression_ratio": 100.0,
+          "max_archive_files": 2000,
+          "max_archive_member_bytes": 104857600,
+          "max_archive_path_depth": 20,
+          "max_archive_uncompressed_bytes": 1048576000
+        },
+        "maximum_compression_ratio": 2.411023622047244,
+        "member_count": 12,
+        "package_document": "EPUB/content.opf",
+        "resource_count": 9,
+        "spine_document_count": 4,
+        "text_unit_count": 26,
+        "valid": true
+      }
+    }
+  },
+  "schema_version": "document-translation.v1",
+  "translations": {
+    "records": [
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 0,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "700f715979d549da2244681d09dda57639cd347975b1ca63e37ab90a509340f4",
+        "source_hash": "34220f9c131262a523cc81449844b03021da38e4cbe84d581b61fe2f95839a05",
+        "status": "succeeded",
+        "translated_text": "[en] 星港纪事",
+        "translation_input_hash": "6d59fccc72e3c9a269a2d0413e32ba02d5d9c945955bb1ff7a7ab48864969397",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 1,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "518a97fefca96445da77a29f9ac62bf982540f9c05a06120b4554141df26d5b2",
+        "source_hash": "c1613bc333ed5654b1e19b16fa65cee7f2bfad1cfb7c3bbafb99b5f10c2cb6a4",
+        "status": "succeeded",
+        "translated_text": "[en] 科幻",
+        "translation_input_hash": "09efeffb3bd8a9a1eca9d95f14e1bf41f2813c3b2ce26fcad6f82257d4adb817",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 2,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "289a8bf3615003e0d4eb478109bdfac5fa07edbe2f385a8b912e9649d5e55ad4",
+        "source_hash": "a41dd10f59ffa01903b56c1c089c31ff8f1fd8b41561e18748bbf809d80f0bd8",
+        "status": "succeeded",
+        "translated_text": "[en] 一段跨越两章的短途航行。",
+        "translation_input_hash": "4b742b41f468e0fccfd3e4a1d7a24f20bb301e83b629e20092dc0b26d540f166",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 3,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "8807127d589f713412803920e113c03ab199d794f9c7cfd5450d08a4a2a31096",
+        "source_hash": "34220f9c131262a523cc81449844b03021da38e4cbe84d581b61fe2f95839a05",
+        "status": "succeeded",
+        "translated_text": "[en] 星港纪事",
+        "translation_input_hash": "a5c5af515ea3fe3a9662a1494897042ae7bd6e69f6ba8926e2e71032af85f212",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 4,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "742df694a5dd32f78f810d2b7ca118e4766aa8e26b876e2781c6643f15b5ca63",
+        "source_hash": "e663b252b932e9d28120845972f8814f0d9e15182b65dadd726c066a4610b6bb",
+        "status": "succeeded",
+        "translated_text": "[en] 蓝色星港封面",
+        "translation_input_hash": "99372db7181c02349026e3c9f9422f5527778ed5b7248e8495eaa15f5109b2ac",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 5,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "15ba34cc73dc4a161650046bac3eb058ee89f12ba7ce13a39a311b0acf71c097",
+        "source_hash": "5421a0e3a71e6c1fce697d502657969f9aaa4c2008990b5906b5f5ce464448c2",
+        "status": "succeeded",
+        "translated_text": "[en] 封面图",
+        "translation_input_hash": "a66d61e58bafe0e19030584e24e7385b5e0241e004786390ba5bb04fc161066a",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 6,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "1a2894320a01f9f18fc432e156a7698ac3dc460c9104ae75a63f715d4da300e4",
+        "source_hash": "b70587ba8885d09caa87bb85050a650613d90a01080e91c82e3f9909f0894224",
+        "status": "succeeded",
+        "translated_text": "[en] 第一章 启航",
+        "translation_input_hash": "fd60b5816ff104b2667ab9a2d42ada436668b8d5920682034c003b174be0475d",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 7,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "130f552b6690f39bba5ca97496fd122592e81ab558d1c71e35ba72e18ea4e76d",
+        "source_hash": "f05ba54e155108df3e66edd4d65f85d0da09342108170e538c8f0fdb3d74f27e",
+        "status": "succeeded",
+        "translated_text": "[en] 黎明时，星港的灯逐一熄灭。",
+        "translation_input_hash": "8841e803095e8c4c7bbe541a8febd5ee127a9bd43383d54faaa2504ef5e22734",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 8,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "ffd460e6a4e2c9994726a912f0e2033837a5af10c518e707751c0accc4a9400b",
+        "source_hash": "46ce0720d5421cb9f4480c4bc0c6b301186c91be79eda11cbe1793a1163f92ef",
+        "status": "succeeded",
+        "translated_text": "[en] “准备好了吗？”领航员问。",
+        "translation_input_hash": "9a9eb9b762ea2eaa3041679e46192ea53f53c2442e343dda86debf3fced7b12d",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 9,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "0fde422630f389238807b2ffb4f500cccf198826e7b69ce6dd4bc350dda59710",
+        "source_hash": "5abd815ad323c0050a0de74d29d75afc99ce6d7d913c061e0d39232704721c63",
+        "status": "succeeded",
+        "translated_text": "[en] 舷窗外写着",
+        "translation_input_hash": "87ca3288f476efa69951ae7b8276c8d6898995d34c542cf86af4aee4387a31b2",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 10,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "057cb451c8e70907a12d4fde0d86421ab861f745fc137d4cddf5e4740153c79d",
+        "source_hash": "83e9c51b3d7ade97d596df3f0fc32e87f3830d63bd4de2a8d2cc889d75180ba5",
+        "status": "succeeded",
+        "translated_text": "[en] 星",
+        "translation_input_hash": "abeacd57be59beec1732114d5abb7ebfb37aea9ebf15834483fb83c7f789d940",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 11,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "b3ea1b896c6f77ebae8fb62f910542683fa790dc90dd2573a57c8e4b76e58735",
+        "source_hash": "6b06362afa0579154b83e8ca6999b20f7d106b26719aaaa4170ccea2407c2dce",
+        "status": "succeeded",
+        "translated_text": "[en] 的旧标记仍然清晰。",
+        "translation_input_hash": "7656ac40732d898290ab0248e2804cc423c162d5aa8751311b81d102c3d11e94",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 12,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "e6d569586710b8da3d944ff9734faef2ac91ec016fe8556df5ff763cbf859fe7",
+        "source_hash": "7c1e29392f4e2ff10e322b10df7cce47da2117998d3092bd8cb53921148a3a1e",
+        "status": "succeeded",
+        "translated_text": "[en] 星港航线图",
+        "translation_input_hash": "7038292cc7ac63e635fa64c63103d537f4408c101ea8571c62381ca995bc7626",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 13,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "fbd9a4bcccc11cd732f8b22154d20905ab58b6ee9206cb71d3dd4f77c06c4062",
+        "source_hash": "b67f80faf00fdecaffe5e45e3ae10688e60a847f746e009d2af5ffdbb368e2ce",
+        "status": "succeeded",
+        "translated_text": "[en] 第一幅航线图",
+        "translation_input_hash": "91e18d2e66e54c6aa5bcb52eaa7483b85bb58ccaef465cf50b2019f41c4465a6",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 14,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "b7d13555ef24469f70cfcbf1df761957c092eab286b5c6c0a6080ffdf2b2fde5",
+        "source_hash": "a6a99cddf234e144b82154367b1697e83d07a022e8673441d3662a7424840f4a",
+        "status": "succeeded",
+        "translated_text": "[en] 继续前往第二章",
+        "translation_input_hash": "6e5910abcb0ac12ddbf4df465c7a7f00c6de96ecdd475d7a1df63c186499988c",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 15,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "0eead771b8e317d3921ec221b487fb97c08da2d06264c714b4132f028f500357",
+        "source_hash": "3976507441f9003d55d383bd887c0702c8b19fbcf5d5010c6f3db5618681681b",
+        "status": "succeeded",
+        "translated_text": "[en] 第二章 抵达",
+        "translation_input_hash": "afd70df23d0eacd0f2405c5892621e46e61f225f4d9b2572c3000971f37598a7",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 16,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "4c6fd08f5b107d7a74faa7403f5b8a6825156b9e58efdfe00b46318796bb787a",
+        "source_hash": "09a066062deb6c6d1002899b16f7c4eabb805385519c1308e781e08f8ddd8b09",
+        "status": "succeeded",
+        "translated_text": "[en] 短暂的跃迁之后，新世界出现在眼前。",
+        "translation_input_hash": "af53721c6f5830b234791835ac1a6034365146e2850deef1b43c0c9cfa76ad71",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 17,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "8fd88266872af44dc6150587221653a9064816f49fe39bc317a3cbcae7dd4844",
+        "source_hash": "1535370e5d22ad76f2fb4e6df0becd70169a05f5f0a3e6ba3a86310600acb78c",
+        "status": "succeeded",
+        "translated_text": "[en] 船员把这一天写进共同的航海日志。",
+        "translation_input_hash": "31de3af33fd4a170cc4cb72e64e0c17962d9927b16537a37502e26f987bcb3c1",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 18,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "e50b792117deeccb19d743194f8c8da7c687b2c4d7528cf2549f3dbe20f2d2ed",
+        "source_hash": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+        "status": "succeeded",
+        "translated_text": "[en] 1",
+        "translation_input_hash": "81e97a28a9f38761e6e45c3b9405173563605e08c09d0fd7331d9a7b6d914e62",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 19,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "ae7ccc2ed61e4c58984801b36de0fc5037c593613b7b4ee7d9b0a1f5213fbc46",
+        "source_hash": "6f77fe4883f7bcf0e0281133e29af67449e102e1cbc80bf4bbeec580ac680599",
+        "status": "succeeded",
+        "translated_text": "[en] 返回第一章",
+        "translation_input_hash": "233db763373a7bf67b9db8edd7584b497680fae9fa26784b91480fb1e1af18e7",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 20,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "659d13219e7055d6b7dffba14a70e2a6ebf43196d669bee0e1794753c122f9b6",
+        "source_hash": "508bf3307053298f697c510b8a115c02ad1bc6d0860c4aa7dafc2d877df0e610",
+        "status": "succeeded",
+        "translated_text": "[en] 注释",
+        "translation_input_hash": "1d007e69e36daae6662608e4fb52bb3c124806aeb1a92c8b05fdfea43dde94fb",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 21,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "a6ae723e0991b73e8c5b76bfaf32258cfd9f9e184769403c935356cb3d8d7685",
+        "source_hash": "63445b2a76487c4ae37fdf949da9dc8ebbf086167b60713f416dc08a6fe59ee7",
+        "status": "succeeded",
+        "translated_text": "[en] 这是一条保留内部链接的脚注。",
+        "translation_input_hash": "0c729e3c5abb3b2db51f4cd3fa8815cc34cbc0b3ee48227c48acbfc1a76efefd",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 22,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "8e986bf1c25eaa0c24d6e7a7b2004448bc615aa3bc6a50861c91ef857d367ace",
+        "source_hash": "52daa71ebc31058156b21dc21c01ed18eb4e9a723749259cacd1558afe32dfea",
+        "status": "succeeded",
+        "translated_text": "[en] 目录",
+        "translation_input_hash": "de689d073ea58086b600cb3db3f2d5b0abf1e8d9f10fe59d49cdd74f7e0e7852",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 23,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "e9eb1db88666ce4c7b733c76c2f015c52794b45d2dda7df20294a866e4d87cb4",
+        "source_hash": "b70587ba8885d09caa87bb85050a650613d90a01080e91c82e3f9909f0894224",
+        "status": "succeeded",
+        "translated_text": "[en] 第一章 启航",
+        "translation_input_hash": "3007979bd844e8e5d8a7fe2ae22a551d676ea78f713d6b21b2325d83100be8e4",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 24,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "6ecd778956fe5a0cf26b23bf1228748374aa367ea6a14a54d218c0361a7397d9",
+        "source_hash": "3976507441f9003d55d383bd887c0702c8b19fbcf5d5010c6f3db5618681681b",
+        "status": "succeeded",
+        "translated_text": "[en] 第二章 抵达",
+        "translation_input_hash": "ef6199d8995a0a6f570bb6918628b0a79fc660f4888bd360d13016e768bb86ca",
+        "usage": null
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "model": "mock-v1",
+        "order": 25,
+        "provider_id": "mock",
+        "schema_version": "translation-record.v1",
+        "segment_id": "f6d511701d50931c6f127fae414227c5bdbbc67046abe989b52d9d216d335e7f",
+        "source_hash": "508bf3307053298f697c510b8a115c02ad1bc6d0860c4aa7dafc2d877df0e610",
+        "status": "succeeded",
+        "translated_text": "[en] 注释",
+        "translation_input_hash": "4ec731ee2a06e7601cacfb6645cc9440f53314c7aefe86377a1bdbd63303ea28",
+        "usage": null
+      }
+    ],
+    "schema_version": "translation-batch.v1",
+    "selected_segment_ids": [
+      "700f715979d549da2244681d09dda57639cd347975b1ca63e37ab90a509340f4",
+      "518a97fefca96445da77a29f9ac62bf982540f9c05a06120b4554141df26d5b2",
+      "289a8bf3615003e0d4eb478109bdfac5fa07edbe2f385a8b912e9649d5e55ad4",
+      "8807127d589f713412803920e113c03ab199d794f9c7cfd5450d08a4a2a31096",
+      "742df694a5dd32f78f810d2b7ca118e4766aa8e26b876e2781c6643f15b5ca63",
+      "15ba34cc73dc4a161650046bac3eb058ee89f12ba7ce13a39a311b0acf71c097",
+      "1a2894320a01f9f18fc432e156a7698ac3dc460c9104ae75a63f715d4da300e4",
+      "130f552b6690f39bba5ca97496fd122592e81ab558d1c71e35ba72e18ea4e76d",
+      "ffd460e6a4e2c9994726a912f0e2033837a5af10c518e707751c0accc4a9400b",
+      "0fde422630f389238807b2ffb4f500cccf198826e7b69ce6dd4bc350dda59710",
+      "057cb451c8e70907a12d4fde0d86421ab861f745fc137d4cddf5e4740153c79d",
+      "b3ea1b896c6f77ebae8fb62f910542683fa790dc90dd2573a57c8e4b76e58735",
+      "e6d569586710b8da3d944ff9734faef2ac91ec016fe8556df5ff763cbf859fe7",
+      "fbd9a4bcccc11cd732f8b22154d20905ab58b6ee9206cb71d3dd4f77c06c4062",
+      "b7d13555ef24469f70cfcbf1df761957c092eab286b5c6c0a6080ffdf2b2fde5",
+      "0eead771b8e317d3921ec221b487fb97c08da2d06264c714b4132f028f500357",
+      "4c6fd08f5b107d7a74faa7403f5b8a6825156b9e58efdfe00b46318796bb787a",
+      "8fd88266872af44dc6150587221653a9064816f49fe39bc317a3cbcae7dd4844",
+      "e50b792117deeccb19d743194f8c8da7c687b2c4d7528cf2549f3dbe20f2d2ed",
+      "ae7ccc2ed61e4c58984801b36de0fc5037c593613b7b4ee7d9b0a1f5213fbc46",
+      "659d13219e7055d6b7dffba14a70e2a6ebf43196d669bee0e1794753c122f9b6",
+      "a6ae723e0991b73e8c5b76bfaf32258cfd9f9e184769403c935356cb3d8d7685",
+      "8e986bf1c25eaa0c24d6e7a7b2004448bc615aa3bc6a50861c91ef857d367ace",
+      "e9eb1db88666ce4c7b733c76c2f015c52794b45d2dda7df20294a866e4d87cb4",
+      "6ecd778956fe5a0cf26b23bf1228748374aa367ea6a14a54d218c0361a7397d9",
+      "f6d511701d50931c6f127fae414227c5bdbbc67046abe989b52d9d216d335e7f"
+    ],
+    "source_sha256": "b37e462e7381a8685481a0c81901f6827a073cb36bebd9954bb3c33ef3db0fae",
+    "status": "succeeded"
+  }
+}

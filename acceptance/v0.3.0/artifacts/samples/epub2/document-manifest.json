@@ -1,0 +1,875 @@
+{
+  "encoding": null,
+  "encoding_confidence": null,
+  "filename": "source.epub",
+  "metadata": {
+    "epub_version": "2.0",
+    "package_document": "OEBPS/content.opf",
+    "package_metadata": {
+      "creators": [
+        "LinguaSpindle fixture"
+      ],
+      "descriptions": [
+        "A deterministic two-chapter EPUB 2 fixture."
+      ],
+      "identifiers": [
+        "urn:uuid:linguaspindle-v030-epub2"
+      ],
+      "languages": [
+        "en"
+      ],
+      "subjects": [
+        "Acceptance"
+      ],
+      "titles": [
+        "Clockwork Harbor"
+      ]
+    },
+    "segment_count": 13,
+    "structure_contract": "epub-inspection.v1-opaque"
+  },
+  "newline": null,
+  "schema_version": "document-manifest.v1",
+  "segmentation_version": "epub-visible-text.v1",
+  "segments": [
+    {
+      "content_role": "opf_metadata",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 0,
+        "document_path": "OEBPS/content.opf",
+        "document_type": "opf_metadata",
+        "element_index": 3,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 0
+      },
+      "order": 0,
+      "schema_version": "segment.v1",
+      "segment_id": "300a526c93c9eb44f78c3ddecc294c3cc461b16c6d6c63bcd3804be4a6f26eed",
+      "source_document": "OEBPS/content.opf",
+      "source_format": "epub2",
+      "source_hash": "47b7bc5617fbcc94271e68656cd659680409861d5c5ae5d5eaf62987bd0cab59",
+      "source_text": "Clockwork Harbor",
+      "translation_input_hash": "d3832b520c4dc15dbd4bb2abadd976e357e8b43d885ba026ad6de2df8a1c16f5"
+    },
+    {
+      "content_role": "opf_metadata",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 0,
+        "document_path": "OEBPS/content.opf",
+        "document_type": "opf_metadata",
+        "element_index": 5,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 1
+      },
+      "order": 1,
+      "schema_version": "segment.v1",
+      "segment_id": "a03e5eaa9d7dd63bea2c94096fa48b34e21344014a4e5e3664db3d9109763470",
+      "source_document": "OEBPS/content.opf",
+      "source_format": "epub2",
+      "source_hash": "f190a5cb3aff17b0ee84f6ee258333d63a9cc71aa66c2e1788ebc3ae24a89b10",
+      "source_text": "Acceptance",
+      "translation_input_hash": "9999157a6f1674a204afae9d8627ab64c0ec2ee7d1aa26bfa903e7d937763e90"
+    },
+    {
+      "content_role": "opf_metadata",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 0,
+        "document_path": "OEBPS/content.opf",
+        "document_type": "opf_metadata",
+        "element_index": 6,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 2
+      },
+      "order": 2,
+      "schema_version": "segment.v1",
+      "segment_id": "a5fd9969111b62fee914c1d5383465d928321a55fa27d44822017846bf39262d",
+      "source_document": "OEBPS/content.opf",
+      "source_format": "epub2",
+      "source_hash": "8253fcbf9fb28af05b9a2004a7e8c313a05de2fb92a062d0fc476547fd64c288",
+      "source_text": "A deterministic two-chapter EPUB 2 fixture.",
+      "translation_input_hash": "bb355f679da29e54b62a2336ef78a3c7e35776e13571ce2a495b17ed3e74c5cd"
+    },
+    {
+      "content_role": "xhtml",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 1,
+        "document_path": "OEBPS/Text/chapter-1.xhtml",
+        "document_type": "xhtml",
+        "element_index": 5,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 3
+      },
+      "order": 3,
+      "schema_version": "segment.v1",
+      "segment_id": "f2e852eb3ced44256536457d8f3878b40188d8e28ae725688ea36fa20f5a968d",
+      "source_document": "OEBPS/Text/chapter-1.xhtml",
+      "source_format": "epub2",
+      "source_hash": "3e93ded328010c26b2176cdc15e10c360110a14f9f60379e2d83f093ad3f3e2e",
+      "source_text": "Chapter One",
+      "translation_input_hash": "85fb62e2c8787c98e424bb1dadf76f7b5b6c28ac5c7d3986ee98b718f2c4f422"
+    },
+    {
+      "content_role": "xhtml",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 1,
+        "document_path": "OEBPS/Text/chapter-1.xhtml",
+        "document_type": "xhtml",
+        "element_index": 6,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 4
+      },
+      "order": 4,
+      "schema_version": "segment.v1",
+      "segment_id": "894181c55c18a4f594cc44219a9f07f39605aa0eef70790a1b43aa7cfaef9674",
+      "source_document": "OEBPS/Text/chapter-1.xhtml",
+      "source_format": "epub2",
+      "source_hash": "8608b2942d01a6232140fbd49696f2e2bc65bcb567c39b936726f694ecfad097",
+      "source_text": "The harbor clock struck seven.",
+      "translation_input_hash": "95e18806f442e769617b63eaa2740588c7e22708b70f8e2ca2ba39abdcc8db26"
+    },
+    {
+      "content_role": "xhtml",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 1,
+        "document_path": "OEBPS/Text/chapter-1.xhtml",
+        "document_type": "xhtml",
+        "element_index": 8,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 5
+      },
+      "order": 5,
+      "schema_version": "segment.v1",
+      "segment_id": "798a603e6a4934fbf34c3d849f86449d37125317744d8cd16bfb1e1f17a0555d",
+      "source_document": "OEBPS/Text/chapter-1.xhtml",
+      "source_format": "epub2",
+      "source_hash": "9dfb5c036092305d3439f048b384845c8a992a95f1f756e73912622811775409",
+      "source_text": "Continue to chapter two",
+      "translation_input_hash": "6196725bc729e8962f7c0a8d1207253e907423b9d34e6d549c6342cbef0eb97a"
+    },
+    {
+      "content_role": "alt",
+      "joiner": "",
+      "locator": {
+        "attribute": "alt",
+        "document_order": 1,
+        "document_path": "OEBPS/Text/chapter-1.xhtml",
+        "document_type": "xhtml",
+        "element_index": 9,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "attribute",
+        "start": null,
+        "unit_sequence": 6
+      },
+      "order": 6,
+      "schema_version": "segment.v1",
+      "segment_id": "d258401397f133c316939c5a5c5e7d28d7f8a3e35c1291ca8af474279123d4d5",
+      "source_document": "OEBPS/Text/chapter-1.xhtml",
+      "source_format": "epub2",
+      "source_hash": "6eff5546454157c4e128cb576298cb9b90237a00da8fdc13ecd989d2b9ad1d1f",
+      "source_text": "Blue clockwork harbor",
+      "translation_input_hash": "bfdc52b09b91304022d773e238c5da5e4e33438b7f3cd85b8d54007ba847e689"
+    },
+    {
+      "content_role": "xhtml",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 2,
+        "document_path": "OEBPS/Text/chapter-2.xhtml",
+        "document_type": "xhtml",
+        "element_index": 5,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 7
+      },
+      "order": 7,
+      "schema_version": "segment.v1",
+      "segment_id": "6fd2229f89a01ce73df9ebcc1587cd0ec143989b0239939404b00fbbcb16a65b",
+      "source_document": "OEBPS/Text/chapter-2.xhtml",
+      "source_format": "epub2",
+      "source_hash": "85c0e5bd4d6773ceb9de1387cd86919a2874abb0d75022ac342bfc765b568fcb",
+      "source_text": "Chapter Two",
+      "translation_input_hash": "a4101837532fe1faf922d78dbd152bb494cfe08c11551c861216441745753d55"
+    },
+    {
+      "content_role": "xhtml",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 2,
+        "document_path": "OEBPS/Text/chapter-2.xhtml",
+        "document_type": "xhtml",
+        "element_index": 6,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 8
+      },
+      "order": 8,
+      "schema_version": "segment.v1",
+      "segment_id": "54c8cf2d8b5cea0f5e8115154cb29bfda94f78ecedae6d4e9412e32f25f4e574",
+      "source_document": "OEBPS/Text/chapter-2.xhtml",
+      "source_format": "epub2",
+      "source_hash": "b2bac988cd22f3ab5e2dead0c24c5ae21fbd0dfa88d4ea44492f26184bcbc0ed",
+      "source_text": "At dawn, the last brass ferry reached the opposite shore.",
+      "translation_input_hash": "4792aeccb8ccab5d495ab5f35fd941d7dbab248b6a171a0115395d4d21e8c949"
+    },
+    {
+      "content_role": "xhtml",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 2,
+        "document_path": "OEBPS/Text/chapter-2.xhtml",
+        "document_type": "xhtml",
+        "element_index": 8,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 9
+      },
+      "order": 9,
+      "schema_version": "segment.v1",
+      "segment_id": "7130cf62cc341fca124b3997d361828c668b534ca517a0aeb7a2cd306fa7ee38",
+      "source_document": "OEBPS/Text/chapter-2.xhtml",
+      "source_format": "epub2",
+      "source_hash": "f5dcc43a840ce8b4d0cdf8b018b91134a997deef9523c3715ed874cd0337698e",
+      "source_text": "Return to chapter one",
+      "translation_input_hash": "5529d1ad17e7bd1bd683deab8621cd9ca3c43e18b0e73ecb03f3d52c849434e3"
+    },
+    {
+      "content_role": "ncx",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 3,
+        "document_path": "OEBPS/toc.ncx",
+        "document_type": "ncx",
+        "element_index": 4,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 10
+      },
+      "order": 10,
+      "schema_version": "segment.v1",
+      "segment_id": "bbc4458149cfa07161c126ab5168c1a076f2cd6e6a80ca181494c42536b4c4f3",
+      "source_document": "OEBPS/toc.ncx",
+      "source_format": "epub2",
+      "source_hash": "47b7bc5617fbcc94271e68656cd659680409861d5c5ae5d5eaf62987bd0cab59",
+      "source_text": "Clockwork Harbor",
+      "translation_input_hash": "489580d4917119e113e6b08144f0c9d03a074afd3de8805ff049c7ec1893955f"
+    },
+    {
+      "content_role": "ncx",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 3,
+        "document_path": "OEBPS/toc.ncx",
+        "document_type": "ncx",
+        "element_index": 8,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 11
+      },
+      "order": 11,
+      "schema_version": "segment.v1",
+      "segment_id": "4cf60360ebc938cc6de989e66c11729f72769f48a8b37a7c9e11c8280326776a",
+      "source_document": "OEBPS/toc.ncx",
+      "source_format": "epub2",
+      "source_hash": "3e93ded328010c26b2176cdc15e10c360110a14f9f60379e2d83f093ad3f3e2e",
+      "source_text": "Chapter One",
+      "translation_input_hash": "d33e5934dd4cc9347c5fc6803d5665c6323e149bb07fad15b47b2cad27236713"
+    },
+    {
+      "content_role": "ncx",
+      "joiner": "",
+      "locator": {
+        "attribute": null,
+        "document_order": 3,
+        "document_path": "OEBPS/toc.ncx",
+        "document_type": "ncx",
+        "element_index": 12,
+        "end": null,
+        "kind": "epub-xml-slot",
+        "part_count": 1,
+        "part_index": 0,
+        "slot": "text",
+        "start": null,
+        "unit_sequence": 12
+      },
+      "order": 12,
+      "schema_version": "segment.v1",
+      "segment_id": "8851708669db03567eac17371c24d9b339eee48eb807da2bd74446a822944dc9",
+      "source_document": "OEBPS/toc.ncx",
+      "source_format": "epub2",
+      "source_hash": "85c0e5bd4d6773ceb9de1387cd86919a2874abb0d75022ac342bfc765b568fcb",
+      "source_text": "Chapter Two",
+      "translation_input_hash": "d2faec28d8025688fd94226868de7828fe4a4bdb2812805c3d463b727cd22a63"
+    }
+  ],
+  "source_format": "epub2",
+  "source_sha256": "2e377c41d1c3e26aab1709256cdd12ab469fa56a2d8cbf50ddd9e3d079c9dc92",
+  "source_size": 2663,
+  "structure": {
+    "archive_sha256": "2e377c41d1c3e26aab1709256cdd12ab469fa56a2d8cbf50ddd9e3d079c9dc92",
+    "cover_path": null,
+    "documents": [
+      {
+        "document_order": 1,
+        "document_type": "xhtml",
+        "manifest_id": "chapter-1",
+        "media_type": "application/xhtml+xml",
+        "path": "OEBPS/Text/chapter-1.xhtml",
+        "text_unit_count": 4,
+        "text_unit_start": 3
+      },
+      {
+        "document_order": 2,
+        "document_type": "xhtml",
+        "manifest_id": "chapter-2",
+        "media_type": "application/xhtml+xml",
+        "path": "OEBPS/Text/chapter-2.xhtml",
+        "text_unit_count": 3,
+        "text_unit_start": 7
+      },
+      {
+        "document_order": 3,
+        "document_type": "ncx",
+        "manifest_id": "ncx",
+        "media_type": "application/x-dtbncx+xml",
+        "path": "OEBPS/toc.ncx",
+        "text_unit_count": 3,
+        "text_unit_start": 10
+      }
+    ],
+    "entries": [
+      {
+        "compressed_size": 20,
+        "compression": "stored",
+        "crc32": "2cab616f",
+        "directory": false,
+        "path": "mimetype",
+        "size": 20
+      },
+      {
+        "compressed_size": 174,
+        "compression": "deflated",
+        "crc32": "9db61f8e",
+        "directory": false,
+        "path": "META-INF/container.xml",
+        "size": 252
+      },
+      {
+        "compressed_size": 508,
+        "compression": "deflated",
+        "crc32": "f339135d",
+        "directory": false,
+        "path": "OEBPS/content.opf",
+        "size": 1170
+      },
+      {
+        "compressed_size": 281,
+        "compression": "deflated",
+        "crc32": "60ab9432",
+        "directory": false,
+        "path": "OEBPS/Text/chapter-1.xhtml",
+        "size": 427
+      },
+      {
+        "compressed_size": 260,
+        "compression": "deflated",
+        "crc32": "56d51839",
+        "directory": false,
+        "path": "OEBPS/Text/chapter-2.xhtml",
+        "size": 387
+      },
+      {
+        "compressed_size": 307,
+        "compression": "deflated",
+        "crc32": "cc0dcd59",
+        "directory": false,
+        "path": "OEBPS/toc.ncx",
+        "size": 562
+      },
+      {
+        "compressed_size": 124,
+        "compression": "stored",
+        "crc32": "15b9455c",
+        "directory": false,
+        "path": "OEBPS/Images/cover.png",
+        "size": 124
+      },
+      {
+        "compressed_size": 49,
+        "compression": "deflated",
+        "crc32": "c35b7ea7",
+        "directory": false,
+        "path": "OEBPS/Styles/book.css",
+        "size": 50
+      }
+    ],
+    "epub_version": "2.0",
+    "format": "epub",
+    "inspection_version": 1,
+    "manifest_items": [
+      {
+        "fallback": null,
+        "href": "Text/chapter-1.xhtml",
+        "id": "chapter-1",
+        "media_overlay": null,
+        "media_type": "application/xhtml+xml",
+        "path": "OEBPS/Text/chapter-1.xhtml",
+        "properties": []
+      },
+      {
+        "fallback": null,
+        "href": "Text/chapter-2.xhtml",
+        "id": "chapter-2",
+        "media_overlay": null,
+        "media_type": "application/xhtml+xml",
+        "path": "OEBPS/Text/chapter-2.xhtml",
+        "properties": []
+      },
+      {
+        "fallback": null,
+        "href": "toc.ncx",
+        "id": "ncx",
+        "media_overlay": null,
+        "media_type": "application/x-dtbncx+xml",
+        "path": "OEBPS/toc.ncx",
+        "properties": []
+      },
+      {
+        "fallback": null,
+        "href": "Images/cover.png",
+        "id": "cover",
+        "media_overlay": null,
+        "media_type": "image/png",
+        "path": "OEBPS/Images/cover.png",
+        "properties": []
+      },
+      {
+        "fallback": null,
+        "href": "Styles/book.css",
+        "id": "css",
+        "media_overlay": null,
+        "media_type": "text/css",
+        "path": "OEBPS/Styles/book.css",
+        "properties": []
+      }
+    ],
+    "metadata": {
+      "creators": [
+        "LinguaSpindle fixture"
+      ],
+      "descriptions": [
+        "A deterministic two-chapter EPUB 2 fixture."
+      ],
+      "identifiers": [
+        "urn:uuid:linguaspindle-v030-epub2"
+      ],
+      "languages": [
+        "en"
+      ],
+      "subjects": [
+        "Acceptance"
+      ],
+      "titles": [
+        "Clockwork Harbor"
+      ]
+    },
+    "navigation_documents": [
+      "OEBPS/toc.ncx"
+    ],
+    "package_document": "OEBPS/content.opf",
+    "processing_rules": {
+      "excluded_elements": [
+        "code",
+        "rp",
+        "rt",
+        "script",
+        "style",
+        "svg"
+      ],
+      "included": [
+        "visible XHTML body/nav text",
+        "NCX navLabel and title text",
+        "img alt and title attributes",
+        "OPF title, description, and subject metadata (creator is display-only)"
+      ],
+      "language": "existing dc:language values are set to the export target; one is added if absent; XHTML and nav html roots receive matching lang and xml:lang",
+      "links": "URLs, paths, anchors, element names, and non-image attributes are never translated",
+      "missing_translation": "missing, failed, non-string, or blank translations keep source text",
+      "order": "OPF metadata, spine order, remaining XHTML manifest order, then NCX",
+      "ruby": "ruby base text is translated; rt and rp pronunciation/fallback text is kept",
+      "splitting": "each XML slot is deterministically split at sentence/whitespace boundaries to at most 1800 source characters; joiner stores the exact separator after a part",
+      "version": 1,
+      "whitespace": "leading and trailing whitespace in every XML slot is preserved"
+    },
+    "reading_order": [
+      "OEBPS/Text/chapter-1.xhtml",
+      "OEBPS/Text/chapter-2.xhtml"
+    ],
+    "resource_references": [
+      {
+        "reference": "Text/chapter-1.xhtml",
+        "target": "OEBPS/Text/chapter-1.xhtml"
+      },
+      {
+        "reference": "Text/chapter-2.xhtml",
+        "target": "OEBPS/Text/chapter-2.xhtml"
+      },
+      {
+        "reference": "toc.ncx",
+        "target": "OEBPS/toc.ncx"
+      },
+      {
+        "reference": "Images/cover.png",
+        "target": "OEBPS/Images/cover.png"
+      },
+      {
+        "reference": "Styles/book.css",
+        "target": "OEBPS/Styles/book.css"
+      },
+      {
+        "reference": "Text/chapter-1.xhtml#start",
+        "target": "OEBPS/Text/chapter-1.xhtml"
+      },
+      {
+        "reference": "../Styles/book.css",
+        "target": "OEBPS/Styles/book.css"
+      },
+      {
+        "reference": "chapter-2.xhtml#arrival",
+        "target": "OEBPS/Text/chapter-2.xhtml"
+      },
+      {
+        "reference": "../Images/cover.png",
+        "target": "OEBPS/Images/cover.png"
+      },
+      {
+        "reference": "../Styles/book.css",
+        "target": "OEBPS/Styles/book.css"
+      },
+      {
+        "reference": "chapter-1.xhtml#start",
+        "target": "OEBPS/Text/chapter-1.xhtml"
+      },
+      {
+        "reference": "Text/chapter-1.xhtml#start",
+        "target": "OEBPS/Text/chapter-1.xhtml"
+      },
+      {
+        "reference": "Text/chapter-2.xhtml#arrival",
+        "target": "OEBPS/Text/chapter-2.xhtml"
+      }
+    ],
+    "spine": [
+      {
+        "idref": "chapter-1",
+        "linear": true,
+        "media_type": "application/xhtml+xml",
+        "path": "OEBPS/Text/chapter-1.xhtml"
+      },
+      {
+        "idref": "chapter-2",
+        "linear": true,
+        "media_type": "application/xhtml+xml",
+        "path": "OEBPS/Text/chapter-2.xhtml"
+      }
+    ],
+    "text_units": [
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 0,
+          "document_path": "OEBPS/content.opf",
+          "document_type": "opf_metadata",
+          "element_index": 3,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":0,\"document_path\":\"OEBPS/content.opf\",\"document_type\":\"opf_metadata\",\"element_index\":3,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 0,
+        "source_text": "Clockwork Harbor"
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 0,
+          "document_path": "OEBPS/content.opf",
+          "document_type": "opf_metadata",
+          "element_index": 5,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":0,\"document_path\":\"OEBPS/content.opf\",\"document_type\":\"opf_metadata\",\"element_index\":5,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 1,
+        "source_text": "Acceptance"
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 0,
+          "document_path": "OEBPS/content.opf",
+          "document_type": "opf_metadata",
+          "element_index": 6,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":0,\"document_path\":\"OEBPS/content.opf\",\"document_type\":\"opf_metadata\",\"element_index\":6,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 2,
+        "source_text": "A deterministic two-chapter EPUB 2 fixture."
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 1,
+          "document_path": "OEBPS/Text/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 5,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":1,\"document_path\":\"OEBPS/Text/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":5,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 3,
+        "source_text": "Chapter One"
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 1,
+          "document_path": "OEBPS/Text/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 6,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":1,\"document_path\":\"OEBPS/Text/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":6,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 4,
+        "source_text": "The harbor clock struck seven."
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 1,
+          "document_path": "OEBPS/Text/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 8,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":1,\"document_path\":\"OEBPS/Text/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":8,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 5,
+        "source_text": "Continue to chapter two"
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": "alt",
+          "document_order": 1,
+          "document_path": "OEBPS/Text/chapter-1.xhtml",
+          "document_type": "xhtml",
+          "element_index": 9,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "attribute"
+        },
+        "locator_key": "{\"attribute\":\"alt\",\"document_order\":1,\"document_path\":\"OEBPS/Text/chapter-1.xhtml\",\"document_type\":\"xhtml\",\"element_index\":9,\"part_count\":1,\"part_index\":0,\"slot\":\"attribute\"}",
+        "sequence": 6,
+        "source_text": "Blue clockwork harbor"
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 2,
+          "document_path": "OEBPS/Text/chapter-2.xhtml",
+          "document_type": "xhtml",
+          "element_index": 5,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":2,\"document_path\":\"OEBPS/Text/chapter-2.xhtml\",\"document_type\":\"xhtml\",\"element_index\":5,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 7,
+        "source_text": "Chapter Two"
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 2,
+          "document_path": "OEBPS/Text/chapter-2.xhtml",
+          "document_type": "xhtml",
+          "element_index": 6,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":2,\"document_path\":\"OEBPS/Text/chapter-2.xhtml\",\"document_type\":\"xhtml\",\"element_index\":6,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 8,
+        "source_text": "At dawn, the last brass ferry reached the opposite shore."
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 2,
+          "document_path": "OEBPS/Text/chapter-2.xhtml",
+          "document_type": "xhtml",
+          "element_index": 8,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":2,\"document_path\":\"OEBPS/Text/chapter-2.xhtml\",\"document_type\":\"xhtml\",\"element_index\":8,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 9,
+        "source_text": "Return to chapter one"
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 3,
+          "document_path": "OEBPS/toc.ncx",
+          "document_type": "ncx",
+          "element_index": 4,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":3,\"document_path\":\"OEBPS/toc.ncx\",\"document_type\":\"ncx\",\"element_index\":4,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 10,
+        "source_text": "Clockwork Harbor"
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 3,
+          "document_path": "OEBPS/toc.ncx",
+          "document_type": "ncx",
+          "element_index": 8,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":3,\"document_path\":\"OEBPS/toc.ncx\",\"document_type\":\"ncx\",\"element_index\":8,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 11,
+        "source_text": "Chapter One"
+      },
+      {
+        "joiner": "",
+        "locator": {
+          "attribute": null,
+          "document_order": 3,
+          "document_path": "OEBPS/toc.ncx",
+          "document_type": "ncx",
+          "element_index": 12,
+          "part_count": 1,
+          "part_index": 0,
+          "slot": "text"
+        },
+        "locator_key": "{\"attribute\":null,\"document_order\":3,\"document_path\":\"OEBPS/toc.ncx\",\"document_type\":\"ncx\",\"element_index\":12,\"part_count\":1,\"part_index\":0,\"slot\":\"text\"}",
+        "sequence": 12,
+        "source_text": "Chapter Two"
+      }
+    ],
+    "validation": {
+      "compressed_bytes": 1723,
+      "document_count": 3,
+      "expanded_bytes": 2992,
+      "limits": {
+        "max_archive_compression_ratio": 100.0,
+        "max_archive_files": 2000,
+        "max_archive_member_bytes": 104857600,
+        "max_archive_path_depth": 20,
+        "max_archive_uncompressed_bytes": 1048576000
+      },
+      "maximum_compression_ratio": 2.3031496062992125,
+      "member_count": 8,
+      "package_document": "OEBPS/content.opf",
+      "resource_count": 5,
+      "spine_document_count": 2,
+      "text_unit_count": 13,
+      "valid": true
+    }
+  }
+}

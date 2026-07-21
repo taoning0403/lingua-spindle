@@ -1,0 +1,95 @@
+LinguaSpindle v0.3.0 final command log
+candidate_sha=84270dec38b5f92fcc044b36c170f4230c15170f
+
+[Pass] Historical v0.2.0 archive and refs
+  shasum -a 256 -c acceptance/v0.2.0/evidence/checksums.sha256
+  git diff --exit-code v0.2.0^{} -- acceptance/v0.2.0
+  git rev-parse v0.2.0^{}
+  git rev-parse origin/main
+  Result: all checksums OK; both refs=b0b5ef20dff65e7ecb6ace495a82fbe855e5d930.
+
+[Pass] Formatting and lint
+  .venv/bin/python -m ruff format --check src tests tools
+  .venv/bin/python -m ruff check --no-cache src tests tools
+  Result: 66 files already formatted; all checks passed.
+
+[Pass] Strict typing, compilation, and Compose parsing
+  .venv/bin/python -m mypy src tools/generate_v020_acceptance.py tools/generate_v030_acceptance.py tools/verify_v030_extras.py
+  .venv/bin/python -m compileall -q src tests tools
+  docker compose config --quiet
+  Result: no mypy issues in 39 source files; compileall and Compose exited zero.
+
+[Pass] Full automated suite
+  .venv/bin/python -m pytest -q --cov=linguaspindle --cov-branch --cov-report=term
+  Result: 228 passed, 0 skipped, 83% branch-aware coverage.
+
+[Pass] Exact isolated Wheel build
+  .venv/bin/python -m build --wheel --outdir <temporary>/dist
+  Result: linguaspindle-0.3.0-py3-none-any.whl, 121583 bytes,
+          sha256=9b8f2eb8ebf5d9ff17cbde8e9caceb4dc0dfc44fdb6fcf73c828a6292258bd48.
+
+[Pass] Seven isolated extras environments
+  .venv/bin/python tools/verify_v030_extras.py \
+    --wheel <temporary>/dist/linguaspindle-0.3.0-py3-none-any.whl \
+    --repository . \
+    --expected-commit 84270dec38b5f92fcc044b36c170f4230c15170f \
+    --constraint constraints-v030.txt \
+    --output <temporary>/extras-report.json
+  Result: core, openai, manga, runtime, cli, server, all = Pass.
+  Every environment passed installation, pip check, dependency inventory, and offline smoke.
+
+[Pass] Wheel content inspection
+  Python zipfile inventory over the exact Wheel.
+  Result: version 0.3.0; 45 files; migrations 0001/0002/0003 present; no Web directory,
+          HTML, CSS, JavaScript, Playwright, upstream manga source, model, or font files.
+
+[Pass] Docker build and metadata
+  docker build --tag lingua-spindle:v0.3.0-acceptance .
+  docker image inspect lingua-spindle:v0.3.0-acceptance
+  Result: digest sha256:f757c6c5430562632b7bcfdd57c4094735840db70a50312e11394c15d35d9b1e;
+          61012787 bytes; Linux/arm64; OCI version 0.3.0; User 10001:10001.
+
+[Pass] Hardened installed-content probe
+  docker run --rm --network none --read-only --tmpfs /tmp --tmpfs /data \
+    --cap-drop ALL --security-opt no-new-privileges \
+    lingua-spindle:v0.3.0-acceptance python -c <installed-content-probe>
+  Result: version=0.3.0, uid=10001, installed_files=85, forbidden_files=[];
+          root filesystem read-only and external network disabled.
+
+[Pass] Hardened live headless server
+  docker run -d --rm --name linguaspindle-v030-acceptance-84270dec \
+    --network none --read-only --tmpfs /tmp \
+    --tmpfs /data:uid=10001,gid=10001,mode=0750 \
+    --cap-drop ALL --security-opt no-new-privileges \
+    lingua-spindle:v0.3.0-acceptance
+  docker exec linguaspindle-v030-acceptance-84270dec python -c <root-and-health-probe>
+  Result: container healthy; root={name: LinguaSpindle, version: 0.3.0, mode: headless};
+          health={status: ok, version: 0.3.0, database: ok}.
+  Cleanup: exact temporary acceptance and diagnostic containers removed; residual scan empty.
+  The local acceptance image was retained.
+
+[Pass] Deterministic acceptance samples
+  .venv/bin/python tools/generate_v030_acceptance.py \
+    --repository . \
+    --expected-commit 84270dec38b5f92fcc044b36c170f4230c15170f
+  Result: 27 TXT/EPUB2/EPUB3/image/CBZ/import-boundary files generated and sample checksums pass.
+
+[Pass] Final archive checksum
+  shasum -a 256 -c acceptance/v0.3.0/evidence/checksums.sha256
+  Result: every retained file listed in the archive checksum passed.
+
+Harness/environment corrections (not product failures):
+  1. The first isolated build could not reach the package index in the sandbox. The exact command
+     was rerun with approved network access and passed.
+  2. Initial Docker daemon access was denied by the sandbox. Approved daemon access passed.
+  3. A content probe searched for the substring '.js' and falsely matched direct_url.json. The
+     corrected exact-suffix scan passed with no forbidden files.
+  4. A first hardened server run mounted /data as a root-owned tmpfs. The non-root process
+     correctly failed to create /data/database. The corrected UID/GID 10001 tmpfs passed.
+
+[Not executed] Real paid OpenAI-compatible Provider (Optional external test)
+[Not executed] Real manga-image-translator model service (Optional external test)
+[Not executed] External epubcheck (Optional external test)
+[Not executed] Native Windows/WSL2 (Optional external test)
+[Not executed] Python 3.11, 3.13, and 3.14 hosts (Optional external test)
+[Not executed by instruction] Remote push, v0.3.0 tag, GitHub Release, deployment

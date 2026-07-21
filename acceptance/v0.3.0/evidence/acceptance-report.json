@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "product": "LinguaSpindle",
+  "version": "0.3.0",
+  "acceptance_date": "2026-07-21",
+  "timezone": "Asia/Shanghai",
+  "branch": "codex/v0.3.0-headless-core",
+  "candidate_sha": "84270dec38b5f92fcc044b36c170f4230c15170f",
+  "overall_status": "Pass",
+  "release_state": "release pending",
+  "required_status_counts": {
+    "Pass": 20,
+    "Fail": 0,
+    "Blocked": 0,
+    "Not executed": 0
+  },
+  "optional_external_status_counts": {
+    "Pass": 0,
+    "Fail": 0,
+    "Blocked": 0,
+    "Not executed": 5
+  },
+  "results": [
+    {"id": "A01", "status": "Pass", "requirement": "Preserve v0.2.0 tag and acceptance archive", "evidence": "acceptance/v0.2.0/evidence/checksums.sha256"},
+    {"id": "A02", "status": "Pass", "requirement": "Side-effect-free core import and minimal default dependencies", "evidence": "evidence/import-boundary.json; evidence/extras-report.json"},
+    {"id": "A03", "status": "Pass", "requirement": "Typed core contracts, serialization, events, cancellation, and errors", "evidence": "tests/core"},
+    {"id": "A04", "status": "Pass", "requirement": "TXT inspect, select/manual translate, and immutable rebuild", "evidence": "artifacts/samples/txt; tests/core/test_documents.py"},
+    {"id": "A05", "status": "Pass", "requirement": "Structure-preserving EPUB 2/3 public core", "evidence": "artifacts/samples/epub2; artifacts/samples/epub3"},
+    {"id": "A06", "status": "Pass", "requirement": "Image and CBZ/ZIP manga core", "evidence": "artifacts/samples/manga; tests/core/test_manga.py"},
+    {"id": "A07", "status": "Pass", "requirement": "Provider and Manga Adapter orchestration semantics", "evidence": "tests/core; tests/integration/test_adapter_orchestration.py"},
+    {"id": "A08", "status": "Pass", "requirement": "Sensitive values remain out of results, logs, errors, outputs, and persistence", "evidence": "tests/unit/test_security.py; tests/integration/test_epub_pipeline.py"},
+    {"id": "A09", "status": "Pass", "requirement": "Optional dependency boundaries and missing-extra diagnostics", "evidence": "evidence/extras-report.json"},
+    {"id": "A10", "status": "Pass", "requirement": "Headless CLI and HTTP reuse public core/runtime with no GUI", "evidence": "tests/integration/test_headless_document_api.py; tests/integration/test_api_cli_shared.py"},
+    {"id": "A11", "status": "Pass", "requirement": "Optional local runtime and explicit worker lifecycle", "evidence": "tests/integration"},
+    {"id": "A12", "status": "Pass", "requirement": "Non-destructive v0.2.0 novel and manga migration", "evidence": "tests/integration/test_database_migrations.py"},
+    {"id": "A13", "status": "Pass", "requirement": "Exact v0.3.0 Wheel identity and contents", "evidence": "artifacts/wheels/linguaspindle-0.3.0-py3-none-any.whl; evidence/wheel-report.json"},
+    {"id": "A14", "status": "Pass", "requirement": "Seven isolated core/extras installations", "evidence": "evidence/extras-report.json"},
+    {"id": "A15", "status": "Pass", "requirement": "Non-root headless image and live HTTP health", "evidence": "evidence/container-report.json"},
+    {"id": "A16", "status": "Pass", "requirement": "Ruff, strict mypy, compileall, and Compose configuration", "evidence": "evidence/command-log.txt"},
+    {"id": "A17", "status": "Pass", "requirement": "Complete automated suite and branch coverage", "evidence": "evidence/command-log.txt"},
+    {"id": "A18", "status": "Pass", "requirement": "Deterministic TXT, EPUB, and manga acceptance samples", "evidence": "artifacts/samples; evidence/sample-checksums.sha256"},
+    {"id": "A19", "status": "Pass", "requirement": "Maintained product, architecture, security, licensing, and migration docs", "evidence": "docs/PROJECT_STATE.md; docs/MODULE_MAP.md; docs/adr/0008-headless-library-first-orchestration-core.md"},
+    {"id": "A20", "status": "Pass", "requirement": "Complete checksummed v0.3.0 acceptance archive", "evidence": "evidence/checksums.sha256"}
+  ],
+  "test_summary": {
+    "status": "Pass",
+    "passed": 228,
+    "skipped": 0,
+    "coverage_percent": 83,
+    "coverage_mode": "branch-aware"
+  },
+  "static_checks": {
+    "ruff_format": "Pass",
+    "ruff_check": "Pass",
+    "strict_mypy": "Pass",
+    "compileall": "Pass",
+    "compose_config": "Pass"
+  },
+  "wheel": {
+    "status": "Pass",
+    "path": "artifacts/wheels/linguaspindle-0.3.0-py3-none-any.whl",
+    "bytes": 121583,
+    "sha256": "9b8f2eb8ebf5d9ff17cbde8e9caceb4dc0dfc44fdb6fcf73c828a6292258bd48",
+    "version": "0.3.0",
+    "tag": "py3-none-any",
+    "file_count": 45,
+    "forbidden_gui_or_browser_files": [],
+    "migrations": ["0001_initial.sql", "0002_epub.sql", "0003_headless_core.sql"]
+  },
+  "extras": {
+    "status": "Pass",
+    "passed": 7,
+    "failed": 0,
+    "names": ["core", "openai", "manga", "runtime", "cli", "server", "all"],
+    "report": "evidence/extras-report.json"
+  },
+  "docker": {
+    "status": "Pass",
+    "image": "lingua-spindle:v0.3.0-acceptance",
+    "image_digest": "sha256:f757c6c5430562632b7bcfdd57c4094735840db70a50312e11394c15d35d9b1e",
+    "bytes": 61012787,
+    "platform": "linux/arm64",
+    "version": "0.3.0",
+    "user": "10001:10001",
+    "read_only_root": true,
+    "network": "none",
+    "no_new_privileges": true,
+    "capabilities_dropped": true,
+    "root_endpoint": "Pass",
+    "health_endpoint": "Pass",
+    "temporary_containers_removed": true,
+    "image_retained": true
+  },
+  "optional_external_tests": [
+    {"category": "Optional external test", "test": "Real paid OpenAI-compatible Provider", "status": "Not executed"},
+    {"category": "Optional external test", "test": "Real manga-image-translator model service", "status": "Not executed"},
+    {"category": "Optional external test", "test": "External epubcheck", "status": "Not executed"},
+    {"category": "Optional external test", "test": "Native Windows/WSL2", "status": "Not executed"},
+    {"category": "Optional external test", "test": "Python 3.11, 3.13, and 3.14 hosts", "status": "Not executed"}
+  ],
+  "publication": {
+    "remote_push": "Not executed",
+    "v0.3.0_tag": "Not executed",
+    "github_release": "Not executed",
+    "deployment": "Not executed"
+  }
+}

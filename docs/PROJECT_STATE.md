@@ -4,8 +4,8 @@ Last reviewed against the v0.3.0 execution contract and the current working impl
 2026-07-21. The active milestone is the v0.3.0 headless/library-first refactor. Development is
 based on the released v0.2.0 commit `b0b5ef20dff65e7ecb6ace495a82fbe855e5d930` without moving or
 rewriting its tag. Mandatory source, static-analysis, migration, and local runtime gates passed;
-package metadata is now `0.3.0` so the exact final Wheel, image, extras, and checksummed archive can
-be verified before any publication decision.
+package metadata is `0.3.0`, and the exact final Wheel, image, extras, and checksummed archive have
+been verified. Publication still requires separate authorization.
 
 ## Current milestone direction
 
@@ -97,21 +97,21 @@ regression target.
 
 ## Verification and release state
 
-v0.3.0 is a development candidate, not a published release. Command-level results, package
-matrices, samples, dependency inventories, external-test classifications, and checksums are owned
-by the versioned `acceptance/v0.3.0/` archive. This maintained state file must be updated with the
-final conclusion only after that archive is complete; it does not substitute for or pre-judge the
-acceptance report.
+v0.3.0 is an accepted local candidate, not a published release. The versioned
+`acceptance/v0.3.0/` archive binds its final results to source candidate
+`84270dec38b5f92fcc044b36c170f4230c15170f` and records 20 Pass, 0 Fail, 0 Blocked, and
+0 Not executed across required gates. The complete automated suite reports 228 passed,
+0 skipped, and 83% branch-aware coverage; Ruff, strict mypy, compileall, and Compose parsing pass.
 
-Required gates include core import/isolation, Python API and serialization, selected/manual TXT
-and EPUB behavior, EPUB security/structure regression, image/CBZ partial/cancellation behavior,
-fake real-Adapter protocol mapping, v0.2 data migration, isolated extras, Wheel/image contents,
-Ruff, strict mypy, compileall, branch coverage, Python 3.11–3.14 CI, and available platform/
-container checks.
+The exact 121,583-byte v0.3.0 Wheel passed isolated `core`, `openai`, `manga`, `runtime`, `cli`,
+`server`, and `all` installation/`pip check`/offline smoke environments. Its default core depends
+only on charset-normalizer and contains no GUI/browser resources. The Linux/arm64 acceptance image
+runs as UID/GID 10001 with a read-only root and passed hardened live root/health probes. Historical
+v0.2.0 checksums and refs remain unchanged.
 
-Real paid Provider execution, real external manga model execution, external `epubcheck`, and
-platforms unavailable to the acceptance environment must remain separately labeled optional
-external tests. Mocks/fake HTTP services cannot be reported as real model runs.
+Real paid Provider execution, real external manga model execution, external `epubcheck`, native
+Windows/WSL2, and Python 3.11/3.13/3.14 hosts are explicitly recorded as optional external tests
+not executed in this local run. Mocks/fake HTTP services are not reported as real model runs.
 
 No v0.3.0 tag, remote push, GitHub Release, or deployment is part of the current development
 authority.

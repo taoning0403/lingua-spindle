@@ -18,7 +18,7 @@ migrations, tests, generated contracts, and runtime evidence.
 | `docs/adapter-development.md` | Provider/Manga Adapter separation, manifest contract, tests, and external service operation. |
 | `docs/releases/v0.1.0.md`, `v0.2.0.md`, `v0.3.0.md` | Versioned highlights, security, upgrade, and limitations. |
 | `acceptance/v0.1.0/`, `acceptance/v0.2.0/` | Immutable historical reports, evidence, checksums, and samples. |
-| `acceptance/v0.3.0/` *(planned until evidence is generated)* | Required headless core/extras/migration/sample acceptance archive; never contains GUI screenshots or browser traces. |
+| `acceptance/v0.3.0/` | Accepted local headless core/extras/migration/sample archive with the exact Wheel, machine/human reports, dependency evidence, and checksums; it contains no GUI screenshots or browser traces. |
 | `tools/generate_v030_acceptance.py` | Deterministic TXT/EPUB2/EPUB3/image/CBZ core samples, manifests, results, output validation, import-boundary evidence, and checksums. |
 | `tools/verify_v030_extras.py` | Enforces the exact clean source commit and v0.3.0 Wheel identity, then installs and smoke-tests every dependency extra in isolation. |
 
