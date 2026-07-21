@@ -1,11 +1,12 @@
 # Project state
 
 Last reviewed against the v0.3.0 execution contract and the current working implementation on
-2026-07-21. The active milestone is the v0.3.0 headless/library-first refactor. Development is
-based on the released v0.2.0 commit `b0b5ef20dff65e7ecb6ace495a82fbe855e5d930` without moving or
-rewriting its tag. Mandatory source, static-analysis, migration, and local runtime gates passed;
+2026-07-21. The v0.3.0 headless/library-first milestone is accepted and Git-published. Development
+was based on the released v0.2.0 commit `b0b5ef20dff65e7ecb6ace495a82fbe855e5d930` without moving
+or rewriting its tag. Mandatory source, static-analysis, migration, and local runtime gates passed;
 package metadata is `0.3.0`, and the exact final Wheel, image, extras, and checksummed archive have
-been verified. Publication still requires separate authorization.
+been verified. The annotated `v0.3.0` tag resolves to final archive commit
+`77974cbf47de2d40ac923e399c631056902b9f70`, which is contained in `main`.
 
 ## Current milestone direction
 
@@ -18,7 +19,7 @@ The permanent boundaries remain: no user/account/identity/tenant/permission mode
 secrets; capability-selected external Adapters; loopback-default HTTP; and no upstream manga
 source/model/font/GPU redistribution.
 
-## Implemented v0.3.0 candidate surface
+## Implemented v0.3.0 release surface
 
 ### Pure public core
 
@@ -97,8 +98,8 @@ regression target.
 
 ## Verification and release state
 
-v0.3.0 is an accepted local candidate, not a published release. The versioned
-`acceptance/v0.3.0/` archive binds its final results to source candidate
+v0.3.0 is accepted and published as an annotated Git tag. The versioned `acceptance/v0.3.0/`
+archive binds its final results to source candidate
 `84270dec38b5f92fcc044b36c170f4230c15170f` and records 20 Pass, 0 Fail, 0 Blocked, and
 0 Not executed across required gates. The complete automated suite reports 228 passed,
 0 skipped, and 83% branch-aware coverage; Ruff, strict mypy, compileall, and Compose parsing pass.
@@ -113,8 +114,9 @@ Real paid Provider execution, real external manga model execution, external `epu
 Windows/WSL2, and Python 3.11/3.13/3.14 hosts are explicitly recorded as optional external tests
 not executed in this local run. Mocks/fake HTTP services are not reported as real model runs.
 
-No v0.3.0 tag, remote push, GitHub Release, or deployment is part of the current development
-authority.
+The `codex/v0.3.0-headless-core` branch, annotated `v0.3.0` tag, and `main` release commit were
+pushed on 2026-07-21. No GitHub Release or deployment was performed; those remain separate future
+actions.
 
 ## Upgrade/deployment state
 
