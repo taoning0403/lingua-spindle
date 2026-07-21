@@ -3,13 +3,22 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+import math
+from dataclasses import dataclass, field
+from typing import Any, cast
+from urllib.parse import urlsplit
 
-import httpx
+try:
+    import httpx
+except ModuleNotFoundError as exc:  # pragma: no cover - exercised in isolated Wheel checks
+    raise ModuleNotFoundError(
+        "manga-image-translator HTTP support is optional; install 'linguaspindle[manga]'",
+        name="httpx",
+    ) from exc
 
-from ..config import Settings
 from ..errors import ErrorCode, LinguaError
-from ..security import redact
+from ..json_types import JsonValue
+from ..security import collect_sensitive_values, redact
 from .base import Adapter, AdapterHealth, AdapterManifest, MangaAdapterResult
 
 _LANGUAGE_CODES = {
@@ -30,6 +39,25 @@ _LANGUAGE_CODES = {
     "it": "ITA",
     "ru": "RUS",
 }
+
+
+@dataclass(frozen=True, slots=True)
+class MangaImageTranslatorConfig:
+    """Explicit connection policy for the separately operated service."""
+
+    base_url: str | None = None
+    timeout_seconds: float = 600.0
+    request_config: dict[str, JsonValue] = field(default_factory=dict, repr=False)
+
+    def __post_init__(self) -> None:
+        if not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0:
+            raise ValueError("Manga Adapter timeout must be positive")
+        if self.base_url:
+            parsed = urlsplit(self.base_url.strip().rstrip("/"))
+            if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+                raise ValueError("Manga Adapter base_url must be an HTTP(S) URL")
+            if parsed.username or parsed.password or parsed.query or parsed.fragment:
+                raise ValueError("Manga Adapter base_url cannot contain credentials or query data")
 
 
 class MangaImageTranslatorHttpAdapter(Adapter):
@@ -62,11 +90,22 @@ class MangaImageTranslatorHttpAdapter(Adapter):
         modified=False,
     )
 
-    def __init__(self, settings: Settings):
-        self.settings = settings
+    def __init__(self, config: MangaImageTranslatorConfig | object):
+        if isinstance(config, MangaImageTranslatorConfig):
+            self.config = config
+        else:
+            raw = getattr(config, "mit_config_json", "{}")
+            parsed = json.loads(str(raw))
+            if not isinstance(parsed, dict):
+                raise ValueError("Manga Adapter request configuration must be an object")
+            self.config = MangaImageTranslatorConfig(
+                base_url=getattr(config, "mit_base_url", None),
+                timeout_seconds=float(getattr(config, "mit_timeout_seconds", 600.0)),
+                request_config=parsed,
+            )
 
     def health(self) -> AdapterHealth:
-        if not self.settings.mit_base_url:
+        if not self.config.base_url:
             return AdapterHealth(
                 False,
                 "External service URL is not configured",
@@ -74,21 +113,21 @@ class MangaImageTranslatorHttpAdapter(Adapter):
             )
         try:
             response = httpx.get(
-                f"{self.settings.mit_base_url}/openapi.json",
-                timeout=min(self.settings.mit_timeout_seconds, 3.0),
+                f"{self.config.base_url.rstrip('/')}/openapi.json",
+                timeout=min(self.config.timeout_seconds, 3.0),
             )
             if response.status_code >= 400:
                 return AdapterHealth(
                     False,
                     f"Health endpoint returned HTTP {response.status_code}",
-                    details={"base_url": self.settings.mit_base_url},
+                    details={"base_url": self.config.base_url},
                 )
             body = response.json()
             return AdapterHealth(
                 True,
                 "External service is reachable",
                 str(body.get("info", {}).get("version") or "unknown"),
-                {"base_url": self.settings.mit_base_url},
+                {"base_url": self.config.base_url},
             )
         except (httpx.HTTPError, ValueError) as exc:
             return AdapterHealth(
@@ -98,17 +137,7 @@ class MangaImageTranslatorHttpAdapter(Adapter):
             )
 
     def _config(self, target_language: str) -> dict[str, Any]:
-        try:
-            config = json.loads(self.settings.mit_config_json)
-        except json.JSONDecodeError as exc:
-            raise LinguaError(
-                ErrorCode.CONFIGURATION,
-                "LINGUASPINDLE_MIT_CONFIG_JSON is not valid JSON",
-            ) from exc
-        if not isinstance(config, dict):
-            raise LinguaError(
-                ErrorCode.CONFIGURATION, "Manga Adapter configuration must be a JSON object"
-            )
+        config = cast(dict[str, Any], json.loads(json.dumps(self.config.request_config)))
         translator = config.setdefault("translator", {})
         if not isinstance(translator, dict):
             raise LinguaError(
@@ -126,7 +155,7 @@ class MangaImageTranslatorHttpAdapter(Adapter):
         source_language: str,
         target_language: str,
     ) -> MangaAdapterResult:
-        if not self.settings.mit_base_url:
+        if not self.config.base_url:
             raise LinguaError(
                 ErrorCode.ADAPTER_UNAVAILABLE,
                 "manga-image-translator service URL is not configured",
@@ -134,10 +163,10 @@ class MangaImageTranslatorHttpAdapter(Adapter):
         config = self._config(target_language)
         try:
             response = httpx.post(
-                f"{self.settings.mit_base_url}/translate/with-form/image",
+                f"{self.config.base_url.rstrip('/')}/translate/with-form/image",
                 files={"image": (filename, image, "application/octet-stream")},
                 data={"config": json.dumps(config)},
-                timeout=self.settings.mit_timeout_seconds,
+                timeout=self.config.timeout_seconds,
             )
         except httpx.TimeoutException as exc:
             raise LinguaError(
@@ -156,7 +185,10 @@ class MangaImageTranslatorHttpAdapter(Adapter):
             raise LinguaError(
                 ErrorCode.EXTERNAL_COMMAND,
                 "Manga Adapter service returned an error",
-                redact({"status_code": response.status_code, "body": response.text[:500]}),
+                redact(
+                    {"status_code": response.status_code, "body": response.text[:500]},
+                    collect_sensitive_values(config),
+                ),
                 retryable=response.status_code >= 500,
             )
         if not response.content:
@@ -181,6 +213,9 @@ class MangaImageTranslatorHttpAdapter(Adapter):
                 "bytes": len(response.content),
                 "source_language": source_language,
                 "target_language": target_language,
-                "config": config,
+                "config_keys": cast(JsonValue, sorted(config)),
             },
         )
+
+
+__all__ = ["MangaImageTranslatorConfig", "MangaImageTranslatorHttpAdapter"]

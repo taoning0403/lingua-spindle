@@ -17,8 +17,8 @@ class MockMangaAdapter(Adapter):
         output_formats=("png", "jpeg", "webp"),
         languages=("*",),
         requires_gpu=False,
-        supports_cancel=True,
-        supports_progress=True,
+        supports_cancel=False,
+        supports_progress=False,
         health_check="built-in",
         configuration_help="No configuration required. For demos and tests only.",
         upstream_url="",
@@ -37,9 +37,16 @@ class MockMangaAdapter(Adapter):
         source_language: str,
         target_language: str,
     ) -> MangaAdapterResult:
+        suffix = filename.lower().rsplit(".", maxsplit=1)[-1] if "." in filename else ""
+        media_type = {
+            "png": "image/png",
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "webp": "image/webp",
+        }.get(suffix, "application/octet-stream")
         return MangaAdapterResult(
             image=image,
-            media_type="application/octet-stream",
+            media_type=media_type,
             raw_metadata={
                 "mock": True,
                 "filename": filename,

@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_CONSTRAINT=/app/constraints-v020.txt \
+    PIP_CONSTRAINT=/app/constraints-v030.txt \
     LINGUASPINDLE_DATA_DIR=/data
 
 WORKDIR /app
@@ -17,10 +17,10 @@ WORKDIR /app
 RUN groupadd --gid 10001 linguaspindle \
     && useradd --uid 10001 --gid 10001 --no-create-home --home-dir /nonexistent linguaspindle
 
-COPY pyproject.toml constraints-v020.txt README.md LICENSE ./
+COPY pyproject.toml constraints-v030.txt README.md LICENSE ./
 COPY src ./src
 
-RUN python -m pip install . \
+RUN python -m pip install '.[all]' \
     && mkdir -p /data \
     && chown 10001:10001 /data
 

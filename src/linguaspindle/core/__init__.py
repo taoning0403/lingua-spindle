@@ -1,24 +1,34 @@
-"""LinguaSpindle's side-effect-free, embeddable translation core."""
+"""Stable public surface for the embeddable headless core."""
 
-from .adapters.mock_manga import MockMangaAdapter
-from .core import (
+from ..adapters.base import (
     AdapterHealth,
     AdapterManifest,
-    ArchiveLimits,
+    MangaAdapterResult,
+    MangaTranslationAdapter,
+)
+from ..errors import ErrorCode, LinguaError
+from ..limits import ArchiveLimits
+from ..providers.base import TranslationProvider, TranslationRequest, TranslationResult
+from .documents import (
+    build_translated_epub,
+    extract_segments,
+    inspect_document,
+    inspect_epub,
+    rebuild_document,
+    translate_document,
+)
+from .manga import build_manga_output, extract_manga_pages, inspect_manga, translate_manga
+from .models import (
     BatchStatus,
     BuildResult,
     CancellationToken,
     DocumentManifest,
     DocumentTranslationResult,
-    ErrorCode,
     ErrorRecord,
     EventKind,
-    LinguaError,
-    MangaAdapterResult,
     MangaManifest,
     MangaPage,
     MangaPageTranslation,
-    MangaTranslationAdapter,
     MangaTranslationResult,
     Segment,
     SegmentLocator,
@@ -26,26 +36,10 @@ from .core import (
     TranslationBatchResult,
     TranslationEvent,
     TranslationOptions,
-    TranslationProvider,
     TranslationRecord,
-    TranslationRequest,
-    TranslationResult,
     TranslationStatus,
-    build_manga_output,
-    build_translated_epub,
-    extract_manga_pages,
-    extract_segments,
-    inspect_document,
-    inspect_epub,
-    inspect_manga,
-    rebuild_document,
-    translate_document,
-    translate_manga,
-    translate_segments,
 )
-from .providers.mock import MockProvider
-
-__version__ = "0.2.0"
+from .orchestration import translate_segments
 
 __all__ = [
     "AdapterHealth",
@@ -66,8 +60,6 @@ __all__ = [
     "MangaPageTranslation",
     "MangaTranslationAdapter",
     "MangaTranslationResult",
-    "MockMangaAdapter",
-    "MockProvider",
     "Segment",
     "SegmentLocator",
     "SourceFormat",

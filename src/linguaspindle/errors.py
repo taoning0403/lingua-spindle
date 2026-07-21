@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+from .json_types import normalize_json_object
+
 
 class ErrorCode(StrEnum):
     CONFIGURATION = "CONFIGURATION_ERROR"
@@ -16,6 +18,9 @@ class ErrorCode(StrEnum):
     EPUB_UNSUPPORTED = "EPUB_UNSUPPORTED"
     EPUB_PROTECTED = "EPUB_PROTECTED"
     EPUB_VALIDATION_FAILED = "EPUB_VALIDATION_FAILED"
+    SOURCE_MISMATCH = "SOURCE_MISMATCH"
+    SEGMENT_NOT_FOUND = "SEGMENT_NOT_FOUND"
+    DEPENDENCY_MISSING = "DEPENDENCY_MISSING"
     ADAPTER_UNAVAILABLE = "ADAPTER_UNAVAILABLE"
     EXTERNAL_COMMAND = "EXTERNAL_COMMAND_FAILED"
     TIMEOUT = "TIMEOUT"
@@ -40,3 +45,22 @@ class LinguaError(Exception):
 
     def __str__(self) -> str:
         return self.message
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the stable, JSON-compatible public error envelope."""
+
+        return {
+            "code": self.code.value,
+            "message": self.message,
+            "details": normalize_json_object(self.details or {}),
+            "retryable": self.retryable,
+        }
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> LinguaError:
+        return cls(
+            code=ErrorCode(str(value["code"])),
+            message=str(value.get("message", "")),
+            details=dict(value.get("details") or {}),
+            retryable=bool(value.get("retryable", False)),
+        )

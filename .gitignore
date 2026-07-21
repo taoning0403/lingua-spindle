@@ -14,10 +14,8 @@ htmlcov/
 build/
 dist/
 data/
-playwright-report/
-test-results/
-acceptance/*/artifacts/**/browser-trace*.zip
 acceptance/*/artifacts/**/*.whl
 !acceptance/v0.2.0/artifacts/wheel/linguaspindle-0.2.0-py3-none-any.whl
+!acceptance/v0.3.0/artifacts/wheels/linguaspindle-0.3.0-py3-none-any.whl
 acceptance/*/artifacts/**/*.tar.gz
 acceptance/*/artifacts/**/*.sqlite3*

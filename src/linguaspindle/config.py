@@ -15,6 +15,8 @@ from urllib.parse import urlsplit
 
 from platformdirs import user_data_path
 
+from .limits import ArchiveLimits
+
 
 class ConfigurationError(ValueError):
     """Raised when an environment setting is invalid."""
@@ -95,7 +97,7 @@ class Settings:
     openai_max_retries: int = 3
     mit_base_url: str | None = None
     mit_timeout_seconds: float = 600.0
-    mit_config_json: str = "{}"
+    mit_config_json: str = field(default="{}", repr=False)
 
     @classmethod
     def from_env(cls, data_dir: Path | str | None = None) -> Settings:
@@ -197,3 +199,14 @@ class Settings:
             self.cache_dir,
         ):
             path.mkdir(parents=True, exist_ok=True)
+
+    def archive_limits(self) -> ArchiveLimits:
+        """Map process configuration to one explicit core operation contract."""
+
+        return ArchiveLimits(
+            max_files=self.max_archive_files,
+            max_uncompressed_bytes=self.max_archive_uncompressed_bytes,
+            max_member_bytes=self.max_archive_member_bytes,
+            max_compression_ratio=self.max_archive_compression_ratio,
+            max_path_depth=self.max_archive_path_depth,
+        )

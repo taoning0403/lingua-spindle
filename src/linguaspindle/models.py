@@ -224,9 +224,11 @@ class TranslationSegment(Base):
             "status",
         ),
         Index("ix_segments_job_document", "job_id", "source_document", "sequence"),
+        Index("ix_segments_job_segment_key", "job_id", "segment_key", unique=True),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    segment_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"), index=True
     )

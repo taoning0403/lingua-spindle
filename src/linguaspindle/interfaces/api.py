@@ -2,31 +2,54 @@
 
 from __future__ import annotations
 
+import json
+import os
+import re
+import tempfile
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from importlib import resources
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Any, Literal, cast
 
-from fastapi import (
-    FastAPI,
-    File,
-    Form,
-    HTTPException,
-    Query,
-    Request,
-    UploadFile,
-)
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse, Response
-from pydantic import BaseModel, ConfigDict, Field
-from starlette.concurrency import run_in_threadpool
-from starlette.types import Message, Receive, Scope, Send
+try:
+    import python_multipart as _multipart  # noqa: F401
+    from fastapi import (
+        FastAPI,
+        File,
+        Form,
+        Query,
+        Request,
+        UploadFile,
+    )
+    from fastapi.exceptions import RequestValidationError
+    from fastapi.responses import FileResponse, JSONResponse
+    from pydantic import BaseModel, ConfigDict, Field
+    from starlette.concurrency import run_in_threadpool
+    from starlette.types import Message, Receive, Scope, Send
+except ModuleNotFoundError as exc:  # pragma: no cover - isolated Wheel verification
+    if exc.name not in {"fastapi", "python_multipart", "pydantic", "starlette"}:
+        raise
+    raise ModuleNotFoundError(
+        "Headless HTTP server support is optional; install 'linguaspindle[server]'",
+        name=exc.name,
+    ) from exc
 
 from .. import __version__
 from ..application import ApplicationService
 from ..config import Settings
+from ..core import (
+    BatchStatus,
+    DocumentManifest,
+    SourceFormat,
+    TranslationOptions,
+    TranslationStatus,
+    inspect_document,
+    rebuild_document,
+    translate_segments,
+)
 from ..errors import ErrorCode, LinguaError
+from ..json_types import normalize_json_object
 from ..orchestration.engine import JobRunner
 from ..orchestration.state import JobStatus, StepStatus
 from ..security import redact, redact_text
@@ -181,6 +204,134 @@ class ProjectDeletionResponse(BaseModel):
     cleanup_error: str | None
 
 
+class SegmentLocatorResponse(BaseModel):
+    kind: str
+    document_path: str
+    start: int | None = None
+    end: int | None = None
+    unit_sequence: int | None = None
+    element_index: int | None = None
+    slot: str | None = None
+    attribute: str | None = None
+    part_index: int | None = None
+    part_count: int | None = None
+    document_order: int | None = None
+    document_type: str | None = None
+
+
+class QaFindingResponse(BaseModel):
+    category: str
+    severity: str
+    message: str
+
+
+class SegmentErrorResponse(BaseModel):
+    code: ErrorCode
+    message: str
+
+
+class SegmentResponse(BaseModel):
+    """Stable source Segment plus optional state from a persisted runtime Job."""
+
+    schema_version: Literal["segment.v1"]
+    segment_id: str
+    order: int
+    sequence: int
+    source_format: SourceFormat
+    source_artifact_id: str
+    source_document: str
+    source_text: str
+    content_role: str
+    locator: SegmentLocatorResponse
+    source_hash: str
+    translation_input_hash: str
+    joiner: str
+    job_id: str | None = None
+    status: str = TranslationStatus.SOURCE.value
+    translated_text: str | None = None
+    model: str | None = None
+    reused_from_segment_id: str | None = None
+    error: SegmentErrorResponse | None = None
+    qa_findings: list[QaFindingResponse] = Field(default_factory=list)
+
+
+class TranslateSegmentsRequest(StrictRequest):
+    """Translate exactly the named Segments; an empty list is intentionally a no-op."""
+
+    selected_segment_ids: list[str] = Field(max_length=512)
+    existing_translations: dict[str, str] = Field(default_factory=dict, max_length=512)
+    provider_id: str = Field(default="mock", min_length=1, max_length=120)
+    style: str = Field(default="", max_length=4_000)
+    prompt_version: str = Field(default="v1", min_length=1, max_length=120)
+    concurrency: int = Field(default=1, ge=1, le=32)
+    max_retries: int = Field(default=2, ge=0, le=20)
+    retry_backoff_seconds: float = Field(default=0.25, ge=0, le=60)
+
+
+class TranslationRecordResponse(BaseModel):
+    schema_version: Literal["translation-record.v1"]
+    segment_id: str
+    order: int
+    source_hash: str
+    translation_input_hash: str
+    status: TranslationStatus
+    translated_text: str | None = None
+    provider_id: str | None = None
+    model: str | None = None
+    attempts: int
+    usage: dict[str, int] | None = None
+    error: ErrorResponse | None = None
+
+
+class TranslationBatchResponse(BaseModel):
+    schema_version: Literal["translation-batch.v1"]
+    status: BatchStatus
+    source_sha256: str | None
+    selected_segment_ids: list[str]
+    records: list[TranslationRecordResponse]
+
+
+class SelectedTranslationResponse(BaseModel):
+    project_id: str
+    source_artifact_id: str
+    result: TranslationBatchResponse
+    artifact: ArtifactResponse
+
+
+class RebuildDocumentRequest(StrictRequest):
+    """Caller-supplied translation text keyed by stable Segment ID."""
+
+    translations: dict[str, str] = Field(default_factory=dict, max_length=100_000)
+
+
+class BuildResultResponse(BaseModel):
+    schema_version: Literal["build-result.v1"]
+    source_format: SourceFormat
+    output_sha256: str
+    output_size: int
+    translated_count: int
+    preserved_count: int
+    details: dict[str, Any]
+
+
+class RebuildDocumentResponse(BaseModel):
+    project_id: str
+    source_artifact_id: str
+    build: BuildResultResponse
+    artifact: ArtifactResponse
+
+
+@dataclass(frozen=True, slots=True)
+class _NovelSourceContext:
+    project_id: str
+    source_artifact_id: str
+    source_name: str
+    source_path: Path
+    source_language: str
+    target_language: str
+    manifest: DocumentManifest
+
+
 _STABLE_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     400: {
         "model": ErrorEnvelope,
@@ -199,20 +350,23 @@ _STABLE_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
         "model": ErrorEnvelope,
         "description": "Request validation failed before the application operation ran",
     },
+    429: {"model": ErrorEnvelope, "description": "Provider rate limit was reached"},
+    500: {"model": ErrorEnvelope, "description": "An unexpected normalized error occurred"},
+    502: {"model": ErrorEnvelope, "description": "Provider or Adapter request failed"},
+    503: {"model": ErrorEnvelope, "description": "Provider or Adapter is unavailable"},
+    504: {"model": ErrorEnvelope, "description": "Provider or Adapter request timed out"},
 }
 
 
 class UploadBodyLimitMiddleware:
-    """Bound the multipart request before FastAPI parses it into an UploadFile."""
+    """Bound mutating request bodies before FastAPI parses their content."""
 
     def __init__(self, app: Callable[..., Awaitable[None]], *, maximum_bytes: int) -> None:
         self.app = app
         self.maximum_bytes = maximum_bytes
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http" or not (
-            scope.get("method") == "POST" and scope.get("path") == "/api/projects"
-        ):
+        if scope["type"] != "http" or scope.get("method") not in {"POST", "PUT", "PATCH"}:
             await self.app(scope, receive, send)
             return
 
@@ -263,7 +417,7 @@ class UploadBodyLimitMiddleware:
             content={
                 "error": {
                     "code": ErrorCode.UPLOAD_TOO_LARGE,
-                    "message": "Upload request exceeds the configured size limit",
+                    "message": "Request body exceeds the configured size limit",
                     "details": {"maximum_request_bytes": self.maximum_bytes},
                     "retryable": False,
                 }
@@ -288,6 +442,225 @@ def _status_for_error(error: LinguaError) -> int:
         ErrorCode.ARCHIVE_LIMIT_EXCEEDED: 413,
         ErrorCode.UNKNOWN: 500,
     }.get(error.code, 400)
+
+
+def _operation_options(
+    service: ApplicationService,
+    context: _NovelSourceContext | None = None,
+    body: TranslateSegmentsRequest | None = None,
+    *,
+    source_language: str | None = None,
+    target_language: str | None = None,
+) -> TranslationOptions:
+    return TranslationOptions(
+        source_language=source_language or (context.source_language if context else "auto"),
+        target_language=target_language or (context.target_language if context else "en"),
+        style=body.style if body else "",
+        prompt_version=body.prompt_version if body else "v1",
+        concurrency=body.concurrency if body else 1,
+        max_retries=body.max_retries if body else 2,
+        retry_backoff_seconds=body.retry_backoff_seconds if body else 0.25,
+        max_source_bytes=service.settings.max_upload_bytes,
+    )
+
+
+def _novel_source_context(
+    service: ApplicationService,
+    project_id: str,
+    *,
+    body: TranslateSegmentsRequest | None = None,
+) -> _NovelSourceContext:
+    project = service.get_project(project_id)
+    if project["kind"] != "novel":
+        raise LinguaError(
+            ErrorCode.INVALID_FORMAT,
+            "Novel Segment operations require a novel Project",
+        )
+    sources = cast(list[dict[str, Any]], project.get("sources", []))
+    if not sources:
+        raise LinguaError(ErrorCode.NOT_FOUND, "Project source not found")
+    source = max(sources, key=lambda item: str(item.get("created_at", "")))
+    source_kind = str(source.get("kind", ""))
+    if source_kind not in {"txt", "epub"}:
+        raise LinguaError(
+            ErrorCode.INVALID_FORMAT,
+            "Novel Segment operations support only TXT and EPUB Sources",
+            {"source_kind": source_kind},
+        )
+    source_artifact_id = str(source["artifact_id"])
+    artifact, source_path = service.artifact_path(source_artifact_id)
+    if artifact["project_id"] != project_id:
+        raise LinguaError(ErrorCode.SOURCE_MISMATCH, "Source Artifact belongs to another Project")
+    source_name = str(source["original_name"])
+    source_language = str(project["source_language"])
+    target_language = str(project["target_language"])
+    options = _operation_options(
+        service,
+        body=body,
+        source_language=source_language,
+        target_language=target_language,
+    )
+    manifest = inspect_document(
+        source_path,
+        filename=source_name,
+        format_hint=source_kind,
+        options=options,
+        archive_limits=service.settings.archive_limits(),
+    )
+    return _NovelSourceContext(
+        project_id=project_id,
+        source_artifact_id=source_artifact_id,
+        source_name=source_name,
+        source_path=source_path,
+        source_language=source_language,
+        target_language=target_language,
+        manifest=manifest,
+    )
+
+
+def _segment_payloads(
+    service: ApplicationService,
+    context: _NovelSourceContext,
+    job_id: str | None,
+) -> list[dict[str, Any]]:
+    if job_id is not None:
+        job = service.get_job(job_id)
+        if job["project_id"] != context.project_id:
+            raise LinguaError(ErrorCode.NOT_FOUND, "Job does not belong to this Project")
+    runtime_rows = service.list_segments(context.project_id, job_id=job_id)
+    by_id = {str(item.get("segment_id")): item for item in runtime_rows}
+    by_source = {
+        (int(item.get("sequence", -1)), str(item.get("source_text", ""))): item
+        for item in runtime_rows
+    }
+    payloads: list[dict[str, Any]] = []
+    for segment in context.manifest.segments:
+        state = by_id.get(segment.segment_id) or by_source.get((segment.order, segment.source_text))
+        value = cast(dict[str, Any], segment.to_dict())
+        value.update(
+            {
+                "sequence": segment.order,
+                "source_artifact_id": context.source_artifact_id,
+                "job_id": state.get("job_id") if state else None,
+                "status": state.get("status", TranslationStatus.SOURCE.value)
+                if state
+                else TranslationStatus.SOURCE.value,
+                "translated_text": state.get("translated_text") if state else None,
+                "model": state.get("model") if state else None,
+                "reused_from_segment_id": (state.get("reused_from_segment_id") if state else None),
+                "error": state.get("error") if state else None,
+                "qa_findings": state.get("qa_findings", []) if state else [],
+            }
+        )
+        payloads.append(value)
+    return payloads
+
+
+def _reject_runtime_secret(service: ApplicationService, value: object) -> None:
+    secret = service.settings.openai_api_key
+    if secret and secret in json.dumps(value, ensure_ascii=False, default=str):
+        raise LinguaError(
+            ErrorCode.CONFIGURATION,
+            "Request contains the runtime Provider secret; remove it before submission",
+        )
+
+
+def _artifact_stem(source_name: str) -> str:
+    stem = Path(source_name).stem or "document"
+    return re.sub(r"[^A-Za-z0-9._-]+", "-", stem).strip("-.") or "document"
+
+
+def _translate_selected_segments(
+    service: ApplicationService,
+    project_id: str,
+    body: TranslateSegmentsRequest,
+) -> dict[str, Any]:
+    _reject_runtime_secret(service, body.model_dump())
+    context = _novel_source_context(service, project_id, body=body)
+    options = _operation_options(service, context, body)
+    provider = service.providers.get(body.provider_id)
+    result = translate_segments(
+        context.manifest,
+        provider,
+        options,
+        selected_segment_ids=body.selected_segment_ids,
+        existing_translations=body.existing_translations,
+        sensitive_values=(service.settings.openai_api_key or "",),
+    )
+    payload = json.dumps(result.to_dict(), ensure_ascii=False, indent=2).encode("utf-8")
+    artifact = service.create_artifact(
+        project_id=project_id,
+        kind="novel_translations",
+        filename=f"{_artifact_stem(context.source_name)}.translation-batch.json",
+        media_type="application/json",
+        payload=payload,
+        metadata={
+            "schema_version": result.schema_version,
+            "source_artifact_id": context.source_artifact_id,
+            "source_sha256": context.manifest.source_sha256,
+            "status": result.status.value,
+            "selected_segment_ids": list(result.selected_segment_ids),
+        },
+    )
+    return {
+        "project_id": project_id,
+        "source_artifact_id": context.source_artifact_id,
+        "result": result.to_dict(),
+        "artifact": service.get_artifact(artifact.id),
+    }
+
+
+def _rebuild_from_external_translations(
+    service: ApplicationService,
+    project_id: str,
+    body: RebuildDocumentRequest,
+) -> dict[str, Any]:
+    _reject_runtime_secret(service, body.model_dump())
+    context = _novel_source_context(service, project_id)
+    is_epub = context.manifest.source_format in {SourceFormat.EPUB2, SourceFormat.EPUB3}
+    suffix = ".epub" if is_epub else ".txt"
+    media_type = "application/epub+zip" if is_epub else "text/plain; charset=utf-8"
+    kind = "novel_export_epub" if is_epub else "novel_export_txt"
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix="linguaspindle-api-rebuild-", suffix=suffix
+    )
+    os.close(descriptor)
+    temporary_path = Path(temporary_name)
+    try:
+        build = rebuild_document(
+            context.source_path,
+            context.manifest,
+            body.translations,
+            temporary_path,
+            target_language=context.target_language,
+            overwrite=True,
+            archive_limits=service.settings.archive_limits(),
+        )
+        artifact = service.create_artifact_from_path(
+            project_id=project_id,
+            kind=kind,
+            filename=(
+                f"{_artifact_stem(context.source_name)}.translated."
+                f"{re.sub(r'[^A-Za-z0-9._-]+', '-', context.target_language)}{suffix}"
+            ),
+            media_type=media_type,
+            source_path=temporary_path,
+            metadata={
+                "schema_version": "external-translation-rebuild.v1",
+                "source_artifact_id": context.source_artifact_id,
+                "source_sha256": context.manifest.source_sha256,
+                "translation_segment_ids": sorted(body.translations),
+                "build": build.to_dict(),
+            },
+        )
+    finally:
+        temporary_path.unlink(missing_ok=True)
+    return {
+        "project_id": project_id,
+        "source_artifact_id": context.source_artifact_id,
+        "build": build.to_dict(),
+        "artifact": service.get_artifact(artifact.id),
+    }
 
 
 def create_app(settings: Settings | None = None, *, start_worker: bool = True) -> FastAPI:
@@ -318,6 +691,10 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
         openapi_tags=[
             {"name": "system", "description": "Health and runtime capabilities"},
             {"name": "projects", "description": "Projects, immutable Sources, and results"},
+            {
+                "name": "documents",
+                "description": "Stable novel Segments, selected translation, and reconstruction",
+            },
             {"name": "jobs", "description": "Persistent asynchronous Jobs and controls"},
             {"name": "artifacts", "description": "Artifact metadata and payload downloads"},
         ],
@@ -338,7 +715,7 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
                 "error": {
                     "code": error.code,
                     "message": redact_text(error.message, known),
-                    "details": redact(error.details or {}, known),
+                    "details": normalize_json_object(redact(error.details or {}, known)),
                     "retryable": error.retryable,
                 }
             },
@@ -591,51 +968,68 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
     ) -> list[dict[str, Any]]:
         return _service(request).export_project(project_id, format_name=format_name)
 
-    @app.get("/api/projects/{project_id}/segments", tags=["projects"])
+    @app.get(
+        "/api/projects/{project_id}/segments",
+        tags=["documents"],
+        response_model=list[SegmentResponse],
+        responses=_STABLE_ERROR_RESPONSES,
+    )
     async def list_segments(
         request: Request, project_id: str, job_id: str | None = None
     ) -> list[dict[str, Any]]:
-        return _service(request).list_segments(project_id, job_id=job_id)
+        service = _service(request)
+        context = await run_in_threadpool(_novel_source_context, service, project_id)
+        return await run_in_threadpool(_segment_payloads, service, context, job_id)
 
-    web_root = Path(str(resources.files("linguaspindle").joinpath("web")))
-    web_assets = {
-        "index.html": web_root.joinpath("index.html").read_bytes(),
-        "app.js": web_root.joinpath("app.js").read_bytes(),
-        "styles.css": web_root.joinpath("styles.css").read_bytes(),
-    }
+    @app.post(
+        "/api/projects/{project_id}/segments/translate",
+        tags=["documents"],
+        response_model=SelectedTranslationResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
+    async def translate_selected_project_segments(
+        request: Request,
+        project_id: str,
+        body: TranslateSegmentsRequest,
+    ) -> dict[str, Any]:
+        """Translate only explicit stable Segment IDs and persist the JSON result Artifact."""
+
+        return await run_in_threadpool(
+            _translate_selected_segments,
+            _service(request),
+            project_id,
+            body,
+        )
+
+    @app.post(
+        "/api/projects/{project_id}/rebuild",
+        tags=["documents"],
+        response_model=RebuildDocumentResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
+    async def rebuild_project_document(
+        request: Request,
+        project_id: str,
+        body: RebuildDocumentRequest,
+    ) -> dict[str, Any]:
+        """Rebuild from the immutable Source using only caller-supplied Segment text."""
+
+        return await run_in_threadpool(
+            _rebuild_from_external_translations,
+            _service(request),
+            project_id,
+            body,
+        )
 
     @app.get("/", include_in_schema=False)
-    async def web_index() -> Response:
-        return Response(
-            content=web_assets["index.html"],
-            media_type="text/html",
-            headers={"Cache-Control": "no-store"},
-        )
-
-    @app.get("/app.js", include_in_schema=False)
-    async def web_javascript() -> Response:
-        return Response(
-            content=web_assets["app.js"],
-            media_type="text/javascript",
-            headers={"Cache-Control": "no-cache"},
-        )
-
-    @app.get("/styles.css", include_in_schema=False)
-    async def web_styles() -> Response:
-        return Response(
-            content=web_assets["styles.css"],
-            media_type="text/css",
-            headers={"Cache-Control": "no-cache"},
-        )
-
-    @app.get("/{path:path}", include_in_schema=False)
-    async def web_fallback(path: str) -> Response:
-        if path.startswith("api/") or path in {"health", "docs", "openapi.json"}:
-            raise HTTPException(status_code=404, detail="Not found")
-        return Response(
-            content=web_assets["index.html"],
-            media_type="text/html",
-            headers={"Cache-Control": "no-store"},
-        )
+    async def headless_root() -> dict[str, str]:
+        return {
+            "name": "LinguaSpindle",
+            "version": __version__,
+            "mode": "headless",
+            "health": "/health",
+            "docs": "/docs",
+            "openapi": "/openapi.json",
+        }
 
     return app

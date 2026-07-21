@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from ..errors import ErrorCode, LinguaError
+from ..json_types import JsonValue
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,17 +50,18 @@ class AdapterHealth:
 class MangaAdapterResult:
     image: bytes
     media_type: str
-    raw_metadata: dict[str, Any]
+    raw_metadata: dict[str, JsonValue]
+    logs: tuple[str, ...] = ()
 
 
-class Adapter(ABC):
+@runtime_checkable
+class MangaTranslationAdapter(Protocol):
+    """Image translation contract kept distinct from text Providers."""
+
     manifest: AdapterManifest
 
-    @abstractmethod
-    def health(self) -> AdapterHealth:
-        raise NotImplementedError
+    def health(self) -> AdapterHealth: ...
 
-    @abstractmethod
     def translate_image(
         self,
         *,
@@ -68,15 +69,19 @@ class Adapter(ABC):
         filename: str,
         source_language: str,
         target_language: str,
-    ) -> MangaAdapterResult:
-        raise NotImplementedError
+    ) -> MangaAdapterResult: ...
+
+
+# v0.1/v0.2 compatibility name. The stable v0.3 public name is
+# ``MangaTranslationAdapter``.
+Adapter = MangaTranslationAdapter
 
 
 class AdapterRegistry:
-    def __init__(self, adapters: list[Adapter]):
+    def __init__(self, adapters: list[MangaTranslationAdapter]):
         self._adapters = {adapter.manifest.id: adapter for adapter in adapters}
 
-    def get(self, adapter_id: str, capability: str | None = None) -> Adapter:
+    def get(self, adapter_id: str, capability: str | None = None) -> MangaTranslationAdapter:
         try:
             adapter = self._adapters[adapter_id]
         except KeyError as exc:
@@ -88,7 +93,7 @@ class AdapterRegistry:
             )
         return adapter
 
-    def select(self, capability: str) -> Adapter:
+    def select(self, capability: str) -> MangaTranslationAdapter:
         for adapter in self._adapters.values():
             if capability in adapter.manifest.capabilities and adapter.health().available:
                 return adapter

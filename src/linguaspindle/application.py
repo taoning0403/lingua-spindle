@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import mimetypes
@@ -21,8 +22,9 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import selectinload
 
 from . import __version__
-from .adapters import AdapterRegistry, MangaImageTranslatorHttpAdapter, MockMangaAdapter
+from .adapters import AdapterRegistry, MangaTranslationAdapter, MockMangaAdapter
 from .config import Settings
+from .core.manga import inspect_manga
 from .database import Database
 from .epub import inspect_epub, is_bcp47_language_tag
 from .errors import ErrorCode, LinguaError
@@ -48,7 +50,7 @@ from .orchestration.state import (
     ensure_job_transition,
     ensure_step_transition,
 )
-from .providers import MockProvider, OpenAICompatibleProvider, ProviderRegistry
+from .providers import MockProvider, ProviderRegistry, TranslationProvider
 from .security import redact, redact_text
 from .storage import ArtifactStore
 
@@ -58,6 +60,7 @@ _CONTENT_ARTIFACT_KINDS = {
     "epub_segments",
     "epub_translations",
     "manga_manifest",
+    "manga_translation_result",
     "novel_export_json",
     "novel_export_txt",
     "novel_segments",
@@ -93,10 +96,47 @@ class ApplicationService:
             for temporary in settings.cache_dir.glob(pattern):
                 if temporary.is_file() or temporary.is_symlink():
                     temporary.unlink(missing_ok=True)
-        self.providers = ProviderRegistry([MockProvider(), OpenAICompatibleProvider(settings)])
-        self.adapters = AdapterRegistry(
-            [MockMangaAdapter(), MangaImageTranslatorHttpAdapter(settings)]
-        )
+        providers: list[TranslationProvider] = [MockProvider()]
+        adapters: list[MangaTranslationAdapter] = [MockMangaAdapter()]
+        try:
+            from .providers.openai_compatible import (
+                OpenAICompatibleProvider,
+                OpenAIProviderConfig,
+            )
+        except ModuleNotFoundError as exc:
+            if exc.name != "httpx":
+                raise
+        else:
+            providers.append(
+                OpenAICompatibleProvider(
+                    OpenAIProviderConfig(
+                        base_url=settings.openai_base_url,
+                        model=settings.openai_model,
+                        timeout_seconds=settings.openai_timeout_seconds,
+                        api_key=settings.openai_api_key,
+                    )
+                )
+            )
+        try:
+            from .adapters.manga_image_translator import (
+                MangaImageTranslatorConfig,
+                MangaImageTranslatorHttpAdapter,
+            )
+        except ModuleNotFoundError as exc:
+            if exc.name != "httpx":
+                raise
+        else:
+            adapters.append(
+                MangaImageTranslatorHttpAdapter(
+                    MangaImageTranslatorConfig(
+                        base_url=settings.mit_base_url,
+                        timeout_seconds=settings.mit_timeout_seconds,
+                        request_config=json.loads(settings.mit_config_json),
+                    )
+                )
+            )
+        self.providers = ProviderRegistry(providers)
+        self.adapters = AdapterRegistry(adapters)
         self._sync_provider_configs()
 
     def close(self) -> None:
@@ -108,6 +148,17 @@ class ApplicationService:
 
     def _redact_text(self, value: str) -> str:
         return redact_text(value, [self.settings.openai_api_key or ""])
+
+    @staticmethod
+    def _provider_public_status(provider: TranslationProvider) -> dict[str, Any]:
+        public_status = getattr(provider, "public_status", None)
+        if callable(public_status):
+            return dict(public_status())
+        return {
+            "id": provider.id,
+            "display_name": getattr(provider, "display_name", provider.id),
+            "configured": True,
+        }
 
     def _redact_content_text(self, value: str) -> str:
         """Remove only the active runtime key without rewriting user-authored prose."""
@@ -435,7 +486,7 @@ class ApplicationService:
                 )
             source_metadata: dict[str, Any] = {}
             if source_kind == "epub":
-                inspection = inspect_epub(stored_path, self.settings)
+                inspection = inspect_epub(stored_path, self.settings.archive_limits())
                 if secret:
                     with zipfile.ZipFile(stored_path, "r") as archive:
                         if self._archive_contains(archive, secret.encode()):
@@ -469,20 +520,27 @@ class ApplicationService:
                     "navigation_documents": inspection.get("navigation_documents", []),
                 }
                 guessed_type = "application/epub+zip"
-            elif source_kind == "cbz" and secret:
-                try:
+            elif source_kind == "cbz":
+                manga_manifest = inspect_manga(
+                    stored_path,
+                    filename=source_name,
+                    archive_limits=self.settings.archive_limits(),
+                    maximum_bytes=self.settings.max_upload_bytes,
+                )
+                source_metadata = {
+                    "format": "cbz",
+                    "page_count": len(manga_manifest.pages),
+                }
+                guessed_type = "application/vnd.comicbook+zip"
+                if secret:
                     with zipfile.ZipFile(stored_path, "r") as archive:
                         contains_secret = self._archive_contains(archive, secret.encode())
-                except zipfile.BadZipFile as exc:
-                    raise LinguaError(
-                        ErrorCode.INVALID_FORMAT, "Manga source is not a valid CBZ/ZIP archive"
-                    ) from exc
-                if contains_secret:
-                    raise LinguaError(
-                        ErrorCode.CONFIGURATION,
-                        "Imported source contains the runtime Provider secret; "
-                        "remove it before import",
-                    )
+                    if contains_secret:
+                        raise LinguaError(
+                            ErrorCode.CONFIGURATION,
+                            "Imported source contains the runtime Provider secret; "
+                            "remove it before import",
+                        )
             with self.database.session() as session:
                 project = Project(
                     id=project_id,
@@ -792,7 +850,11 @@ class ApplicationService:
             target_language=cleaned_target,
             provider_id=provider_id,
             model=self._redact_text(
-                model or str(provider.public_status().get("model") or self.settings.openai_model)
+                model
+                or str(
+                    self._provider_public_status(provider).get("model")
+                    or self.settings.openai_model
+                )
             ),
             style=cleaned_style,
             prompt_template=cleaned_prompt,
@@ -886,7 +948,7 @@ class ApplicationService:
                     target_language=project.target_language,
                     provider_id=selected_provider,
                     model=self._redact_text(
-                        str(provider.public_status().get("model") or "unknown")
+                        str(self._provider_public_status(provider).get("model") or "unknown")
                     ),
                 )
                 session.add(profile)
@@ -897,7 +959,7 @@ class ApplicationService:
             snapshot = self._profile_public(profile)
             snapshot["provider_id"] = selected_provider
             snapshot["model"] = self._redact_text(
-                str(provider.public_status().get("model") or "unknown")
+                str(self._provider_public_status(provider).get("model") or "unknown")
             )
             job = Job(
                 id=new_id(),
@@ -1117,6 +1179,45 @@ class ApplicationService:
             if not retryable:
                 raise LinguaError(ErrorCode.INVALID_STATE, "Job has no failed Step to retry")
             restart_order = min(step.step_order for step in retryable)
+            has_legacy_segments = bool(
+                session.scalar(
+                    select(func.count())
+                    .select_from(TranslationSegment)
+                    .where(
+                        TranslationSegment.job_id == job_id,
+                        TranslationSegment.segment_key.is_(None),
+                    )
+                )
+            )
+            has_legacy_manga_manifest = False
+            if job.pipeline_key == "manga_full_v1":
+                manga_manifest = session.scalar(
+                    select(Artifact)
+                    .where(
+                        Artifact.job_id == job_id,
+                        Artifact.kind == "manga_manifest",
+                    )
+                    .order_by(Artifact.created_at.desc())
+                    .limit(1)
+                )
+                if manga_manifest is not None:
+                    try:
+                        manifest_payload = json.loads(
+                            self.store.read_bytes(manga_manifest.storage_key)
+                        )
+                    except (LinguaError, json.JSONDecodeError, UnicodeDecodeError):
+                        has_legacy_manga_manifest = True
+                    else:
+                        has_legacy_manga_manifest = not (
+                            isinstance(manifest_payload, dict)
+                            and manifest_payload.get("schema_version")
+                            == "runtime-manga-manifest.v1"
+                        )
+            if has_legacy_segments or has_legacy_manga_manifest:
+                # v0.2 Segment rows and Manga manifests predate the canonical
+                # v0.3 IDs/DTOs. Re-run pure preparation from the immutable
+                # Source instead of trusting or rewriting historical outputs.
+                restart_order = min(step.step_order for step in job.steps)
             for step in job.steps:
                 if step.step_order < restart_order:
                     continue
@@ -1448,7 +1549,7 @@ class ApplicationService:
             kinds = (
                 {"novel_export_txt", "novel_export_json", "novel_export_epub"}
                 if project.kind == "novel"
-                else {"manga_export_cbz", "manga_page_translated"}
+                else {"manga_export_cbz", "manga_export_image", "manga_page_translated"}
             )
             if format_name:
                 normalized = format_name.lower().lstrip(".")
@@ -1517,6 +1618,25 @@ class ApplicationService:
         profile_json = json.dumps(profile, ensure_ascii=False)
         reused = 0
         with self.database.session() as session:
+            source_checksum = (
+                session.scalar(
+                    select(Source.checksum)
+                    .where(Source.project_id == project_id)
+                    .order_by(Source.created_at.desc())
+                    .limit(1)
+                )
+                or ""
+            )
+            current_successes = {
+                (row.sequence, row.source_text): (row.translated_text, row.model)
+                for row in session.scalars(
+                    select(TranslationSegment).where(
+                        TranslationSegment.job_id == job_id,
+                        TranslationSegment.status == "succeeded",
+                        TranslationSegment.translated_text.is_not(None),
+                    )
+                )
+            }
             session.execute(delete(QaFinding).where(QaFinding.job_id == job_id))
             session.execute(delete(TranslationSegment).where(TranslationSegment.job_id == job_id))
             for fallback_sequence, record in enumerate(records):
@@ -1539,16 +1659,44 @@ class ApplicationService:
                     )
                 if previous is not None:
                     reused += 1
+                current_success = current_successes.get((sequence, text))
+                if previous is None and current_success is not None:
+                    # A v0.2 retry may need to regenerate canonical Segment IDs
+                    # from the immutable Source. Preserve successful work from
+                    # that same Job when sequence and source text still match.
+                    reused += 1
+                translated_text = (
+                    previous.translated_text
+                    if previous is not None
+                    else current_success[0]
+                    if current_success is not None
+                    else None
+                )
+                translated_model = (
+                    previous.model
+                    if previous is not None
+                    else current_success[1]
+                    if current_success is not None
+                    else None
+                )
+                locator = record.get("locator", {})
+                segment_key = str(record.get("segment_id") or "") or self._stable_segment_key(
+                    source_checksum=source_checksum,
+                    sequence=sequence,
+                    source_text=text,
+                    locator=locator if isinstance(locator, dict) else {},
+                )
                 session.add(
                     TranslationSegment(
                         id=new_id(),
+                        segment_key=segment_key,
                         project_id=project_id,
                         job_id=job_id,
                         sequence=sequence,
                         source_text=text,
-                        translated_text=previous.translated_text if previous else None,
-                        status="succeeded" if previous else "pending",
-                        model=previous.model if previous else None,
+                        translated_text=translated_text,
+                        status="succeeded" if translated_text is not None else "pending",
+                        model=translated_model,
                         profile_snapshot_json=profile_json,
                         prompt_version=str(profile.get("prompt_version", "v1")),
                         source_artifact_id=record.get("source_artifact_id"),
@@ -1561,6 +1709,29 @@ class ApplicationService:
                     )
                 )
         return reused
+
+    @staticmethod
+    def _stable_segment_key(
+        *,
+        source_checksum: str,
+        sequence: int,
+        source_text: str,
+        locator: dict[str, Any],
+    ) -> str:
+        source_hash = hashlib.sha256(source_text.encode("utf-8")).hexdigest()
+        location: dict[str, Any] | int = locator if locator else sequence
+        payload = json.dumps(
+            {
+                "schema_version": "runtime-segment-key.v1",
+                "source_checksum": source_checksum,
+                "location": location,
+                "source_hash": source_hash,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     def segment_rows(self, job_id: str) -> list[TranslationSegment]:
         with self.database.session() as session:
@@ -1631,6 +1802,13 @@ class ApplicationService:
             return [
                 {
                     "id": row.id,
+                    "segment_id": row.segment_key
+                    or self._stable_segment_key(
+                        source_checksum="legacy-v0.2",
+                        sequence=row.sequence,
+                        source_text=row.source_text,
+                        locator=_loads(row.locator_json, {}),
+                    ),
                     "job_id": row.job_id,
                     "sequence": row.sequence,
                     "source_artifact_id": row.source_artifact_id,

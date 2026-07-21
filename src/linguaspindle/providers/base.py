@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from ..errors import ErrorCode, LinguaError
+from ..json_types import JsonValue
 
 
 @dataclass(frozen=True, slots=True)
@@ -14,10 +14,10 @@ class TranslationRequest:
     text: str
     source_language: str
     target_language: str
-    style: str
-    prompt_template: str
-    prompt_version: str
-    model_parameters: dict[str, Any]
+    style: str = ""
+    prompt_template: str = "{text}"
+    prompt_version: str = "v1"
+    model_parameters: dict[str, JsonValue] | None = None
 
     def prompt(self) -> str:
         return self.prompt_template.format(
@@ -35,21 +35,13 @@ class TranslationResult:
     usage: dict[str, int] | None = None
 
 
-class TranslationProvider(ABC):
+@runtime_checkable
+class TranslationProvider(Protocol):
+    """Minimal caller-implementable text translation contract."""
+
     id: str
-    display_name: str
 
-    @abstractmethod
-    def configured(self) -> bool:
-        raise NotImplementedError
-
-    @abstractmethod
-    def public_status(self) -> dict[str, Any]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def translate(self, request: TranslationRequest) -> TranslationResult:
-        raise NotImplementedError
+    def translate(self, request: TranslationRequest) -> TranslationResult: ...
 
 
 class ProviderRegistry:
@@ -65,4 +57,17 @@ class ProviderRegistry:
             ) from exc
 
     def statuses(self) -> list[dict[str, Any]]:
-        return [provider.public_status() for provider in self._providers.values()]
+        statuses: list[dict[str, Any]] = []
+        for provider in self._providers.values():
+            public_status = getattr(provider, "public_status", None)
+            if callable(public_status):
+                statuses.append(dict(public_status()))
+            else:
+                statuses.append(
+                    {
+                        "id": provider.id,
+                        "display_name": getattr(provider, "display_name", provider.id),
+                        "configured": True,
+                    }
+                )
+        return statuses

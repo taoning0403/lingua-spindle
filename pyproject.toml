@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,11 +8,11 @@ version = "0.2.0"
 description = "Open-source translation orchestration for novels and manga"
 readme = "README.md"
 requires-python = ">=3.11"
-license = {file = "LICENSE"}
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [{name = "LinguaSpindle contributors"}]
 classifiers = [
   "Development Status :: 3 - Alpha",
-  "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -21,23 +21,57 @@ classifiers = [
 ]
 dependencies = [
   "charset-normalizer>=3.4,<4",
+]
+
+[project.optional-dependencies]
+openai = [
+  "httpx>=0.27,<1",
+]
+manga = [
+  "httpx>=0.27,<1",
+]
+runtime = [
+  "platformdirs>=4.3,<5",
+  "sqlalchemy>=2.0,<3",
+]
+cli = [
+  "typer>=0.15,<0.16",
+]
+server = [
+  "fastapi>=0.115.6,<0.116",
+  "platformdirs>=4.3,<5",
+  "pydantic>=2.10,<3",
+  "python-multipart>=0.0.18,<1",
+  "sqlalchemy>=2.0,<3",
+  "starlette>=0.40,<0.47",
+  "uvicorn>=0.32,<0.35",
+]
+all = [
   "fastapi>=0.115.6,<0.116",
   "httpx>=0.27,<1",
   "platformdirs>=4.3,<5",
   "pydantic>=2.10,<3",
   "python-multipart>=0.0.18,<1",
   "sqlalchemy>=2.0,<3",
+  "starlette>=0.40,<0.47",
   "typer>=0.15,<0.16",
   "uvicorn>=0.32,<0.35",
 ]
-
-[project.optional-dependencies]
 dev = [
+  "build>=1.2,<2",
+  "fastapi>=0.115.6,<0.116",
+  "httpx>=0.27,<1",
   "mypy>=1.14,<2",
-  "playwright>=1.49,<2",
+  "platformdirs>=4.3,<5",
+  "pydantic>=2.10,<3",
+  "python-multipart>=0.0.18,<1",
   "pytest>=8.3,<9",
   "pytest-cov>=6,<7",
   "ruff>=0.9,<1",
+  "sqlalchemy>=2.0,<3",
+  "starlette>=0.40,<0.47",
+  "typer>=0.15,<0.16",
+  "uvicorn>=0.32,<0.35",
 ]
 
 [project.scripts]
@@ -55,18 +89,16 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-linguaspindle = ["migrations/*.sql", "web/*.html", "web/*.js", "web/*.css"]
+linguaspindle = ["migrations/*.sql"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"
 testpaths = ["tests"]
-markers = [
-  "browser: real Chromium browser acceptance against a live local server",
-]
 
 [tool.coverage.run]
 branch = true
 source = ["linguaspindle"]
+omit = ["acceptance/*"]
 
 [tool.coverage.report]
 show_missing = true

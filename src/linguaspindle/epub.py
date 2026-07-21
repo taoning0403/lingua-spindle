@@ -19,14 +19,12 @@ import zipfile
 import zlib
 from collections.abc import Mapping, Sequence
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Any, NoReturn, cast
+from typing import Any, NoReturn, cast
 from urllib.parse import unquote, urlsplit
 from xml.etree import ElementTree as ET
 
 from linguaspindle.errors import ErrorCode, LinguaError
-
-if TYPE_CHECKING:
-    from linguaspindle.config import Settings
+from linguaspindle.limits import ArchiveLimits
 
 _CONTAINER_PATH = "META-INF/container.xml"
 _MIMETYPE_PATH = "mimetype"
@@ -130,8 +128,17 @@ def _validation_failed(details: dict[str, Any] | None = None) -> NoReturn:
     )
 
 
-def _setting_number(settings: Settings | None, name: str, default: int | float) -> int | float:
-    value = getattr(settings, name, default) if settings is not None else default
+def _limit_number(
+    limits: object | None,
+    name: str,
+    default: int | float,
+    legacy_name: str,
+) -> int | float:
+    value = (
+        getattr(limits, name, getattr(limits, legacy_name, default))
+        if limits is not None
+        else default
+    )
     if isinstance(default, float):
         try:
             result = float(value)
@@ -145,24 +152,34 @@ def _setting_number(settings: Settings | None, name: str, default: int | float) 
     return result if result > 0 else default
 
 
-def _limits(settings: Settings | None) -> dict[str, int | float]:
+def _limits(limits: ArchiveLimits | None) -> dict[str, int | float]:
     return {
-        "max_archive_files": _setting_number(settings, "max_archive_files", _DEFAULT_MAX_FILES),
-        "max_archive_uncompressed_bytes": _setting_number(
-            settings,
-            "max_archive_uncompressed_bytes",
+        "max_archive_files": _limit_number(
+            limits, "max_files", _DEFAULT_MAX_FILES, "max_archive_files"
+        ),
+        "max_archive_uncompressed_bytes": _limit_number(
+            limits,
+            "max_uncompressed_bytes",
             _DEFAULT_MAX_TOTAL_BYTES,
+            "max_archive_uncompressed_bytes",
         ),
-        "max_archive_member_bytes": _setting_number(
-            settings, "max_archive_member_bytes", _DEFAULT_MAX_MEMBER_BYTES
+        "max_archive_member_bytes": _limit_number(
+            limits,
+            "max_member_bytes",
+            _DEFAULT_MAX_MEMBER_BYTES,
+            "max_archive_member_bytes",
         ),
-        "max_archive_compression_ratio": _setting_number(
-            settings,
-            "max_archive_compression_ratio",
+        "max_archive_compression_ratio": _limit_number(
+            limits,
+            "max_compression_ratio",
             _DEFAULT_MAX_COMPRESSION_RATIO,
+            "max_archive_compression_ratio",
         ),
-        "max_archive_path_depth": _setting_number(
-            settings, "max_archive_path_depth", _DEFAULT_MAX_PATH_DEPTH
+        "max_archive_path_depth": _limit_number(
+            limits,
+            "max_path_depth",
+            _DEFAULT_MAX_PATH_DEPTH,
+            "max_archive_path_depth",
         ),
     }
 
@@ -213,11 +230,11 @@ def _compression_ratio(member: zipfile.ZipInfo) -> float:
 
 
 def _validate_archive_entries(
-    archive: zipfile.ZipFile, settings: Settings | None
+    archive: zipfile.ZipFile, limits: ArchiveLimits | None
 ) -> tuple[dict[str, zipfile.ZipInfo], dict[str, Any]]:
-    limits = _limits(settings)
+    configured = _limits(limits)
     infos = archive.infolist()
-    max_files = int(limits["max_archive_files"])
+    max_files = int(configured["max_archive_files"])
     if len(infos) > max_files:
         _resource_limit(
             "EPUB contains too many ZIP members",
@@ -226,10 +243,10 @@ def _validate_archive_entries(
     if not infos:
         _invalid("EPUB ZIP archive is empty")
 
-    max_member = int(limits["max_archive_member_bytes"])
-    max_total = int(limits["max_archive_uncompressed_bytes"])
-    max_ratio = float(limits["max_archive_compression_ratio"])
-    max_depth = int(limits["max_archive_path_depth"])
+    max_member = int(configured["max_archive_member_bytes"])
+    max_total = int(configured["max_archive_uncompressed_bytes"])
+    max_ratio = float(configured["max_archive_compression_ratio"])
+    max_depth = int(configured["max_archive_path_depth"])
     members: dict[str, zipfile.ZipInfo] = {}
     portable_names: set[str] = set()
     announced_total = 0
@@ -332,7 +349,7 @@ def _validate_archive_entries(
         "expanded_bytes": actual_total,
         "compressed_bytes": sum(item.compress_size for item in infos),
         "maximum_compression_ratio": observed_max_ratio,
-        "limits": limits,
+        "limits": configured,
     }
 
 
@@ -768,7 +785,7 @@ def _archive_sha256(path: Path) -> str:
 
 
 def inspect_epub(
-    source_path: str | os.PathLike[str], settings: Settings | None = None
+    source_path: str | os.PathLike[str], limits: ArchiveLimits | None = None
 ) -> dict[str, Any]:
     """Validate and inspect an unencrypted EPUB 2/3 into a JSON-serializable manifest.
 
@@ -783,7 +800,7 @@ def inspect_epub(
         _invalid("Source is not a valid EPUB ZIP archive", {"reason": type(exc).__name__})
 
     with archive:
-        members, archive_summary = _validate_archive_entries(archive, settings)
+        members, archive_summary = _validate_archive_entries(archive, limits)
         infos = archive.infolist()
         first = infos[0]
         if first.filename != _MIMETYPE_PATH:
@@ -1106,11 +1123,11 @@ def inspect_epub(
 
 
 def validate_epub(
-    source_path: str | os.PathLike[str], settings: Settings | None = None
+    source_path: str | os.PathLike[str], limits: ArchiveLimits | None = None
 ) -> dict[str, Any]:
     """Perform a fresh validation pass and return its compact JSON-safe summary."""
 
-    inspection = inspect_epub(source_path, settings)
+    inspection = inspect_epub(source_path, limits)
     return cast(dict[str, Any], inspection["validation"])
 
 
@@ -1447,7 +1464,7 @@ def build_translated_epub(
     manifest: Mapping[str, Any],
     translations: Mapping[object, object] | Sequence[object],
     target_language: str,
-    settings: Settings | None = None,
+    limits: ArchiveLimits | None = None,
 ) -> dict[str, Any]:
     """Atomically rebuild an EPUB, applying translations by sequence or locator.
 
@@ -1464,7 +1481,7 @@ def build_translated_epub(
     if not is_bcp47_language_tag(language):
         _invalid("Target language must be a plausible BCP 47 language tag")
 
-    inspected = inspect_epub(source, settings)
+    inspected = inspect_epub(source, limits)
     units = _assert_manifest_matches(manifest, inspected)
     translated_by_sequence = _translation_values(units, translations)
     package_path = str(inspected["package_document"])
@@ -1524,8 +1541,8 @@ def build_translated_epub(
 
         try:
             verified_non_text = _verify_unchanged_payloads(source, temporary_path, modified_paths)
-            validation = validate_epub(temporary_path, settings)
-            reinspection = inspect_epub(temporary_path, settings)
+            validation = validate_epub(temporary_path, limits)
+            reinspection = inspect_epub(temporary_path, limits)
         except LinguaError as exc:
             _validation_failed({"cause_code": exc.code})
         output_sha256 = str(reinspection["archive_sha256"])
