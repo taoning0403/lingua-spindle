@@ -1,0 +1,64 @@
+{
+  "schema_version": "linguaspindle-container-inspection.v1",
+  "status": "Pass",
+  "candidate_sha": "1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c",
+  "image": "lingua-spindle:0.3.1-acceptance-1d594943",
+  "image_digest": "sha256:0b0a0b7f0df9dbbd5ef19810835ed6aef45c8ad1f8b4cabf3c66e6be3d9e85ba",
+  "image_bytes": 61092560,
+  "platform": "linux/arm64",
+  "oci_version": "0.3.1",
+  "oci_revision": "1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c",
+  "application_version": "0.3.1",
+  "user": "10001:10001",
+  "effective_identity": "uid=10001(linguaspindle) gid=10001(linguaspindle)",
+  "read_only_root": true,
+  "root_write_probe": "Pass",
+  "tmpfs": "/tmp:size=512m,mode=1777",
+  "tmpfs_write_probe": "Pass",
+  "volume": "linguaspindle-v031-data-1d594943:/data",
+  "volume_write_probe": "Pass",
+  "no_new_privileges": true,
+  "host_port_binding": "127.0.0.1:60491 -> 8765/tcp",
+  "healthcheck": {
+    "interval_seconds": 15,
+    "timeout_seconds": 3,
+    "start_period_seconds": 10,
+    "retries": 5
+  },
+  "container_health": "healthy",
+  "root_response": {
+    "status": 200,
+    "request_id": "3677922a-fad6-4572-9176-08dac7e93de5",
+    "body": {
+      "name": "LinguaSpindle",
+      "version": "0.3.1",
+      "mode": "headless",
+      "health": "/health",
+      "docs": "/docs",
+      "openapi": "/openapi.json"
+    }
+  },
+  "health_response": {
+    "status": 200,
+    "request_id": "85805556-5ad6-4329-9c01-813142937fe8",
+    "body": {"status": "ok", "version": "0.3.1", "database": "ok"}
+  },
+  "system_response": {
+    "status": 200,
+    "request_id": "677f9a97-e720-4c84-94b8-677bb5767a33",
+    "require_idempotency_key": true,
+    "bind_default": "127.0.0.1"
+  },
+  "forced_idempotency_probe": {
+    "status": 428,
+    "error_code": "IDEMPOTENCY_KEY_REQUIRED",
+    "request_id": "docker-forced-428"
+  },
+  "migration_versions": [1, 2, 3, 4],
+  "idempotency_records_table": true,
+  "job_columns": ["execution_fingerprint", "request_id"],
+  "temporary_container_removed": true,
+  "temporary_volume_removed": true,
+  "residual_temporary_resources": [],
+  "local_image_retained": true
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": "linguaspindle-compose-verification.v1",
+  "status": "Pass",
+  "candidate_sha": "1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c",
+  "compose_version": "v5.3.0",
+  "image": "lingua-spindle:0.3.1",
+  "default_mode_config": "Pass",
+  "required_idempotency_mode_config": "Pass",
+  "default_required_idempotency": false,
+  "host_port_binding": "127.0.0.1:${LINGUASPINDLE_PORT:-8765}:8765",
+  "read_only_root": true,
+  "no_new_privileges": true,
+  "persistent_volume": "/data"
+}

@@ -1,0 +1,182 @@
+{
+  "adapter_manifest": {
+    "adapter_version": "1.0.0",
+    "capabilities": [
+      "manga_full_pipeline"
+    ],
+    "configuration_help": "No configuration required. For demos and tests only.",
+    "display_name": "Mock Manga Adapter",
+    "health_check": "built-in",
+    "id": "mock-manga",
+    "input_formats": [
+      "png",
+      "jpeg",
+      "webp"
+    ],
+    "invocation_type": "in_process_mock",
+    "languages": [
+      "*"
+    ],
+    "modified": false,
+    "output_formats": [
+      "png",
+      "jpeg",
+      "webp"
+    ],
+    "requires_gpu": false,
+    "supports_cancel": false,
+    "supports_progress": false,
+    "upstream_license": "Apache-2.0",
+    "upstream_url": "",
+    "upstream_version": "built-in"
+  },
+  "binary_evidence": [
+    {
+      "image_in_json": false,
+      "image_sha256": "07cdb04a0274d19fdd2d2cd26a4a2c34dce84568a16932b5ad2c64560ab8a22e",
+      "image_size": 111,
+      "page_id": "d36684c13aed7730dba40cd5e3a36717f056d0f514d5cb051b419a874dc6aec2"
+    },
+    {
+      "image_in_json": false,
+      "image_sha256": "d51642dd720448f4345843918da4f1a3067a9f95f4bbc0e48e32dab33173e6ad",
+      "image_size": 111,
+      "page_id": "6149d458ac34d33fb2ed54edec70abd27f57f64b2102ea344e959378bd65b2cf"
+    },
+    {
+      "image_in_json": false,
+      "image_sha256": "595f068a68c51602e20759853b8cf854d4bdfce9008935af2b9bffa4d69473b2",
+      "image_size": 111,
+      "page_id": "e3615f796de18ebb1b718a7fac11c350c6aa6cf069f1ac39a510bd1a301e4ede"
+    }
+  ],
+  "binary_policy": "omitted-from-json; sizes-and-sha256-recorded",
+  "build": {
+    "details": {
+      "adapter_id": "mock-manga",
+      "batch_status": "succeeded",
+      "omitted_count": 0
+    },
+    "output_sha256": "4f6115643db35edf3bebe11ca7b5bc7fad4e25468059e0d7f27520dec5bdfa67",
+    "output_size": 584,
+    "preserved_count": 0,
+    "schema_version": "build-result.v1",
+    "source_format": "cbz",
+    "translated_count": 3
+  },
+  "output": {
+    "page_count": 3,
+    "page_sha256": [
+      "07cdb04a0274d19fdd2d2cd26a4a2c34dce84568a16932b5ad2c64560ab8a22e",
+      "d51642dd720448f4345843918da4f1a3067a9f95f4bbc0e48e32dab33173e6ad",
+      "595f068a68c51602e20759853b8cf854d4bdfce9008935af2b9bffa4d69473b2"
+    ],
+    "sha256": "4f6115643db35edf3bebe11ca7b5bc7fad4e25468059e0d7f27520dec5bdfa67",
+    "size": 584,
+    "source_format": "cbz"
+  },
+  "schema_version": "acceptance-manga-adapter-result.v1",
+  "translation": {
+    "adapter_id": "mock-manga",
+    "manifest": {
+      "filename": "source.cbz",
+      "pages": [
+        {
+          "archive_member": "pages/001.png",
+          "media_type": "image/png",
+          "name": "001.png",
+          "order": 0,
+          "page_id": "d36684c13aed7730dba40cd5e3a36717f056d0f514d5cb051b419a874dc6aec2",
+          "source_sha256": "07cdb04a0274d19fdd2d2cd26a4a2c34dce84568a16932b5ad2c64560ab8a22e",
+          "source_size": 111
+        },
+        {
+          "archive_member": "pages/002.png",
+          "media_type": "image/png",
+          "name": "002.png",
+          "order": 1,
+          "page_id": "6149d458ac34d33fb2ed54edec70abd27f57f64b2102ea344e959378bd65b2cf",
+          "source_sha256": "d51642dd720448f4345843918da4f1a3067a9f95f4bbc0e48e32dab33173e6ad",
+          "source_size": 111
+        },
+        {
+          "archive_member": "pages/010.png",
+          "media_type": "image/png",
+          "name": "010.png",
+          "order": 2,
+          "page_id": "e3615f796de18ebb1b718a7fac11c350c6aa6cf069f1ac39a510bd1a301e4ede",
+          "source_sha256": "595f068a68c51602e20759853b8cf854d4bdfce9008935af2b9bffa4d69473b2",
+          "source_size": 111
+        }
+      ],
+      "schema_version": "manga-manifest.v1",
+      "source_format": "cbz",
+      "source_sha256": "eb053f305ff9d4f06aa00ade3d47cac718c411fd48ce5f5030d91e3a7da6b478",
+      "source_size": 614
+    },
+    "pages": [
+      {
+        "attempts": 1,
+        "error": null,
+        "image_size": 111,
+        "logs": [
+          "page translated on attempt 1"
+        ],
+        "media_type": "image/png",
+        "name": "001.png",
+        "order": 0,
+        "page_id": "d36684c13aed7730dba40cd5e3a36717f056d0f514d5cb051b419a874dc6aec2",
+        "raw_result": {
+          "bytes": 111,
+          "filename": "001.png",
+          "mock": true,
+          "source_language": "ja",
+          "target_language": "en"
+        },
+        "status": "succeeded"
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "image_size": 111,
+        "logs": [
+          "page translated on attempt 1"
+        ],
+        "media_type": "image/png",
+        "name": "002.png",
+        "order": 1,
+        "page_id": "6149d458ac34d33fb2ed54edec70abd27f57f64b2102ea344e959378bd65b2cf",
+        "raw_result": {
+          "bytes": 111,
+          "filename": "002.png",
+          "mock": true,
+          "source_language": "ja",
+          "target_language": "en"
+        },
+        "status": "succeeded"
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "image_size": 111,
+        "logs": [
+          "page translated on attempt 1"
+        ],
+        "media_type": "image/png",
+        "name": "010.png",
+        "order": 2,
+        "page_id": "e3615f796de18ebb1b718a7fac11c350c6aa6cf069f1ac39a510bd1a301e4ede",
+        "raw_result": {
+          "bytes": 111,
+          "filename": "010.png",
+          "mock": true,
+          "source_language": "ja",
+          "target_language": "en"
+        },
+        "status": "succeeded"
+      }
+    ],
+    "schema_version": "manga-translation.v1",
+    "status": "succeeded"
+  }
+}

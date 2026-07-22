@@ -1,0 +1,28 @@
+LinguaSpindle v0.3.1 acceptance environment
+acceptance_finished_utc=2026-07-22T07:49:12Z
+acceptance_finished_local=2026-07-22T15:49:12+0800 CST
+timezone=Asia/Shanghai
+candidate_sha=1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c
+branch=codex/v0.3.1-service-hardening
+package_version=0.3.1
+
+host_product=macOS 26.5.2 (25F84)
+host_kernel=Darwin 25.5.0 arm64
+host_architecture=arm64
+python=CPython 3.12.11
+pip=25.0.1
+git=2.50.1 Apple Git-155
+docker=29.6.1 build 8900f1d
+docker_compose=v5.3.0
+container_platform=linux/arm64
+
+default_provider=Mock Provider
+default_manga_adapter=Mock Manga Adapter
+paid_provider_execution=false
+real_external_manga_model_execution=false
+external_epubcheck_execution=false
+browser_or_gui_gate=false
+
+Network access was used only for the approved isolated build/extras dependency installation and
+Docker image build. Tests and smoke operations used Mock/fake protocols and made no paid Provider
+or real external manga-model request.

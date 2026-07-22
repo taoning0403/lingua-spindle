@@ -1,0 +1,779 @@
+{
+  "constraint": {
+    "filename": "constraints-v031.txt",
+    "sha256": "5e1dda1180e7a9fd544f7c5b9b7fb2f950e835c7858a2bae0dd68b92bde3352d"
+  },
+  "duration_seconds": 37.612,
+  "extras": [
+    {
+      "commands": [
+        {
+          "command": "python -m venv <temporary>/venv",
+          "duration_seconds": 0.888,
+          "name": "create-venv",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip install linguaspindle @ <wheel> --constraint <constraint>",
+          "duration_seconds": 0.611,
+          "name": "install-wheel-extra",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip check",
+          "duration_seconds": 0.091,
+          "name": "pip-check",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip list --format=json",
+          "duration_seconds": 0.075,
+          "name": "dependency-inventory",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "isolated core offline smoke",
+          "duration_seconds": 0.506,
+          "name": "core-offline-smoke",
+          "returncode": 0,
+          "status": "Pass"
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "charset-normalizer",
+          "version": "3.4.9"
+        },
+        {
+          "name": "linguaspindle",
+          "version": "0.3.1"
+        },
+        {
+          "name": "pip",
+          "version": "25.0.1"
+        }
+      ],
+      "extra": "core",
+      "smoke": {
+        "cbz_pages": 2,
+        "epub_format": "epub3",
+        "epub_segments": 26,
+        "manga_adapter": "mock-manga",
+        "optional_modules_absent": {
+          "fastapi": true,
+          "httpx": true,
+          "platformdirs": true,
+          "pydantic": true,
+          "sqlalchemy": true,
+          "typer": true,
+          "uvicorn": true
+        },
+        "png_pages": 1,
+        "provider": "mock",
+        "txt_segments": 2,
+        "version": "0.3.1"
+      },
+      "status": "Pass"
+    },
+    {
+      "commands": [
+        {
+          "command": "python -m venv <temporary>/venv",
+          "duration_seconds": 0.871,
+          "name": "create-venv",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip install linguaspindle[openai] @ <wheel> --constraint <constraint>",
+          "duration_seconds": 5.006,
+          "name": "install-wheel-extra",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip check",
+          "duration_seconds": 0.094,
+          "name": "pip-check",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip list --format=json",
+          "duration_seconds": 0.077,
+          "name": "dependency-inventory",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "isolated openai offline smoke",
+          "duration_seconds": 0.374,
+          "name": "openai-offline-smoke",
+          "returncode": 0,
+          "status": "Pass"
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "anyio",
+          "version": "4.14.2"
+        },
+        {
+          "name": "certifi",
+          "version": "2026.7.22"
+        },
+        {
+          "name": "charset-normalizer",
+          "version": "3.4.9"
+        },
+        {
+          "name": "h11",
+          "version": "0.16.0"
+        },
+        {
+          "name": "httpcore",
+          "version": "1.0.9"
+        },
+        {
+          "name": "httpx",
+          "version": "0.28.1"
+        },
+        {
+          "name": "idna",
+          "version": "3.18"
+        },
+        {
+          "name": "linguaspindle",
+          "version": "0.3.1"
+        },
+        {
+          "name": "pip",
+          "version": "25.0.1"
+        },
+        {
+          "name": "typing_extensions",
+          "version": "4.16.0"
+        }
+      ],
+      "extra": "openai",
+      "smoke": {
+        "explicit_config": true,
+        "provider": "openai-compatible",
+        "secret_repr_safe": true,
+        "unconfigured_fails_before_network": true
+      },
+      "status": "Pass"
+    },
+    {
+      "commands": [
+        {
+          "command": "python -m venv <temporary>/venv",
+          "duration_seconds": 0.869,
+          "name": "create-venv",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip install linguaspindle[manga] @ <wheel> --constraint <constraint>",
+          "duration_seconds": 2.551,
+          "name": "install-wheel-extra",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip check",
+          "duration_seconds": 0.095,
+          "name": "pip-check",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip list --format=json",
+          "duration_seconds": 0.076,
+          "name": "dependency-inventory",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "isolated manga offline smoke",
+          "duration_seconds": 0.37,
+          "name": "manga-offline-smoke",
+          "returncode": 0,
+          "status": "Pass"
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "anyio",
+          "version": "4.14.2"
+        },
+        {
+          "name": "certifi",
+          "version": "2026.7.22"
+        },
+        {
+          "name": "charset-normalizer",
+          "version": "3.4.9"
+        },
+        {
+          "name": "h11",
+          "version": "0.16.0"
+        },
+        {
+          "name": "httpcore",
+          "version": "1.0.9"
+        },
+        {
+          "name": "httpx",
+          "version": "0.28.1"
+        },
+        {
+          "name": "idna",
+          "version": "3.18"
+        },
+        {
+          "name": "linguaspindle",
+          "version": "0.3.1"
+        },
+        {
+          "name": "pip",
+          "version": "25.0.1"
+        },
+        {
+          "name": "typing_extensions",
+          "version": "4.16.0"
+        }
+      ],
+      "extra": "manga",
+      "smoke": {
+        "adapter": "manga-image-translator-http",
+        "explicit_config": true,
+        "health_without_network": true,
+        "unconfigured_fails_before_network": true
+      },
+      "status": "Pass"
+    },
+    {
+      "commands": [
+        {
+          "command": "python -m venv <temporary>/venv",
+          "duration_seconds": 0.872,
+          "name": "create-venv",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip install linguaspindle[runtime] @ <wheel> --constraint <constraint>",
+          "duration_seconds": 1.384,
+          "name": "install-wheel-extra",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip check",
+          "duration_seconds": 0.094,
+          "name": "pip-check",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip list --format=json",
+          "duration_seconds": 0.077,
+          "name": "dependency-inventory",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "isolated runtime offline smoke",
+          "duration_seconds": 1.024,
+          "name": "runtime-offline-smoke",
+          "returncode": 0,
+          "status": "Pass"
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "charset-normalizer",
+          "version": "3.4.9"
+        },
+        {
+          "name": "linguaspindle",
+          "version": "0.3.1"
+        },
+        {
+          "name": "pip",
+          "version": "25.0.1"
+        },
+        {
+          "name": "platformdirs",
+          "version": "4.10.1"
+        },
+        {
+          "name": "SQLAlchemy",
+          "version": "2.0.51"
+        },
+        {
+          "name": "typing_extensions",
+          "version": "4.16.0"
+        }
+      ],
+      "extra": "runtime",
+      "smoke": {
+        "background_threads_started": 0,
+        "database_created": true,
+        "migration_versions": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "stable_segment_key_column": true
+      },
+      "status": "Pass"
+    },
+    {
+      "commands": [
+        {
+          "command": "python -m venv <temporary>/venv",
+          "duration_seconds": 0.872,
+          "name": "create-venv",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip install linguaspindle[cli] @ <wheel> --constraint <constraint>",
+          "duration_seconds": 2.682,
+          "name": "install-wheel-extra",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip check",
+          "duration_seconds": 0.095,
+          "name": "pip-check",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip list --format=json",
+          "duration_seconds": 0.077,
+          "name": "dependency-inventory",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "python -I -m linguaspindle.interfaces.cli --version",
+          "duration_seconds": 0.466,
+          "name": "cli-version",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "linguaspindle document inspect <sample> --target-language fr",
+          "duration_seconds": 0.082,
+          "name": "cli-document-inspect",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "linguaspindle document translate <sample> --output <output> --target-language fr",
+          "duration_seconds": 0.082,
+          "name": "cli-document-translate",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "linguaspindle validate <output>",
+          "duration_seconds": 0.081,
+          "name": "cli-validate",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "in-process report assertion",
+          "duration_seconds": 0.0,
+          "name": "cli-offline-workflow",
+          "returncode": 0,
+          "status": "Pass"
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "charset-normalizer",
+          "version": "3.4.9"
+        },
+        {
+          "name": "click",
+          "version": "8.1.8"
+        },
+        {
+          "name": "linguaspindle",
+          "version": "0.3.1"
+        },
+        {
+          "name": "markdown-it-py",
+          "version": "4.2.0"
+        },
+        {
+          "name": "mdurl",
+          "version": "0.1.2"
+        },
+        {
+          "name": "pip",
+          "version": "25.0.1"
+        },
+        {
+          "name": "Pygments",
+          "version": "2.20.0"
+        },
+        {
+          "name": "rich",
+          "version": "15.0.0"
+        },
+        {
+          "name": "shellingham",
+          "version": "1.5.4"
+        },
+        {
+          "name": "typer",
+          "version": "0.15.4"
+        },
+        {
+          "name": "typing_extensions",
+          "version": "4.16.0"
+        }
+      ],
+      "extra": "cli",
+      "smoke": {
+        "inspect_schema": "document-manifest.v1",
+        "inspect_segments": 2,
+        "runtime_dependency_required": false,
+        "translated_segments": 2,
+        "validate_kind": "document",
+        "version": "0.3.1"
+      },
+      "status": "Pass"
+    },
+    {
+      "commands": [
+        {
+          "command": "python -m venv <temporary>/venv",
+          "duration_seconds": 0.872,
+          "name": "create-venv",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip install linguaspindle[server] @ <wheel> --constraint <constraint>",
+          "duration_seconds": 5.015,
+          "name": "install-wheel-extra",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip check",
+          "duration_seconds": 0.1,
+          "name": "pip-check",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip list --format=json",
+          "duration_seconds": 0.08,
+          "name": "dependency-inventory",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "isolated server offline smoke",
+          "duration_seconds": 1.295,
+          "name": "server-offline-smoke",
+          "returncode": 0,
+          "status": "Pass"
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "annotated-types",
+          "version": "0.7.0"
+        },
+        {
+          "name": "anyio",
+          "version": "4.14.2"
+        },
+        {
+          "name": "charset-normalizer",
+          "version": "3.4.9"
+        },
+        {
+          "name": "click",
+          "version": "8.4.2"
+        },
+        {
+          "name": "fastapi",
+          "version": "0.115.14"
+        },
+        {
+          "name": "h11",
+          "version": "0.16.0"
+        },
+        {
+          "name": "idna",
+          "version": "3.18"
+        },
+        {
+          "name": "linguaspindle",
+          "version": "0.3.1"
+        },
+        {
+          "name": "pip",
+          "version": "25.0.1"
+        },
+        {
+          "name": "platformdirs",
+          "version": "4.10.1"
+        },
+        {
+          "name": "pydantic",
+          "version": "2.13.4"
+        },
+        {
+          "name": "pydantic_core",
+          "version": "2.46.4"
+        },
+        {
+          "name": "python-multipart",
+          "version": "0.0.32"
+        },
+        {
+          "name": "SQLAlchemy",
+          "version": "2.0.51"
+        },
+        {
+          "name": "starlette",
+          "version": "0.46.2"
+        },
+        {
+          "name": "typing-inspection",
+          "version": "0.4.2"
+        },
+        {
+          "name": "typing_extensions",
+          "version": "4.16.0"
+        },
+        {
+          "name": "uvicorn",
+          "version": "0.34.3"
+        }
+      ],
+      "extra": "server",
+      "smoke": {
+        "document_routes_present": true,
+        "fallback_route_present": false,
+        "gui_routes_present": false,
+        "openapi_version": "3.1.0",
+        "root_mode": "headless",
+        "route_count": 28,
+        "test_client_dependency_required": false
+      },
+      "status": "Pass"
+    },
+    {
+      "commands": [
+        {
+          "command": "python -m venv <temporary>/venv",
+          "duration_seconds": 0.868,
+          "name": "create-venv",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip install linguaspindle[all] @ <wheel> --constraint <constraint>",
+          "duration_seconds": 6.606,
+          "name": "install-wheel-extra",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip check",
+          "duration_seconds": 0.102,
+          "name": "pip-check",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "pip list --format=json",
+          "duration_seconds": 0.079,
+          "name": "dependency-inventory",
+          "returncode": 0,
+          "status": "Pass"
+        },
+        {
+          "command": "isolated all offline smoke",
+          "duration_seconds": 1.616,
+          "name": "all-offline-smoke",
+          "returncode": 0,
+          "status": "Pass"
+        }
+      ],
+      "dependencies": [
+        {
+          "name": "annotated-types",
+          "version": "0.7.0"
+        },
+        {
+          "name": "anyio",
+          "version": "4.14.2"
+        },
+        {
+          "name": "certifi",
+          "version": "2026.7.22"
+        },
+        {
+          "name": "charset-normalizer",
+          "version": "3.4.9"
+        },
+        {
+          "name": "click",
+          "version": "8.1.8"
+        },
+        {
+          "name": "fastapi",
+          "version": "0.115.14"
+        },
+        {
+          "name": "h11",
+          "version": "0.16.0"
+        },
+        {
+          "name": "httpcore",
+          "version": "1.0.9"
+        },
+        {
+          "name": "httpx",
+          "version": "0.28.1"
+        },
+        {
+          "name": "idna",
+          "version": "3.18"
+        },
+        {
+          "name": "linguaspindle",
+          "version": "0.3.1"
+        },
+        {
+          "name": "markdown-it-py",
+          "version": "4.2.0"
+        },
+        {
+          "name": "mdurl",
+          "version": "0.1.2"
+        },
+        {
+          "name": "pip",
+          "version": "25.0.1"
+        },
+        {
+          "name": "platformdirs",
+          "version": "4.10.1"
+        },
+        {
+          "name": "pydantic",
+          "version": "2.13.4"
+        },
+        {
+          "name": "pydantic_core",
+          "version": "2.46.4"
+        },
+        {
+          "name": "Pygments",
+          "version": "2.20.0"
+        },
+        {
+          "name": "python-multipart",
+          "version": "0.0.32"
+        },
+        {
+          "name": "rich",
+          "version": "15.0.0"
+        },
+        {
+          "name": "shellingham",
+          "version": "1.5.4"
+        },
+        {
+          "name": "SQLAlchemy",
+          "version": "2.0.51"
+        },
+        {
+          "name": "starlette",
+          "version": "0.46.2"
+        },
+        {
+          "name": "typer",
+          "version": "0.15.4"
+        },
+        {
+          "name": "typing-inspection",
+          "version": "0.4.2"
+        },
+        {
+          "name": "typing_extensions",
+          "version": "4.16.0"
+        },
+        {
+          "name": "uvicorn",
+          "version": "0.34.3"
+        }
+      ],
+      "extra": "all",
+      "smoke": {
+        "cli": true,
+        "core": true,
+        "manga": true,
+        "migration_versions": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "openai": true,
+        "openapi_paths": 23,
+        "runtime": true,
+        "server": true,
+        "version": "0.3.1"
+      },
+      "status": "Pass"
+    }
+  ],
+  "finished_at": "2026-07-22T07:33:54.975682+00:00",
+  "host": {
+    "implementation": "CPython",
+    "machine": "arm64",
+    "python": "3.12.11",
+    "system": "Darwin"
+  },
+  "repository": {
+    "commit": "1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c",
+    "version": "0.3.1",
+    "working_tree_clean": true
+  },
+  "repository_sample": {
+    "path": "acceptance/v0.2.0/artifacts/samples/epub/source-multichapter.epub",
+    "sha256": "b37e462e7381a8685481a0c81901f6827a073cb36bebd9954bb3c33ef3db0fae"
+  },
+  "schema_version": "linguaspindle-extra-verification.v1",
+  "started_at": "2026-07-22T07:33:17.363850+00:00",
+  "status": "Pass",
+  "wheel": {
+    "filename": "linguaspindle-0.3.1-py3-none-any.whl",
+    "name": "linguaspindle",
+    "sha256": "44ef868324c1f2d24868c3fe3efb8f4b443f0954d2dde9f4a386d05995fb5976",
+    "size": 132544,
+    "version": "0.3.1"
+  }
+}

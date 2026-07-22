@@ -1,0 +1,33 @@
+{
+  "exit_code": 0,
+  "observed": {
+    "data_root_created": false,
+    "filesystem_entries_created": [],
+    "linguaspindle_modules_loaded": [
+      "linguaspindle",
+      "linguaspindle.adapters",
+      "linguaspindle.adapters.base",
+      "linguaspindle.adapters.mock_manga",
+      "linguaspindle.core",
+      "linguaspindle.core.documents",
+      "linguaspindle.core.io",
+      "linguaspindle.core.manga",
+      "linguaspindle.core.models",
+      "linguaspindle.core.orchestration",
+      "linguaspindle.core.txt",
+      "linguaspindle.epub",
+      "linguaspindle.errors",
+      "linguaspindle.json_types",
+      "linguaspindle.limits",
+      "linguaspindle.providers",
+      "linguaspindle.providers.base",
+      "linguaspindle.providers.mock",
+      "linguaspindle.security"
+    ],
+    "optional_modules_loaded": [],
+    "package_version": "0.3.1"
+  },
+  "probe": "fresh-process top-level import from repository src",
+  "schema_version": "acceptance-import-boundary.v1",
+  "stderr": ""
+}

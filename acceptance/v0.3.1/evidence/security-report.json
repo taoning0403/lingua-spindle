@@ -1,0 +1,22 @@
+{
+  "schema_version": "linguaspindle-service-hardening-security.v1",
+  "status": "Pass",
+  "candidate_sha": "1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c",
+  "security_and_artifact_tests": "17 passed",
+  "idempotency_unit_and_integration_tests": "19 passed",
+  "raw_idempotency_key_persisted": false,
+  "raw_idempotency_key_logged": false,
+  "provider_key_in_job_fingerprint": false,
+  "provider_key_in_database_or_artifacts": false,
+  "normalized_unexpected_http_error": true,
+  "synthetic_sentinel_scan": {
+    "status": "Pass",
+    "scopes": [
+      "candidate Wheel",
+      "retained deterministic samples",
+      "retained acceptance evidence"
+    ],
+    "matches": []
+  },
+  "real_credentials_used": false
+}

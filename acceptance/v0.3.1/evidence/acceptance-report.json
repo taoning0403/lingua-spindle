@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "product": "LinguaSpindle",
+  "version": "0.3.1",
+  "acceptance_date": "2026-07-22",
+  "timezone": "Asia/Shanghai",
+  "branch": "codex/v0.3.1-service-hardening",
+  "candidate_sha": "1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c",
+  "overall_status": "Pass",
+  "release_state": "release pending",
+  "required_status_counts": {
+    "Pass": 18,
+    "Fail": 0,
+    "Blocked": 0,
+    "Not executed": 0
+  },
+  "optional_external_status_counts": {
+    "Pass": 0,
+    "Fail": 0,
+    "Blocked": 0,
+    "Not executed": 5
+  },
+  "results": [
+    {"id": "A01", "status": "Pass", "requirement": "Preserve the published v0.3.0 tag and immutable acceptance archive", "evidence": "acceptance/v0.3.0/evidence/checksums.sha256; evidence/command-log.txt"},
+    {"id": "A02", "status": "Pass", "requirement": "Durable operation-scoped idempotency with hashed keys and semantic fingerprints", "evidence": "tests/unit/test_idempotency.py; tests/integration/test_service_idempotency.py"},
+    {"id": "A03", "status": "Pass", "requirement": "Atomic concurrent Project upload replay without duplicate rows or orphan payloads", "evidence": "tests/integration/test_service_idempotency.py"},
+    {"id": "A04", "status": "Pass", "requirement": "Database-enforced equivalent active Job coalescing across service instances", "evidence": "tests/integration/test_service_idempotency.py; evidence/migration-report.json"},
+    {"id": "A05", "status": "Pass", "requirement": "Selected translation, rebuild, and retry replay without repeated side effects", "evidence": "tests/integration/test_service_idempotency.py"},
+    {"id": "A06", "status": "Pass", "requirement": "Compatibility and required idempotency modes plus natural pause/resume/cancel idempotency", "evidence": "tests/integration/test_service_idempotency.py; evidence/container-report.json"},
+    {"id": "A07", "status": "Pass", "requirement": "Request ID correlation across every HTTP response and durable Job/Step evidence", "evidence": "tests/integration/test_service_idempotency.py; evidence/container-report.json"},
+    {"id": "A08", "status": "Pass", "requirement": "Stable idempotency errors and typed OpenAPI request/response headers", "evidence": "tests/integration/test_openapi_contract.py; tests/integration/test_service_idempotency.py"},
+    {"id": "A09", "status": "Pass", "requirement": "Provider Key and Idempotency-Key containment", "evidence": "evidence/security-report.json"},
+    {"id": "A10", "status": "Pass", "requirement": "Additive v0.3.0 to v0.3.1 migration without data loss", "evidence": "evidence/migration-report.json"},
+    {"id": "A11", "status": "Pass", "requirement": "Unchanged pure TXT, EPUB 2/3, image, and CBZ core behavior", "evidence": "248-test complete suite; artifacts/samples; evidence/sample-checksums.sha256"},
+    {"id": "A12", "status": "Pass", "requirement": "Exact v0.3.1 Wheel identity, version, dependencies, migrations, and contents", "evidence": "artifacts/wheels/linguaspindle-0.3.1-py3-none-any.whl; evidence/wheel-report.json"},
+    {"id": "A13", "status": "Pass", "requirement": "Seven isolated core and optional-extra installations", "evidence": "evidence/extras-report.json"},
+    {"id": "A14", "status": "Pass", "requirement": "Ruff, strict mypy, compileall, complete pytest, and branch coverage", "evidence": "evidence/command-log.txt"},
+    {"id": "A15", "status": "Pass", "requirement": "Compose compatibility and required-idempotency configuration", "evidence": "evidence/compose-report.json"},
+    {"id": "A16", "status": "Pass", "requirement": "Linux/arm64 non-root read-only Volume-backed container health and forced 428 protocol", "evidence": "evidence/container-report.json"},
+    {"id": "A17", "status": "Pass", "requirement": "Maintained product, architecture, data-model, API, Docker, migration, release, and ADR documentation", "evidence": "docs/PROJECT_STATE.md; docs/MODULE_MAP.md; docs/adr/0009-server-idempotency-and-request-correlation.md"},
+    {"id": "A18", "status": "Pass", "requirement": "Complete versioned checksummed acceptance archive", "evidence": "evidence/checksums.sha256"}
+  ],
+  "test_summary": {
+    "status": "Pass",
+    "passed": 248,
+    "skipped": 0,
+    "coverage_percent": 84,
+    "coverage_mode": "branch-aware",
+    "v0.3.0_baseline_percent": 83
+  },
+  "targeted_tests": {
+    "migration": "5 passed",
+    "idempotency": "19 passed",
+    "security_and_artifacts": "17 passed"
+  },
+  "static_checks": {
+    "ruff_format": "Pass",
+    "ruff_check": "Pass",
+    "strict_mypy": "Pass",
+    "compileall": "Pass",
+    "compose_default": "Pass",
+    "compose_required_idempotency": "Pass"
+  },
+  "wheel": {
+    "status": "Pass",
+    "path": "artifacts/wheels/linguaspindle-0.3.1-py3-none-any.whl",
+    "bytes": 132544,
+    "sha256": "44ef868324c1f2d24868c3fe3efb8f4b443f0954d2dde9f4a386d05995fb5976",
+    "version": "0.3.1",
+    "tag": "py3-none-any",
+    "file_count": 47,
+    "forbidden_gui_or_browser_files": [],
+    "migrations": ["0001_initial.sql", "0002_epub.sql", "0003_headless_core.sql", "0004_service_idempotency.sql"]
+  },
+  "extras": {
+    "status": "Pass",
+    "passed": 7,
+    "failed": 0,
+    "names": ["core", "openai", "manga", "runtime", "cli", "server", "all"],
+    "report": "evidence/extras-report.json"
+  },
+  "docker": {
+    "status": "Pass",
+    "image": "lingua-spindle:0.3.1-acceptance-1d594943",
+    "image_digest": "sha256:0b0a0b7f0df9dbbd5ef19810835ed6aef45c8ad1f8b4cabf3c66e6be3d9e85ba",
+    "bytes": 61092560,
+    "platform": "linux/arm64",
+    "version": "0.3.1",
+    "revision": "1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c",
+    "user": "10001:10001",
+    "read_only_root": true,
+    "volume": true,
+    "no_new_privileges": true,
+    "loopback_host_publish": true,
+    "health": "Pass",
+    "required_idempotency_428": "Pass",
+    "request_id": "Pass",
+    "temporary_container_removed": true,
+    "temporary_volume_removed": true,
+    "image_retained": true
+  },
+  "optional_external_tests": [
+    {"category": "Optional external test", "test": "Real paid OpenAI-compatible Provider", "status": "Not executed"},
+    {"category": "Optional external test", "test": "Real manga-image-translator model service", "status": "Not executed"},
+    {"category": "Optional external test", "test": "External epubcheck", "status": "Not executed"},
+    {"category": "Optional external test", "test": "Native Windows/WSL2", "status": "Not executed"},
+    {"category": "Optional external test", "test": "Python 3.11, 3.13, and 3.14 hosts", "status": "Not executed"}
+  ],
+  "remote_ci": {
+    "status": "Not executed by instruction",
+    "reason": "The candidate branch was not pushed; a target-commit green CI run remains required before claiming formal publication complete."
+  },
+  "publication": {
+    "remote_branch_push": "Not executed",
+    "main_merge": "Not executed",
+    "v0.3.1_tag": "Not executed",
+    "github_release": "Not executed",
+    "wheel_publication": "Not executed",
+    "image_publication": "Not executed",
+    "server_deployment": "Not executed"
+  }
+}

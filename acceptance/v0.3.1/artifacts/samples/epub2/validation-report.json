@@ -1,0 +1,102 @@
+{
+  "build": {
+    "details": {
+      "modified_documents": [
+        "OEBPS/Text/chapter-1.xhtml",
+        "OEBPS/Text/chapter-2.xhtml",
+        "OEBPS/content.opf",
+        "OEBPS/toc.ncx"
+      ],
+      "output_sha256": "7c0b29000254d28eb5ff41fc30dfcd2a01dc216880b4ea7786d6f56e85491a42",
+      "preserved_unit_count": 0,
+      "reinspection": {
+        "document_count": 3,
+        "epub_version": "2.0",
+        "languages": [
+          "zh-CN"
+        ],
+        "package_document": "OEBPS/content.opf",
+        "reading_order": [
+          "OEBPS/Text/chapter-1.xhtml",
+          "OEBPS/Text/chapter-2.xhtml"
+        ],
+        "resource_count": 5,
+        "text_unit_count": 13
+      },
+      "target_language": "zh-CN",
+      "text_unit_count": 13,
+      "translated_unit_count": 13,
+      "unchanged_payloads_verified": 4,
+      "valid": true,
+      "validation": {
+        "compressed_bytes": 1830,
+        "document_count": 3,
+        "expanded_bytes": 3525,
+        "limits": {
+          "max_archive_compression_ratio": 100.0,
+          "max_archive_files": 2000,
+          "max_archive_member_bytes": 104857600,
+          "max_archive_path_depth": 20,
+          "max_archive_uncompressed_bytes": 1048576000
+        },
+        "maximum_compression_ratio": 2.3992395437262357,
+        "member_count": 8,
+        "package_document": "OEBPS/content.opf",
+        "resource_count": 5,
+        "spine_document_count": 2,
+        "text_unit_count": 13,
+        "valid": true
+      }
+    },
+    "output_sha256": "7c0b29000254d28eb5ff41fc30dfcd2a01dc216880b4ea7786d6f56e85491a42",
+    "output_size": 2770,
+    "preserved_count": 0,
+    "schema_version": "build-result.v1",
+    "source_format": "epub2",
+    "translated_count": 13
+  },
+  "checks": {
+    "all_segments_translated": true,
+    "format_preserved": true,
+    "output_hash_matches_build": true,
+    "public_reinspection_succeeded": true,
+    "source_immutable": true
+  },
+  "output_manifest": {
+    "metadata": {
+      "epub_version": "2.0",
+      "package_document": "OEBPS/content.opf",
+      "package_metadata": {
+        "creators": [
+          "LinguaSpindle fixture"
+        ],
+        "descriptions": [
+          "[zh-CN] A deterministic two-chapter EPUB 2 fixture."
+        ],
+        "identifiers": [
+          "urn:uuid:linguaspindle-v031-epub2"
+        ],
+        "languages": [
+          "zh-CN"
+        ],
+        "subjects": [
+          "[zh-CN] Acceptance"
+        ],
+        "titles": [
+          "[zh-CN] Clockwork Harbor"
+        ]
+      },
+      "segment_count": 13,
+      "structure_contract": "epub-inspection.v1-opaque"
+    },
+    "segment_count": 13,
+    "source_format": "epub2",
+    "source_sha256": "7c0b29000254d28eb5ff41fc30dfcd2a01dc216880b4ea7786d6f56e85491a42",
+    "source_size": 2770
+  },
+  "output_sha256": "7c0b29000254d28eb5ff41fc30dfcd2a01dc216880b4ea7786d6f56e85491a42",
+  "schema_version": "acceptance-epub-validation.v1",
+  "scope": "linguaspindle-public-core-reinspection",
+  "source_format": "epub2",
+  "source_sha256": "7255594285668bd7436278a07211d840c0c90fbb4fd10448e05df85db9c611b5"
+}

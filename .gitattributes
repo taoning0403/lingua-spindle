@@ -1,2 +1,3 @@
 # Preserve the intentional CRLF source fixture without whitespace normalization or text diffs.
 acceptance/v0.3.0/artifacts/samples/txt/source.txt binary
+acceptance/v0.3.1/artifacts/samples/txt/source.txt binary

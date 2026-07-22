@@ -1,0 +1,18 @@
+{
+  "filename": "source.png",
+  "pages": [
+    {
+      "archive_member": null,
+      "media_type": "image/png",
+      "name": "source.png",
+      "order": 0,
+      "page_id": "5a032da78cac5f3afa1ad7d185424775314680f0bf80006e43c86a17ff1349c2",
+      "source_sha256": "a870ed14b9fb2edd980c1cbf21c2f31ff93fc9811018819180ae20ed4055ebf4",
+      "source_size": 124
+    }
+  ],
+  "schema_version": "manga-manifest.v1",
+  "source_format": "image",
+  "source_sha256": "a870ed14b9fb2edd980c1cbf21c2f31ff93fc9811018819180ae20ed4055ebf4",
+  "source_size": 124
+}

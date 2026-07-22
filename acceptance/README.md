@@ -29,3 +29,6 @@ original result remains visible and the later evidence is linked.
 - [v0.3.0](v0.3.0/README.md) — accepted headless/library-first release with checksummed
   core/extras/migration/sample evidence and published as the immutable `v0.3.0` tag. Its
   historical report retains its original pre-publication wording.
+- [v0.3.1](v0.3.1/README.md) — locally accepted service-call hardening candidate with durable
+  idempotency, active Job coalescing, request correlation, migration 0004, exact Wheel/extras,
+  hardened Docker health, leak scans, and checksummed evidence; publication is pending approval.

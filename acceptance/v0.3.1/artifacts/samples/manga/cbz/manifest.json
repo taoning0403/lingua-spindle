@@ -1,0 +1,36 @@
+{
+  "filename": "source.cbz",
+  "pages": [
+    {
+      "archive_member": "pages/001.png",
+      "media_type": "image/png",
+      "name": "001.png",
+      "order": 0,
+      "page_id": "d36684c13aed7730dba40cd5e3a36717f056d0f514d5cb051b419a874dc6aec2",
+      "source_sha256": "07cdb04a0274d19fdd2d2cd26a4a2c34dce84568a16932b5ad2c64560ab8a22e",
+      "source_size": 111
+    },
+    {
+      "archive_member": "pages/002.png",
+      "media_type": "image/png",
+      "name": "002.png",
+      "order": 1,
+      "page_id": "6149d458ac34d33fb2ed54edec70abd27f57f64b2102ea344e959378bd65b2cf",
+      "source_sha256": "d51642dd720448f4345843918da4f1a3067a9f95f4bbc0e48e32dab33173e6ad",
+      "source_size": 111
+    },
+    {
+      "archive_member": "pages/010.png",
+      "media_type": "image/png",
+      "name": "010.png",
+      "order": 2,
+      "page_id": "e3615f796de18ebb1b718a7fac11c350c6aa6cf069f1ac39a510bd1a301e4ede",
+      "source_sha256": "595f068a68c51602e20759853b8cf854d4bdfce9008935af2b9bffa4d69473b2",
+      "source_size": 111
+    }
+  ],
+  "schema_version": "manga-manifest.v1",
+  "source_format": "cbz",
+  "source_sha256": "eb053f305ff9d4f06aa00ade3d47cac718c411fd48ce5f5030d91e3a7da6b478",
+  "source_size": 614
+}

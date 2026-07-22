@@ -1,0 +1,17 @@
+{
+  "schema_version": "linguaspindle-migration-verification.v1",
+  "status": "Pass",
+  "candidate_sha": "1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c",
+  "target_schema_version": 4,
+  "migration": "0004_service_idempotency.sql",
+  "targeted_test_result": "5 passed",
+  "covered_sources": ["fresh", "v0.1-compatible", "v0.2-compatible", "v0.3.0"],
+  "additive_changes": {
+    "jobs_columns": ["execution_fingerprint", "request_id"],
+    "tables": ["idempotency_records"],
+    "indexes": ["uq_jobs_active_execution_fingerprint"]
+  },
+  "existing_rows_preserved": true,
+  "docker_volume_schema_versions": [1, 2, 3, 4],
+  "rollback": "restore the complete stopped pre-upgrade data-root or Volume backup"
+}

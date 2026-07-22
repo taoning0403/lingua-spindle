@@ -1,0 +1,143 @@
+LinguaSpindle v0.3.1 final command log
+candidate_sha=1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c
+
+[Pass] Historical v0.3.0 archive and refs
+  (cd acceptance/v0.3.0 && shasum -a 256 -c evidence/checksums.sha256)
+  git diff --exit-code HEAD -- acceptance/v0.3.0
+  git rev-parse 'v0.3.0^{}'
+  git rev-parse origin/main
+  Result: every v0.3.0 checksum passed; no historical file changed;
+          tag=77974cbf47de2d40ac923e399c631056902b9f70;
+          origin/main=25357315877a51e421891db945f3e8e485fd559b.
+
+[Pass] Formatting and lint
+  .venv/bin/python -m ruff format --check src tests tools
+  .venv/bin/python -m ruff check --no-cache src tests tools
+  Result: 71 files already formatted; all checks passed.
+
+[Pass] Strict typing and compilation
+  .venv/bin/python -m mypy src tools/generate_v020_acceptance.py \
+    tools/generate_v030_acceptance.py tools/verify_v030_extras.py \
+    tools/generate_v031_acceptance.py tools/verify_v031_extras.py
+  PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m compileall -q src tests tools
+  Result: no mypy issues in 42 source files; compileall exited zero.
+
+[Pass] Complete automated suite and branch coverage
+  PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider
+  COVERAGE_FILE=<temporary>/linguaspindle-v031.coverage \
+    PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider \
+    --cov=linguaspindle --cov-branch --cov-report=term
+  Result: 248 passed, 0 skipped; 84% branch-aware coverage (v0.3.0 baseline: 83%).
+
+[Pass] Focused migration, idempotency, and security suites
+  .venv/bin/python -m pytest -q -p no:cacheprovider \
+    tests/integration/test_database_migrations.py
+  .venv/bin/python -m pytest -q -p no:cacheprovider \
+    tests/unit/test_idempotency.py tests/integration/test_service_idempotency.py
+  .venv/bin/python -m pytest -q -p no:cacheprovider \
+    tests/unit/test_security.py tests/integration/test_artifacts_and_secrets.py
+  Result: migration=5 passed; idempotency=19 passed; security/artifacts=17 passed.
+
+[Pass] Deterministic acceptance samples
+  .venv/bin/python tools/generate_v031_acceptance.py \
+    --repository . \
+    --expected-commit 1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c
+  Result: 27 TXT/EPUB2/EPUB3/image/CBZ/import-boundary files generated;
+          embedded version and candidate SHA are 0.3.1 and the exact clean candidate.
+
+[Pass] Exact isolated Wheel build
+  .venv/bin/python -m build --wheel --outdir <temporary>/dist
+  Result: linguaspindle-0.3.1-py3-none-any.whl, 132544 bytes,
+          sha256=44ef868324c1f2d24868c3fe3efb8f4b443f0954d2dde9f4a386d05995fb5976.
+
+[Pass] Seven isolated extras environments
+  .venv/bin/python tools/verify_v031_extras.py \
+    --wheel <temporary>/dist/linguaspindle-0.3.1-py3-none-any.whl \
+    --repository . \
+    --expected-commit 1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c \
+    --constraint constraints-v031.txt \
+    --output <temporary>/extras-report.json
+  Result: core, openai, manga, runtime, cli, server, all = Pass.
+          Every environment passed installation, pip check, dependency inventory, and offline smoke.
+
+[Pass] Wheel identity and content inspection
+  shasum -a 256 <temporary>/dist/linguaspindle-0.3.1-py3-none-any.whl
+  zipinfo -1 <temporary>/dist/linguaspindle-0.3.1-py3-none-any.whl
+  unzip -p <wheel> linguaspindle-0.3.1.dist-info/METADATA
+  Result: version 0.3.1; 47 files; migrations 0001/0002/0003/0004 present;
+          one default direct dependency; no Web, Playwright, browser, or Node resources.
+
+[Pass] Compose configuration
+  LINGUASPINDLE_OPENAI_API_KEY= docker compose --env-file /dev/null config --quiet
+  LINGUASPINDLE_REQUIRE_IDEMPOTENCY_KEY=true LINGUASPINDLE_OPENAI_API_KEY= \
+    docker compose --env-file /dev/null config --quiet
+  Result: compatibility and required-idempotency configurations both exited zero;
+          image version, loopback host publish, read-only root, Volume, and security option resolved.
+
+[Pass] Docker build and image metadata
+  docker build --pull \
+    --label org.opencontainers.image.revision=1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c \
+    --tag lingua-spindle:0.3.1-acceptance-1d594943 .
+  docker image inspect lingua-spindle:0.3.1-acceptance-1d594943
+  Result: digest sha256:0b0a0b7f0df9dbbd5ef19810835ed6aef45c8ad1f8b4cabf3c66e6be3d9e85ba;
+          61092560 bytes; Linux/arm64; OCI version 0.3.1; revision=candidate SHA;
+          configured User 10001:10001 and healthcheck present.
+
+[Pass] Hardened Volume-backed live container
+  docker volume create linguaspindle-v031-data-1d594943
+  docker run --detach --rm --name linguaspindle-v031-acceptance-1d594943 \
+    --init --read-only --tmpfs /tmp:size=512m,mode=1777 \
+    --security-opt no-new-privileges:true \
+    --env LINGUASPINDLE_REQUIRE_IDEMPOTENCY_KEY=true \
+    --env LINGUASPINDLE_OPENAI_API_KEY= \
+    --mount type=volume,source=linguaspindle-v031-data-1d594943,target=/data \
+    --publish 127.0.0.1::8765 \
+    lingua-spindle:0.3.1-acceptance-1d594943
+  docker inspect linguaspindle-v031-acceptance-1d594943
+  docker exec linguaspindle-v031-acceptance-1d594943 id
+  docker exec linguaspindle-v031-acceptance-1d594943 <root-volume-tmpfs-probe>
+  Result: healthy; uid/gid=10001; read-only root; writable /data Volume and /tmp tmpfs;
+          no-new-privileges=true; host publish=127.0.0.1:60491 only.
+
+[Pass] Live HTTP, forced idempotency, Request ID, and migration probes
+  docker exec linguaspindle-v031-acceptance-1d594943 <root-health-system-probe>
+  docker exec linguaspindle-v031-acceptance-1d594943 <missing-idempotency-key-probe>
+  docker exec linguaspindle-v031-acceptance-1d594943 <sqlite-schema-probe>
+  Result: root/health/system=200 with X-Request-ID; health database=ok/version=0.3.1;
+          require_idempotency_key=true; valid Profile POST without key=428,
+          code=IDEMPOTENCY_KEY_REQUIRED, caller request ID=docker-forced-428;
+          migrations=[1,2,3,4], idempotency_records present, Job fingerprint/request-ID columns present.
+
+[Pass] Provider Key and Idempotency-Key containment
+  Focused security/idempotency tests scan database, logs, Artifacts, exports, fingerprints,
+  and staged/published payloads. A final binary scan covered the exact Wheel and retained archive.
+  Result: no synthetic raw Provider Key or Idempotency-Key match; no real credential used.
+
+[Pass] Disposable Docker resource cleanup
+  docker stop --time 10 linguaspindle-v031-acceptance-1d594943
+  docker volume rm linguaspindle-v031-data-1d594943
+  docker ps -a --filter name=linguaspindle-v031-acceptance-1d594943
+  docker volume ls --filter name=linguaspindle-v031-data-1d594943
+  Result: exact temporary container and Volume removed; residual scan empty; local image retained.
+
+[Pass] Final archive checksum
+  (cd acceptance/v0.3.1 && shasum -a 256 -c evidence/checksums.sha256)
+  Result: every retained file listed in the versioned archive checksum passed.
+
+Harness/environment corrections (not product failures):
+  1. The first isolated PEP 517 build could not reach the package index inside the restricted
+     sandbox. The exact command was rerun with approved network access and passed.
+  2. The first container-start approval review disconnected and created no container. After the
+     user explicitly authorized the exact disposable container, the unchanged run passed.
+  3. The first read-only SQLite probe expected migration versions as strings; SQLite returned
+     integers [1,2,3,4]. The corrected harness assertion passed without a product/source change.
+  4. docker stop warned that --time is deprecated in favor of --timeout but stopped and removed
+     the container successfully.
+
+[Not executed] Real paid OpenAI-compatible Provider (Optional external test)
+[Not executed] Real manga-image-translator model service (Optional external test)
+[Not executed] External epubcheck (Optional external test)
+[Not executed] Native Windows/WSL2 (Optional external test)
+[Not executed] Python 3.11, 3.13, and 3.14 hosts (Optional external test)
+[Not executed by instruction] Remote candidate CI, branch push, main merge, v0.3.1 tag,
+                              GitHub Release, Wheel/image publication, server deployment

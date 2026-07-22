@@ -132,9 +132,25 @@ The `codex/v0.3.0-headless-core` branch, annotated `v0.3.0` tag, and `main` rele
 pushed on 2026-07-21. No GitHub Release or deployment was performed; those remain separate future
 actions.
 
-The local v0.3.1 implementation suite has passed during development; exact final test, coverage,
-Wheel, extras, migration, Docker, leak-scan, and checksum outcomes are recorded only after the
-candidate acceptance archive is generated. Publication remains blocked on explicit user approval.
+The local v0.3.1 acceptance archive binds all executable gates to clean source candidate
+`1d5949437bbbbd0bdbeb1a86d407832dd2d28c3c` and records 18 Pass, 0 Fail, 0 Blocked, and
+0 Not executed across required gates. The complete suite reports 248 passed, 0 skipped, and 84%
+branch-aware coverage; focused migration, idempotency, and security suites also pass.
+
+The exact 132,544-byte v0.3.1 Wheel has SHA-256
+`44ef868324c1f2d24868c3fe3efb8f4b443f0954d2dde9f4a386d05995fb5976` and passed all seven
+isolated extras environments. Migration 0004, compatibility/required idempotency modes, two-
+instance SQLite concurrency, Provider/Idempotency key containment, Compose parsing, and
+deterministic samples pass. The Linux/arm64 image digest is
+`sha256:0b0a0b7f0df9dbbd5ef19810835ed6aef45c8ad1f8b4cabf3c66e6be3d9e85ba`; live health,
+UID/GID 10001, read-only root, Volume/tmpfs, no-new-privileges, loopback publish, forced 428, and
+Request ID behavior pass. Temporary container/Volume resources were removed.
+
+Real paid Provider execution, real external manga model execution, external `epubcheck`, native
+Windows/WSL2, and Python 3.11/3.13/3.14 hosts remain explicit optional external tests not executed.
+Remote CI is not executed because the branch was not pushed. No v0.3.1 push, tag, merge, GitHub
+Release, Wheel/image publication, or deployment has occurred; publication remains blocked on
+explicit user approval and a later green target-commit CI run.
 
 ## Upgrade/deployment state
 
