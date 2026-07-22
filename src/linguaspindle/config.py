@@ -56,6 +56,18 @@ def _env_float(
     return value
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None or raw == "":
+        return default
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ConfigurationError(f"{name} must be true or false")
+
+
 def _base_url(name: str, value: str) -> str:
     candidate = value.strip().rstrip("/")
     try:
@@ -83,6 +95,7 @@ class Settings:
     port: int = 8765
     log_level: str = "INFO"
     worker_poll_seconds: float = 0.25
+    require_idempotency_key: bool = False
     max_upload_bytes: int = 100 * 1024 * 1024
     max_archive_files: int = 2_000
     max_archive_uncompressed_bytes: int = 1_000 * 1024 * 1024
@@ -139,6 +152,7 @@ class Settings:
             port=_env_int("LINGUASPINDLE_PORT", 8765, 1, 65535),
             log_level=log_level,
             worker_poll_seconds=_env_float("LINGUASPINDLE_WORKER_POLL_SECONDS", 0.25, 0.05),
+            require_idempotency_key=_env_bool("LINGUASPINDLE_REQUIRE_IDEMPOTENCY_KEY", False),
             max_upload_bytes=_env_int("LINGUASPINDLE_MAX_UPLOAD_BYTES", 100 * 1024 * 1024, 1),
             max_archive_files=_env_int("LINGUASPINDLE_MAX_ARCHIVE_FILES", 2_000, 1),
             max_archive_uncompressed_bytes=_env_int(

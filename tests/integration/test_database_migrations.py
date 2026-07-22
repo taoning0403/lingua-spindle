@@ -82,6 +82,25 @@ def _create_v010_database(path: Path) -> None:
         connection.close()
 
 
+def _create_v030_database(path: Path) -> None:
+    _create_v010_database(path)
+    connection = sqlite3.connect(path)
+    try:
+        for version, filename in (
+            (2, "0002_epub.sql"),
+            (3, "0003_headless_core.sql"),
+        ):
+            migration = resources.files("linguaspindle.migrations").joinpath(filename)
+            Database._apply_migration(
+                connection,
+                version=version,
+                name=filename.partition("_")[2],
+                sql=migration.read_text(encoding="utf-8"),
+            )
+    finally:
+        connection.close()
+
+
 def _create_v020_runtime_data(data_dir: Path) -> dict[str, object]:
     repository = Path(__file__).resolve().parents[2]
     wheel = (
@@ -376,7 +395,7 @@ def test_v010_database_is_upgraded_in_place_without_losing_data(tmp_path: Path) 
     finally:
         connection.close()
 
-    assert versions == [1, 2, 3]
+    assert versions == [1, 2, 3, 4]
     assert source is not None
     assert source["original_name"] == "novel.txt"
     assert source["metadata_json"] == "{}"
@@ -394,6 +413,48 @@ def test_v010_database_is_upgraded_in_place_without_losing_data(tmp_path: Path) 
     assert "ix_segments_project_input_hash" in indexes
     assert "ix_segments_job_document" in indexes
     assert "ix_segments_job_segment_key" in indexes
+
+
+def test_v030_database_is_upgraded_to_service_idempotency_without_data_loss(
+    tmp_path: Path,
+) -> None:
+    settings = Settings(data_dir=tmp_path / "v030-data")
+    _create_v030_database(settings.database_path)
+
+    database = Database(settings)
+    database.close()
+
+    with sqlite3.connect(settings.database_path) as connection:
+        versions = [
+            row[0]
+            for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")
+        ]
+        job_columns = {row[1] for row in connection.execute("PRAGMA table_info('jobs')").fetchall()}
+        job_indexes = {row[1] for row in connection.execute("PRAGMA index_list('jobs')")}
+        idempotency_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info('idempotency_records')").fetchall()
+        }
+        project = connection.execute("SELECT name FROM projects WHERE id = 'project'").fetchone()
+        segment = connection.execute(
+            "SELECT source_text FROM translation_segments WHERE id = 'segment'"
+        ).fetchone()
+
+    assert versions == [1, 2, 3, 4]
+    assert {"execution_fingerprint", "request_id"} <= job_columns
+    assert "uq_jobs_active_execution_fingerprint" in job_indexes
+    assert {
+        "scope",
+        "key_hash",
+        "request_fingerprint",
+        "status",
+        "resource_type",
+        "resource_id",
+        "response_status",
+        "request_id",
+    } <= idempotency_columns
+    assert project == ("Existing novel",)
+    assert segment == ("Original",)
 
 
 def test_v020_wheel_novel_and_manga_data_upgrade_without_loss(tmp_path: Path) -> None:
@@ -459,6 +520,7 @@ def test_v020_wheel_novel_and_manga_data_upgrade_without_loss(tmp_path: Path) ->
             1,
             2,
             3,
+            4,
         ]
 
 

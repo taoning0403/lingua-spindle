@@ -8,7 +8,17 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -134,6 +144,17 @@ class ProviderConfig(Base):
 
 class Job(Base):
     __tablename__ = "jobs"
+    __table_args__ = (
+        Index(
+            "uq_jobs_active_execution_fingerprint",
+            "execution_fingerprint",
+            unique=True,
+            sqlite_where=text(
+                "execution_fingerprint IS NOT NULL AND "
+                "status IN ('queued', 'running', 'paused', 'cancelling')"
+            ),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     project_id: Mapped[str] = mapped_column(
@@ -160,11 +181,37 @@ class Job(Base):
     error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_details_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    execution_fingerprint: Mapped[str | None] = mapped_column(String(96), nullable=True)
+    request_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     project: Mapped[Project] = relationship(back_populates="jobs")
     profile: Mapped[TranslationProfile | None] = relationship(foreign_keys=[translation_profile_id])
     steps: Mapped[list[StepRun]] = relationship(
         back_populates="job", cascade="all, delete-orphan", order_by="StepRun.step_order"
+    )
+
+
+class IdempotencyRecord(Base):
+    __tablename__ = "idempotency_records"
+    __table_args__ = (UniqueConstraint("scope", "key_hash", name="uq_idempotency_scope_key_hash"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    scope: Mapped[str] = mapped_column(String(200))
+    key_hash: Mapped[str] = mapped_column(String(64))
+    request_fingerprint: Mapped[str] = mapped_column(String(96))
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    resource_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    resource_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    response_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    result_reference_json: Mapped[str] = mapped_column(Text, default="{}")
+    request_id: Mapped[str] = mapped_column(String(128))
+    error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_details_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_retryable: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
 
 

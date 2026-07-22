@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import logging
 import mimetypes
 import platform
 import shutil
@@ -16,9 +17,10 @@ import unicodedata
 import zipfile
 from datetime import datetime
 from pathlib import Path, PurePosixPath
-from typing import IO, Any, BinaryIO
+from typing import IO, Any, BinaryIO, cast
 
 from sqlalchemy import delete, func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from . import __version__
@@ -28,8 +30,18 @@ from .core.manga import inspect_manga
 from .database import Database
 from .epub import inspect_epub, is_bcp47_language_tag
 from .errors import ErrorCode, LinguaError
+from .idempotency import (
+    IdempotencyClaim,
+    IdempotencyContext,
+    IdempotencyReplay,
+    ServiceOperationResult,
+    normalize_request_id,
+    normalized_text,
+    request_fingerprint,
+)
 from .models import (
     Artifact,
+    IdempotencyRecord,
     Job,
     Project,
     ProviderConfig,
@@ -68,6 +80,7 @@ _CONTENT_ARTIFACT_KINDS = {
     "novel_translations",
 }
 _ARCHIVE_ARTIFACT_KINDS = {"manga_export_cbz", "novel_export_epub"}
+_LOGGER = logging.getLogger(__name__)
 
 
 def _loads(value: str | None, fallback: Any) -> Any:
@@ -92,6 +105,7 @@ class ApplicationService:
         self.settings = settings
         self.database = Database(settings)
         self.store = ArtifactStore(settings)
+        self._recover_incomplete_idempotency()
         for pattern in ("epub-export-*", ".epub-export-*.tmp"):
             for temporary in settings.cache_dir.glob(pattern):
                 if temporary.is_file() or temporary.is_symlink():
@@ -139,6 +153,256 @@ class ApplicationService:
         self.adapters = AdapterRegistry(adapters)
         self._sync_provider_configs()
 
+    def _recover_incomplete_idempotency(self) -> int:
+        """Classify claims left by a stopped service before accepting new work."""
+
+        with self.database.session() as session:
+            recovered = len(
+                session.scalars(
+                    update(IdempotencyRecord)
+                    .where(IdempotencyRecord.status == "processing")
+                    .values(
+                        status="indeterminate",
+                        error_code=ErrorCode.IDEMPOTENCY_INDETERMINATE,
+                        error_message=(
+                            "The previous process stopped before the operation outcome was recorded"
+                        ),
+                        error_details_json="{}",
+                        error_retryable=0,
+                        updated_at=utcnow(),
+                    )
+                    .returning(IdempotencyRecord.id)
+                ).all()
+            )
+        if recovered:
+            _LOGGER.warning("Recovered %s indeterminate idempotency operation(s)", recovered)
+        return int(recovered or 0)
+
+    def _existing_idempotency(
+        self,
+        *,
+        scope: str,
+        request_fingerprint_value: str,
+        context: IdempotencyContext,
+    ) -> IdempotencyReplay | None:
+        with self.database.session() as session:
+            record = session.scalar(
+                select(IdempotencyRecord).where(
+                    IdempotencyRecord.scope == scope,
+                    IdempotencyRecord.key_hash == context.key_hash,
+                )
+            )
+            if record is None:
+                return None
+            if record.request_fingerprint != request_fingerprint_value:
+                raise LinguaError(
+                    ErrorCode.IDEMPOTENCY_CONFLICT,
+                    "Idempotency-Key was already used with a different request",
+                )
+            if record.status == "processing":
+                raise LinguaError(
+                    ErrorCode.IDEMPOTENCY_IN_PROGRESS,
+                    "The operation for this Idempotency-Key is still in progress",
+                    {"retry_after_seconds": 1},
+                    retryable=True,
+                )
+            if record.status == "indeterminate":
+                raise LinguaError(
+                    ErrorCode.IDEMPOTENCY_INDETERMINATE,
+                    "The previous operation outcome is indeterminate; use a new key only after "
+                    "explicitly deciding to retry",
+                )
+            if record.status == "failed":
+                try:
+                    code = ErrorCode(str(record.error_code))
+                except ValueError:
+                    code = ErrorCode.UNKNOWN
+                raise LinguaError(
+                    code,
+                    record.error_message or "The original idempotent operation failed",
+                    _loads(record.error_details_json, {}),
+                    retryable=bool(record.error_retryable),
+                )
+            if (
+                record.status != "completed"
+                or record.resource_type is None
+                or record.resource_id is None
+                or record.response_status is None
+            ):
+                raise LinguaError(
+                    ErrorCode.IDEMPOTENCY_CONFLICT,
+                    "Idempotency record has no reusable resource result",
+                )
+            return IdempotencyReplay(
+                record_id=record.id,
+                resource_type=record.resource_type,
+                resource_id=record.resource_id,
+                response_status=record.response_status,
+                result_reference=_loads(record.result_reference_json, {}),
+            )
+
+    def reserve_idempotency(
+        self,
+        *,
+        scope: str,
+        request_fingerprint_value: str,
+        context: IdempotencyContext,
+    ) -> IdempotencyClaim | IdempotencyReplay:
+        """Persist a processing claim before a potentially costly side effect."""
+
+        existing = self._existing_idempotency(
+            scope=scope,
+            request_fingerprint_value=request_fingerprint_value,
+            context=context,
+        )
+        if existing is not None:
+            return existing
+        record_id = new_id()
+        try:
+            with self.database.session() as session:
+                session.add(
+                    IdempotencyRecord(
+                        id=record_id,
+                        scope=scope,
+                        key_hash=context.key_hash,
+                        request_fingerprint=request_fingerprint_value,
+                        status="processing",
+                        request_id=context.request_id,
+                    )
+                )
+                session.flush()
+        except IntegrityError:
+            raced = self._existing_idempotency(
+                scope=scope,
+                request_fingerprint_value=request_fingerprint_value,
+                context=context,
+            )
+            if raced is None:  # pragma: no cover - defensive database consistency guard
+                raise LinguaError(
+                    ErrorCode.IDEMPOTENCY_CONFLICT,
+                    "Concurrent idempotency claim could not be resolved",
+                    retryable=True,
+                ) from None
+            return raced
+        _LOGGER.info(
+            "Idempotent operation claimed scope=%s request_id=%s",
+            scope,
+            context.request_id,
+        )
+        return IdempotencyClaim(
+            record_id=record_id,
+            scope=scope,
+            request_fingerprint=request_fingerprint_value,
+            request_id=context.request_id,
+        )
+
+    def complete_idempotency(
+        self,
+        claim: IdempotencyClaim,
+        *,
+        resource_type: str,
+        resource_id: str,
+        response_status: int,
+        result_reference: dict[str, Any] | None = None,
+    ) -> None:
+        safe_reference = self.redact_for_persistence(result_reference or {})
+        with self.database.session() as session:
+            completed = session.scalar(
+                update(IdempotencyRecord)
+                .where(
+                    IdempotencyRecord.id == claim.record_id,
+                    IdempotencyRecord.status == "processing",
+                    IdempotencyRecord.request_fingerprint == claim.request_fingerprint,
+                )
+                .values(
+                    status="completed",
+                    resource_type=resource_type,
+                    resource_id=resource_id,
+                    response_status=response_status,
+                    result_reference_json=json.dumps(safe_reference, ensure_ascii=False),
+                    updated_at=utcnow(),
+                )
+                .returning(IdempotencyRecord.id)
+            )
+            if completed is None:
+                raise LinguaError(
+                    ErrorCode.IDEMPOTENCY_INDETERMINATE,
+                    "Idempotency claim was no longer active when its result was persisted",
+                )
+        _LOGGER.info(
+            "Idempotent operation completed scope=%s request_id=%s resource_type=%s",
+            claim.scope,
+            claim.request_id,
+            resource_type,
+        )
+
+    def fail_idempotency(self, claim: IdempotencyClaim, error: LinguaError) -> None:
+        with self.database.session() as session:
+            session.execute(
+                update(IdempotencyRecord)
+                .where(
+                    IdempotencyRecord.id == claim.record_id,
+                    IdempotencyRecord.status == "processing",
+                )
+                .values(
+                    status="failed",
+                    error_code=error.code,
+                    error_message=self._redact_text(error.message),
+                    error_details_json=json.dumps(
+                        self.redact_for_persistence(error.details or {}), ensure_ascii=False
+                    ),
+                    error_retryable=int(error.retryable),
+                    updated_at=utcnow(),
+                )
+            )
+
+    def mark_idempotency_indeterminate(self, claim: IdempotencyClaim) -> None:
+        with self.database.session() as session:
+            session.execute(
+                update(IdempotencyRecord)
+                .where(
+                    IdempotencyRecord.id == claim.record_id,
+                    IdempotencyRecord.status == "processing",
+                )
+                .values(
+                    status="indeterminate",
+                    error_code=ErrorCode.IDEMPOTENCY_INDETERMINATE,
+                    error_message="The operation outcome could not be determined safely",
+                    error_details_json="{}",
+                    error_retryable=0,
+                    updated_at=utcnow(),
+                )
+            )
+        _LOGGER.error(
+            "Idempotent operation became indeterminate scope=%s request_id=%s",
+            claim.scope,
+            claim.request_id,
+        )
+
+    def idempotent_resource(self, replay: IdempotencyReplay) -> dict[str, Any]:
+        """Resolve only a retained public resource identity, never a stored HTTP body."""
+
+        try:
+            if replay.resource_type == "project":
+                return self.get_project(replay.resource_id)
+            if replay.resource_type == "profile":
+                return self.get_profile(replay.resource_id)
+            if replay.resource_type == "job":
+                return self.get_job(replay.resource_id)
+            if replay.resource_type == "artifact":
+                return self.get_artifact(replay.resource_id)
+        except LinguaError as error:
+            if error.code in {ErrorCode.NOT_FOUND, ErrorCode.OUTPUT_MISSING}:
+                raise LinguaError(
+                    ErrorCode.IDEMPOTENCY_CONFLICT,
+                    "The resource retained by this Idempotency-Key no longer exists",
+                ) from None
+            raise
+        raise LinguaError(
+            ErrorCode.IDEMPOTENCY_CONFLICT,
+            "Idempotency record references an unsupported resource type",
+        )
+
     def close(self) -> None:
         self.database.close()
 
@@ -159,6 +423,26 @@ class ApplicationService:
             "display_name": getattr(provider, "display_name", provider.id),
             "configured": True,
         }
+
+    def provider_execution_config(self, provider_id: str) -> dict[str, Any]:
+        """Return only non-secret Provider values that affect execution."""
+
+        provider = self.providers.get(provider_id)
+        status = self._provider_public_status(provider)
+        value: dict[str, Any] = {
+            "provider_id": provider_id,
+            "model": self._redact_text(str(status.get("model") or "unknown")),
+        }
+        if provider_id == "openai-compatible":
+            value.update(
+                {
+                    "base_url": self._redact_text(self.settings.openai_base_url),
+                    "timeout_seconds": self.settings.openai_timeout_seconds,
+                    "concurrency_limit": self.settings.openai_concurrency_limit,
+                    "max_retries": self.settings.openai_max_retries,
+                }
+            )
+        return value
 
     def _redact_content_text(self, value: str) -> str:
         """Remove only the active runtime key without rewriting user-authored prose."""
@@ -269,14 +553,14 @@ class ApplicationService:
     def _validate_project_fields(
         name: str, kind: str, source_language: str, target_language: str
     ) -> tuple[str, str, str, str]:
-        cleaned_name = name.strip()
+        cleaned_name = normalized_text(name, strip=True)
         if not cleaned_name or len(cleaned_name) > 200:
             raise LinguaError(ErrorCode.CONFIGURATION, "Project name must be 1-200 characters")
         cleaned_kind = kind.lower().strip()
         if cleaned_kind not in {"novel", "manga"}:
             raise LinguaError(ErrorCode.CONFIGURATION, "Project kind must be novel or manga")
-        source = source_language.strip()
-        target = target_language.strip()
+        source = normalized_text(source_language, strip=True)
+        target = normalized_text(target_language, strip=True)
         if not source or not target:
             raise LinguaError(ErrorCode.CONFIGURATION, "Source and target languages are required")
         return cleaned_name, cleaned_kind, source, target
@@ -444,6 +728,29 @@ class ApplicationService:
         source: BinaryIO,
         media_type: str | None = None,
     ) -> dict[str, Any]:
+        return self.create_project_from_stream_operation(
+            name=name,
+            kind=kind,
+            source_language=source_language,
+            target_language=target_language,
+            source_name=source_name,
+            source=source,
+            media_type=media_type,
+        ).value
+
+    def create_project_from_stream_operation(
+        self,
+        *,
+        name: str,
+        kind: str,
+        source_language: str,
+        target_language: str,
+        source_name: str,
+        source: BinaryIO,
+        media_type: str | None = None,
+        idempotency: IdempotencyContext | None = None,
+        request_id: str | None = None,
+    ) -> ServiceOperationResult:
         """Validate and atomically publish an imported Source from a bounded stream."""
 
         self._reject_runtime_secret_fields(
@@ -455,7 +762,7 @@ class ApplicationService:
             source_language,
             target_language,
         )
-        source_name = source_name.strip()
+        source_name = normalized_text(source_name, strip=True)
         source_kind = self._source_kind(kind, source_name)
         if source_kind == "epub" and not is_bcp47_language_tag(target_language):
             raise LinguaError(
@@ -541,56 +848,115 @@ class ApplicationService:
                             "Imported source contains the runtime Provider secret; "
                             "remove it before import",
                         )
-            with self.database.session() as session:
-                project = Project(
-                    id=project_id,
-                    name=name,
-                    kind=kind,
-                    source_language=source_language,
-                    target_language=target_language,
+            fingerprint_value = request_fingerprint(
+                "project-create",
+                {
+                    "name": name,
+                    "kind": kind,
+                    "source_language": source_language,
+                    "target_language": target_language,
+                    "original_filename": Path(source_name).name,
+                    "source_sha256": stored.checksum,
+                    "source_format": source_kind,
+                    "media_type": guessed_type.partition(";")[0].strip().lower(),
+                },
+            )
+            scope = "projects:create"
+            if idempotency is not None:
+                existing = self._existing_idempotency(
+                    scope=scope,
+                    request_fingerprint_value=fingerprint_value,
+                    context=idempotency,
                 )
-                artifact = Artifact(
-                    id=artifact_id,
-                    project_id=project_id,
-                    kind="source_original",
-                    filename=stored.filename,
-                    media_type=guessed_type,
-                    size=stored.size,
-                    checksum=stored.checksum,
-                    storage_key=stored.storage_key,
-                    metadata_json=json.dumps(
-                        {
-                            "original_name": source_name,
-                            "immutable": True,
-                            **source_metadata,
-                        },
-                        ensure_ascii=False,
-                    ),
+                if existing is not None:
+                    self.store.remove_project_payloads(project_id)
+                    return ServiceOperationResult(self.idempotent_resource(existing), replayed=True)
+            try:
+                with self.database.session() as session:
+                    project = Project(
+                        id=project_id,
+                        name=name,
+                        kind=kind,
+                        source_language=source_language,
+                        target_language=target_language,
+                    )
+                    artifact = Artifact(
+                        id=artifact_id,
+                        project_id=project_id,
+                        kind="source_original",
+                        filename=stored.filename,
+                        media_type=guessed_type,
+                        size=stored.size,
+                        checksum=stored.checksum,
+                        storage_key=stored.storage_key,
+                        metadata_json=json.dumps(
+                            {
+                                "original_name": source_name,
+                                "immutable": True,
+                                **source_metadata,
+                            },
+                            ensure_ascii=False,
+                        ),
+                    )
+                    source_row = Source(
+                        id=new_id(),
+                        project_id=project_id,
+                        kind=source_kind,
+                        original_name=source_name,
+                        media_type=guessed_type,
+                        size=stored.size,
+                        checksum=stored.checksum,
+                        artifact_id=artifact_id,
+                        metadata_json=json.dumps(source_metadata, ensure_ascii=False),
+                    )
+                    default_profile = TranslationProfile(
+                        id=new_id(),
+                        name=f"Default {source_language} → {target_language}",
+                        source_language=source_language,
+                        target_language=target_language,
+                        provider_id="mock",
+                        model="mock-v1",
+                    )
+                    session.add_all([project, artifact, source_row, default_profile])
+                    if idempotency is not None:
+                        session.add(
+                            IdempotencyRecord(
+                                id=new_id(),
+                                scope=scope,
+                                key_hash=idempotency.key_hash,
+                                request_fingerprint=fingerprint_value,
+                                status="completed",
+                                resource_type="project",
+                                resource_id=project_id,
+                                response_status=201,
+                                request_id=idempotency.request_id,
+                            )
+                        )
+                    session.flush()
+            except IntegrityError:
+                if idempotency is None:
+                    raise
+                self.store.remove_project_payloads(project_id)
+                raced = self._existing_idempotency(
+                    scope=scope,
+                    request_fingerprint_value=fingerprint_value,
+                    context=idempotency,
                 )
-                source_row = Source(
-                    id=new_id(),
-                    project_id=project_id,
-                    kind=source_kind,
-                    original_name=source_name,
-                    media_type=guessed_type,
-                    size=stored.size,
-                    checksum=stored.checksum,
-                    artifact_id=artifact_id,
-                    metadata_json=json.dumps(source_metadata, ensure_ascii=False),
-                )
-                default_profile = TranslationProfile(
-                    id=new_id(),
-                    name=f"Default {source_language} → {target_language}",
-                    source_language=source_language,
-                    target_language=target_language,
-                    provider_id="mock",
-                    model="mock-v1",
-                )
-                session.add_all([project, artifact, source_row, default_profile])
+                if raced is None:  # pragma: no cover - defensive database consistency guard
+                    raise
+                return ServiceOperationResult(self.idempotent_resource(raced), replayed=True)
         except Exception:
             self.store.remove_project_payloads(project_id)
             raise
-        return self.get_project(project_id)
+        correlation_id = (
+            idempotency.request_id if idempotency is not None else normalize_request_id(request_id)
+        )
+        _LOGGER.info(
+            "Project created request_id=%s project_id=%s",
+            correlation_id,
+            project_id,
+        )
+        return ServiceOperationResult(self.get_project(project_id))
 
     def create_project_from_path(
         self,
@@ -792,10 +1158,39 @@ class ApplicationService:
         batch_size: int = 8,
         model_parameters: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        cleaned_name = self._redact_content_text(name).strip()
-        cleaned_source = self._redact_content_text(source_language).strip()
-        cleaned_target = self._redact_content_text(target_language).strip()
-        cleaned_style = self._redact_content_text(style).strip()
+        return self.create_profile_operation(
+            name=name,
+            source_language=source_language,
+            target_language=target_language,
+            provider_id=provider_id,
+            model=model,
+            style=style,
+            prompt_template=prompt_template,
+            prompt_version=prompt_version,
+            batch_size=batch_size,
+            model_parameters=model_parameters,
+        ).value
+
+    def create_profile_operation(
+        self,
+        *,
+        name: str,
+        source_language: str,
+        target_language: str,
+        provider_id: str,
+        model: str | None = None,
+        style: str = "Preserve tone and paragraph structure.",
+        prompt_template: str | None = None,
+        prompt_version: str = "v1",
+        batch_size: int = 8,
+        model_parameters: dict[str, Any] | None = None,
+        idempotency: IdempotencyContext | None = None,
+        request_id: str | None = None,
+    ) -> ServiceOperationResult:
+        cleaned_name = normalized_text(self._redact_content_text(name), strip=True)
+        cleaned_source = normalized_text(self._redact_content_text(source_language), strip=True)
+        cleaned_target = normalized_text(self._redact_content_text(target_language), strip=True)
+        cleaned_style = normalized_text(self._redact_content_text(style), strip=True)
         cleaned_prompt = self._redact_content_text(
             prompt_template
             or (
@@ -803,7 +1198,8 @@ class ApplicationService:
                 "Style guidance: {style}. Preserve dialogue and paragraph structure.\n\n{text}"
             )
         )
-        cleaned_version = self._redact_content_text(prompt_version).strip()
+        cleaned_prompt = normalized_text(cleaned_prompt)
+        cleaned_version = normalized_text(self._redact_content_text(prompt_version), strip=True)
         if not cleaned_name or len(cleaned_name) > 120:
             raise LinguaError(ErrorCode.CONFIGURATION, "Profile name must be 1-120 characters")
         if not cleaned_source or not cleaned_target:
@@ -833,38 +1229,86 @@ class ApplicationService:
         sanitized_parameters = self.redact_for_persistence(model_parameters or {})
         if not isinstance(sanitized_parameters, dict):
             raise LinguaError(ErrorCode.CONFIGURATION, "Profile model parameters must be an object")
-        reserved = {"model", "messages"} & set(sanitized_parameters)
-        if reserved:
+        reserved_parameters = {"model", "messages"} & set(sanitized_parameters)
+        if reserved_parameters:
             raise LinguaError(
                 ErrorCode.CONFIGURATION,
                 "Profile model parameters cannot override Provider request structure",
-                {"reserved_keys": sorted(reserved)},
+                {"reserved_keys": sorted(reserved_parameters)},
             )
         provider = self.providers.get(provider_id)
         if batch_size < 1 or batch_size > 100:
             raise LinguaError(ErrorCode.CONFIGURATION, "Profile batch size must be 1-100")
-        profile = TranslationProfile(
-            id=new_id(),
-            name=cleaned_name,
-            source_language=cleaned_source,
-            target_language=cleaned_target,
-            provider_id=provider_id,
-            model=self._redact_text(
+        effective_model = normalized_text(
+            self._redact_text(
                 model
                 or str(
                     self._provider_public_status(provider).get("model")
                     or self.settings.openai_model
                 )
             ),
+            strip=True,
+        )
+        profile = TranslationProfile(
+            id=new_id(),
+            name=cleaned_name,
+            source_language=cleaned_source,
+            target_language=cleaned_target,
+            provider_id=provider_id,
+            model=effective_model,
             style=cleaned_style,
             prompt_template=cleaned_prompt,
             prompt_version=cleaned_version,
             batch_size=batch_size,
             model_parameters_json=json.dumps(sanitized_parameters, ensure_ascii=False),
         )
-        with self.database.session() as session:
-            session.add(profile)
-        return self._profile_public(profile)
+        claim: IdempotencyClaim | None = None
+        if idempotency is not None:
+            fingerprint_value = request_fingerprint(
+                "profile-create",
+                {
+                    "name": cleaned_name,
+                    "source_language": cleaned_source,
+                    "target_language": cleaned_target,
+                    "provider_id": provider_id,
+                    "model": effective_model,
+                    "style": cleaned_style,
+                    "context_strategy": profile.context_strategy,
+                    "prompt_template": cleaned_prompt,
+                    "prompt_version": cleaned_version,
+                    "batch_size": batch_size,
+                    "model_parameters": sanitized_parameters,
+                },
+            )
+            reserved = self.reserve_idempotency(
+                scope="profiles:create",
+                request_fingerprint_value=fingerprint_value,
+                context=idempotency,
+            )
+            if isinstance(reserved, IdempotencyReplay):
+                return ServiceOperationResult(self.idempotent_resource(reserved), replayed=True)
+            claim = reserved
+        try:
+            with self.database.session() as session:
+                session.add(profile)
+        except BaseException:
+            if claim is not None:
+                self.mark_idempotency_indeterminate(claim)
+            raise
+        if claim is not None:
+            self.complete_idempotency(
+                claim,
+                resource_type="profile",
+                resource_id=profile.id,
+                response_status=201,
+            )
+        correlation_id = claim.request_id if claim is not None else normalize_request_id(request_id)
+        _LOGGER.info(
+            "Profile created request_id=%s profile_id=%s",
+            correlation_id,
+            profile.id,
+        )
+        return ServiceOperationResult(self._profile_public(profile))
 
     def list_profiles(self) -> list[dict[str, Any]]:
         with self.database.session() as session:
@@ -872,6 +1316,13 @@ class ApplicationService:
                 select(TranslationProfile).order_by(TranslationProfile.created_at)
             ).all()
             return [self._profile_public(profile) for profile in profiles]
+
+    def get_profile(self, profile_id: str) -> dict[str, Any]:
+        with self.database.session() as session:
+            profile = session.get(TranslationProfile, profile_id)
+            if profile is None:
+                raise LinguaError(ErrorCode.NOT_FOUND, "Translation Profile not found")
+            return self._profile_public(profile)
 
     @staticmethod
     def _profile_public(profile: TranslationProfile) -> dict[str, Any]:
@@ -892,7 +1343,7 @@ class ApplicationService:
             "updated_at": _iso(profile.updated_at),
         }
 
-    def create_job(
+    def _job_creation_spec(
         self,
         *,
         project_id: str,
@@ -940,67 +1391,270 @@ class ApplicationService:
                 )
             selected_provider = provider_id or (profile.provider_id if profile else "mock")
             provider = self.providers.get(selected_provider)
-            if profile is None:
-                profile = TranslationProfile(
-                    id=new_id(),
-                    name=f"Job profile {project.source_language} → {project.target_language}",
-                    source_language=project.source_language,
-                    target_language=project.target_language,
-                    provider_id=selected_provider,
-                    model=self._redact_text(
-                        str(self._provider_public_status(provider).get("model") or "unknown")
-                    ),
-                )
-                session.add(profile)
-                session.flush()
+            provider_status = self._provider_public_status(provider)
+            effective_model = self._redact_text(str(provider_status.get("model") or "unknown"))
             if project.kind == "manga":
                 adapter_id = adapter_id or "mock-manga"
                 self.adapters.get(adapter_id, "manga_full_pipeline")
-            snapshot = self._profile_public(profile)
-            snapshot["provider_id"] = selected_provider
-            snapshot["model"] = self._redact_text(
-                str(self._provider_public_status(provider).get("model") or "unknown")
-            )
-            job = Job(
-                id=new_id(),
-                project_id=project_id,
-                translation_profile_id=profile.id,
-                pipeline_key=pipeline.key,
-                pipeline_version=pipeline.version,
-                provider_id=selected_provider,
-                adapter_id=adapter_id,
-                status=JobStatus.QUEUED,
-                profile_snapshot_json=json.dumps(snapshot, ensure_ascii=False),
-            )
-            session.add(job)
-            session.flush()
-            for index, definition in enumerate(pipeline.steps):
-                executor_id = None
-                if definition.executor_type == "provider":
-                    executor_id = selected_provider
-                elif definition.executor_type == "adapter":
-                    executor_id = adapter_id
-                session.add(
-                    StepRun(
-                        id=new_id(),
-                        job_id=job.id,
-                        step_key=definition.key,
-                        step_order=index,
-                        capability=definition.capability,
-                        executor_type=definition.executor_type,
-                        executor_id=executor_id,
-                        status=StepStatus.PENDING,
-                        config_snapshot_json=json.dumps(
-                            {
-                                "pipeline": pipeline.key,
-                                "pipeline_version": pipeline.version,
-                                "executor_id": executor_id,
-                            },
-                            ensure_ascii=False,
-                        ),
-                    )
+            if profile is None:
+                profile_snapshot: dict[str, Any] = {
+                    "name": f"Job profile {project.source_language} → {project.target_language}",
+                    "source_language": project.source_language,
+                    "target_language": project.target_language,
+                    "provider_id": selected_provider,
+                    "model": effective_model,
+                    "style": "Preserve tone and paragraph structure.",
+                    "context_strategy": "independent-segments",
+                    "prompt_template": (
+                        "Translate from {source_language} to {target_language}. "
+                        "Preserve dialogue, paragraph structure, names, and punctuation.\n\n{text}"
+                    ),
+                    "prompt_version": "v1",
+                    "batch_size": 8,
+                    "model_parameters": {},
+                }
+            else:
+                profile_snapshot = self._profile_public(profile)
+                profile_snapshot["provider_id"] = selected_provider
+                profile_snapshot["model"] = effective_model
+            fingerprint_profile = {
+                key: profile_snapshot.get(key)
+                for key in (
+                    "source_language",
+                    "target_language",
+                    "provider_id",
+                    "model",
+                    "style",
+                    "context_strategy",
+                    "prompt_template",
+                    "prompt_version",
+                    "batch_size",
+                    "model_parameters",
                 )
-        return self.get_job(job.id)
+            }
+            provider_config = self.provider_execution_config(selected_provider)
+            adapter_config: dict[str, Any] | None = None
+            if adapter_id is not None:
+                adapter_config = {"adapter_id": adapter_id}
+                if adapter_id == "manga-image-translator-http":
+                    adapter_config.update(
+                        {
+                            "base_url": self.settings.mit_base_url,
+                            "timeout_seconds": self.settings.mit_timeout_seconds,
+                            "config": self.redact_for_persistence(
+                                _loads(self.settings.mit_config_json, {})
+                            ),
+                        }
+                    )
+            execution_fingerprint = request_fingerprint(
+                "job-execution",
+                {
+                    "project_id": project_id,
+                    "source_artifact_id": source.artifact_id,
+                    "source_sha256": source.checksum,
+                    "source_format": source.kind,
+                    "pipeline_key": pipeline.key,
+                    "pipeline_version": pipeline.version,
+                    "profile": fingerprint_profile,
+                    "provider": provider_config,
+                    "adapter": adapter_config,
+                    "source_language": project.source_language,
+                    "target_language": project.target_language,
+                },
+            )
+            return {
+                "project_id": project_id,
+                "profile_id": profile.id if profile is not None else None,
+                "profile_snapshot": profile_snapshot,
+                "pipeline_key": pipeline.key,
+                "pipeline_version": pipeline.version,
+                "pipeline_steps": pipeline.steps,
+                "provider_id": selected_provider,
+                "adapter_id": adapter_id,
+                "execution_fingerprint": execution_fingerprint,
+            }
+
+    def create_job(
+        self,
+        *,
+        project_id: str,
+        pipeline_key: str | None = None,
+        profile_id: str | None = None,
+        provider_id: str | None = None,
+        adapter_id: str | None = None,
+    ) -> dict[str, Any]:
+        return self.create_job_operation(
+            project_id=project_id,
+            pipeline_key=pipeline_key,
+            profile_id=profile_id,
+            provider_id=provider_id,
+            adapter_id=adapter_id,
+        ).value
+
+    def create_job_operation(
+        self,
+        *,
+        project_id: str,
+        pipeline_key: str | None = None,
+        profile_id: str | None = None,
+        provider_id: str | None = None,
+        adapter_id: str | None = None,
+        idempotency: IdempotencyContext | None = None,
+        request_id: str | None = None,
+    ) -> ServiceOperationResult:
+        spec = self._job_creation_spec(
+            project_id=project_id,
+            pipeline_key=pipeline_key,
+            profile_id=profile_id,
+            provider_id=provider_id,
+            adapter_id=adapter_id,
+        )
+        execution_fingerprint = str(spec["execution_fingerprint"])
+        claim: IdempotencyClaim | None = None
+        if idempotency is not None:
+            reserved = self.reserve_idempotency(
+                scope=f"projects:{project_id}:jobs:create",
+                request_fingerprint_value=execution_fingerprint,
+                context=idempotency,
+            )
+            if isinstance(reserved, IdempotencyReplay):
+                return ServiceOperationResult(
+                    self.idempotent_resource(reserved),
+                    replayed=True,
+                    coalesced=bool(reserved.result_reference.get("coalesced", False)),
+                )
+            claim = reserved
+
+        active_statuses = (
+            JobStatus.QUEUED,
+            JobStatus.RUNNING,
+            JobStatus.PAUSED,
+            JobStatus.CANCELLING,
+        )
+        job_id: str | None = None
+        coalesced = False
+        first_request_id = (
+            idempotency.request_id if idempotency is not None else normalize_request_id(request_id)
+        )
+        try:
+            try:
+                with self.database.session() as session:
+                    active = session.scalar(
+                        select(Job).where(
+                            Job.execution_fingerprint == execution_fingerprint,
+                            Job.status.in_(active_statuses),
+                        )
+                    )
+                    if active is not None:
+                        job_id = active.id
+                        coalesced = True
+                    else:
+                        selected_profile_id = spec["profile_id"]
+                        snapshot = dict(spec["profile_snapshot"])
+                        if selected_profile_id is None:
+                            profile = TranslationProfile(
+                                id=new_id(),
+                                name=str(snapshot["name"]),
+                                source_language=str(snapshot["source_language"]),
+                                target_language=str(snapshot["target_language"]),
+                                provider_id=str(snapshot["provider_id"]),
+                                model=str(snapshot["model"]),
+                                style=str(snapshot["style"]),
+                                context_strategy=str(snapshot["context_strategy"]),
+                                prompt_template=str(snapshot["prompt_template"]),
+                                prompt_version=str(snapshot["prompt_version"]),
+                                batch_size=int(snapshot["batch_size"]),
+                                model_parameters_json=json.dumps(
+                                    snapshot["model_parameters"], ensure_ascii=False
+                                ),
+                            )
+                            session.add(profile)
+                            session.flush()
+                            selected_profile_id = profile.id
+                            snapshot = self._profile_public(profile)
+                            snapshot["provider_id"] = spec["provider_id"]
+                            snapshot["model"] = spec["profile_snapshot"]["model"]
+                        job = Job(
+                            id=new_id(),
+                            project_id=project_id,
+                            translation_profile_id=str(selected_profile_id),
+                            pipeline_key=str(spec["pipeline_key"]),
+                            pipeline_version=str(spec["pipeline_version"]),
+                            provider_id=str(spec["provider_id"]),
+                            adapter_id=cast(str | None, spec["adapter_id"]),
+                            status=JobStatus.QUEUED,
+                            profile_snapshot_json=json.dumps(snapshot, ensure_ascii=False),
+                            execution_fingerprint=execution_fingerprint,
+                            request_id=first_request_id,
+                        )
+                        session.add(job)
+                        session.flush()
+                        job_id = job.id
+                        for index, definition in enumerate(spec["pipeline_steps"]):
+                            executor_id = None
+                            if definition.executor_type == "provider":
+                                executor_id = spec["provider_id"]
+                            elif definition.executor_type == "adapter":
+                                executor_id = spec["adapter_id"]
+                            session.add(
+                                StepRun(
+                                    id=new_id(),
+                                    job_id=job.id,
+                                    step_key=definition.key,
+                                    step_order=index,
+                                    capability=definition.capability,
+                                    executor_type=definition.executor_type,
+                                    executor_id=cast(str | None, executor_id),
+                                    status=StepStatus.PENDING,
+                                    config_snapshot_json=json.dumps(
+                                        {
+                                            "pipeline": spec["pipeline_key"],
+                                            "pipeline_version": spec["pipeline_version"],
+                                            "executor_id": executor_id,
+                                        },
+                                        ensure_ascii=False,
+                                    ),
+                                )
+                            )
+            except IntegrityError:
+                with self.database.session() as session:
+                    job_id = session.scalar(
+                        select(Job.id).where(
+                            Job.execution_fingerprint == execution_fingerprint,
+                            Job.status.in_(active_statuses),
+                        )
+                    )
+                if job_id is None:
+                    raise
+                coalesced = True
+        except BaseException:
+            if claim is not None:
+                self.mark_idempotency_indeterminate(claim)
+            raise
+
+        if job_id is None:  # pragma: no cover - defensive transaction guard
+            if claim is not None:
+                self.mark_idempotency_indeterminate(claim)
+            raise LinguaError(ErrorCode.UNKNOWN, "Job creation produced no durable resource")
+        if claim is not None:
+            try:
+                self.complete_idempotency(
+                    claim,
+                    resource_type="job",
+                    resource_id=job_id,
+                    response_status=200 if coalesced else 202,
+                    result_reference={"coalesced": coalesced},
+                )
+            except BaseException:
+                self.mark_idempotency_indeterminate(claim)
+                raise
+        _LOGGER.info(
+            "Job request completed request_id=%s job_id=%s coalesced=%s",
+            first_request_id,
+            job_id,
+            coalesced,
+        )
+        return ServiceOperationResult(self.get_job(job_id), coalesced=coalesced)
 
     def list_jobs(
         self, *, project_id: str | None = None, status: str | None = None
@@ -1102,6 +1756,8 @@ class ApplicationService:
                 job.status = JobStatus.PAUSED
             elif job.status == JobStatus.RUNNING:
                 job.control_request = "pause"
+            elif job.status == JobStatus.PAUSED:
+                pass
             else:
                 raise LinguaError(ErrorCode.INVALID_STATE, "Only queued or running Jobs can pause")
             job.updated_at = utcnow()
@@ -1112,15 +1768,27 @@ class ApplicationService:
             job = session.get(Job, job_id)
             if job is None:
                 raise LinguaError(ErrorCode.NOT_FOUND, "Job not found")
-            ensure_job_transition(job.status, JobStatus.QUEUED)
-            job.status = JobStatus.QUEUED
-            job.control_request = None
-            job.runner_token = None
-            for step in session.scalars(
-                select(StepRun).where(StepRun.job_id == job_id, StepRun.status == StepStatus.PAUSED)
-            ):
-                ensure_step_transition(step.status, StepStatus.PENDING)
-                step.status = StepStatus.PENDING
+            if job.status == JobStatus.PAUSED:
+                ensure_job_transition(job.status, JobStatus.QUEUED)
+                job.status = JobStatus.QUEUED
+                job.control_request = None
+                job.runner_token = None
+                for step in session.scalars(
+                    select(StepRun).where(
+                        StepRun.job_id == job_id, StepRun.status == StepStatus.PAUSED
+                    )
+                ):
+                    ensure_step_transition(step.status, StepStatus.PENDING)
+                    step.status = StepStatus.PENDING
+            elif job.status == JobStatus.RUNNING and job.control_request == "pause":
+                job.control_request = None
+            elif job.status in {JobStatus.QUEUED, JobStatus.RUNNING}:
+                pass
+            else:
+                raise LinguaError(
+                    ErrorCode.INVALID_STATE,
+                    "Only paused, queued, or running Jobs can resume",
+                )
             job.updated_at = utcnow()
         return self.get_job(job_id)
 
@@ -1152,7 +1820,7 @@ class ApplicationService:
                 ensure_job_transition(job.status, JobStatus.CANCELLING)
                 job.status = JobStatus.CANCELLING
                 job.control_request = "cancel"
-            elif job.status == JobStatus.CANCELLING:
+            elif job.status in {JobStatus.CANCELLING, JobStatus.CANCELLED}:
                 pass
             else:
                 raise LinguaError(ErrorCode.INVALID_STATE, "This Job cannot be cancelled")
@@ -1272,6 +1940,42 @@ class ApplicationService:
             job.error_details_json = None
             job.updated_at = utcnow()
         return self.get_job(job_id)
+
+    def retry_job_operation(
+        self,
+        job_id: str,
+        *,
+        idempotency: IdempotencyContext | None = None,
+    ) -> ServiceOperationResult:
+        if idempotency is None:
+            return ServiceOperationResult(self.retry_job(job_id))
+        fingerprint_value = request_fingerprint("job-retry", {"job_id": job_id})
+        reserved = self.reserve_idempotency(
+            scope=f"jobs:{job_id}:retry",
+            request_fingerprint_value=fingerprint_value,
+            context=idempotency,
+        )
+        if isinstance(reserved, IdempotencyReplay):
+            return ServiceOperationResult(self.idempotent_resource(reserved), replayed=True)
+        try:
+            value = self.retry_job(job_id)
+        except LinguaError as error:
+            self.fail_idempotency(reserved, error)
+            raise
+        except BaseException:
+            self.mark_idempotency_indeterminate(reserved)
+            raise
+        try:
+            self.complete_idempotency(
+                reserved,
+                resource_type="job",
+                resource_id=job_id,
+                response_status=200,
+            )
+        except BaseException:
+            self.mark_idempotency_indeterminate(reserved)
+            raise
+        return ServiceOperationResult(value)
 
     def recover_interrupted_jobs(self) -> int:
         recovered = 0
@@ -2071,13 +2775,19 @@ class ApplicationService:
         message: str,
         details: dict[str, Any],
     ) -> None:
+        persisted_details = dict(details)
+        request_id = session.scalar(select(Job.request_id).where(Job.id == step.job_id))
+        if request_id:
+            persisted_details.setdefault("request_id", request_id)
         session.add(
             StepLog(
                 job_id=step.job_id,
                 step_run_id=step.id,
                 level=level.upper(),
                 message=self._redact_text(message),
-                details_json=json.dumps(self.redact_for_persistence(details), ensure_ascii=False),
+                details_json=json.dumps(
+                    self.redact_for_persistence(persisted_details), ensure_ascii=False
+                ),
             )
         )
 
@@ -2111,6 +2821,7 @@ class ApplicationService:
             "recent_jobs": [self._job_summary(job) for job in recent],
             "data_dir": self._redact_text(str(self.settings.data_dir)),
             "bind_default": "127.0.0.1",
+            "require_idempotency_key": self.settings.require_idempotency_key,
             "limits": {
                 "max_upload_bytes": self.settings.max_upload_bytes,
                 "max_archive_files": self.settings.max_archive_files,
