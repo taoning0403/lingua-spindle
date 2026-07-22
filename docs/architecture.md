@@ -1,6 +1,6 @@
 # Architecture
 
-LinguaSpindle v0.3.0 is a Python modular monolith with a pure, synchronous translation core and
+LinguaSpindle v0.3.1 is a Python modular monolith with a pure, synchronous translation core and
 optional persistence/interfaces. “Headless” removes the browser product surface and caller-side
 business workflow; TXT, EPUB, and manga remain formal engine capabilities.
 
@@ -141,7 +141,7 @@ Profiles, Provider configuration, and Artifacts. Its responsibility is to:
 - expose use cases to optional interfaces without leaking SQLAlchemy models or storage paths.
 
 The runtime remains a local one-host scheduler. It is not a second format engine, a distributed
-queue, or a general DAG. Existing v0.2.0 records migrate forward through additive schema 0003.
+queue, or a general DAG. Existing records migrate forward through additive schemas 0003 and 0004.
 
 ### Job lifecycle
 
@@ -180,6 +180,23 @@ Job/key. New document rows can store the public stable Segment ID. Existing v0.2
 unchanged with a deterministic legacy key supplied at read time. The migration deletes no novel,
 manga, or Artifact state.
 
+### Service idempotency and active Job coalescing
+
+Migration 0004 keeps service retry metadata in the optional runtime. `idempotency_records` is
+unique by operation scope and SHA-256 key hash and stores a versioned request fingerprint,
+processing state, safe resource reference, and request ID. Raw caller keys, Provider keys, source
+text, and translation mappings are not stored there. Abandoned processing claims become
+`indeterminate` on startup rather than being repeated blindly.
+
+Equivalent active Jobs share a versioned execution fingerprint. A partial SQLite unique index
+enforces one matching Job while its state is queued, running, paused, or cancelling. The
+fingerprint includes immutable source and effective Pipeline/Profile/Provider/Adapter semantics,
+not credentials. Terminal state releases the active slot.
+
+These rules sit above the pure core. Project upload publication, its database rows, and its
+idempotency completion are committed atomically after bounded staging; a concurrent loser removes
+its temporary payload.
+
 ## Optional CLI and HTTP
 
 The console entry module can report a missing `[cli]` extra without importing Typer. Core document
@@ -193,6 +210,11 @@ HTML, JavaScript, CSS, reader, editor, or SPA fallback. `/` returns a compact he
 
 Interfaces normalize public errors but do not implement translation/rebuild algorithms or access
 private core helpers/SQLAlchemy tables.
+
+Covered persistent/Provider-triggering POST operations accept `Idempotency-Key`; required mode is
+an explicit server configuration. Every response receives a safe `X-Request-ID`, and the first
+Job correlation value is retained in Job/Step evidence. Pause/resume/cancel rely on their natural
+state-machine idempotency.
 
 ## Trust and secrets
 
@@ -212,19 +234,20 @@ ordinary words such as “password” or “secret.” Archive output checks bou
 ## Errors and observability
 
 `LinguaError`/`ErrorCode` are shared across the public core and optional layers. Stable codes cover
-configuration/dependency, source/archive bounds, unsafe/invalid/protected EPUB, source mismatch,
+configuration/dependency, idempotency, source/archive bounds, unsafe/invalid/protected EPUB, source mismatch,
 unknown Segment, Adapter/provider availability, transport/model/rate errors, timeout,
 cancellation, missing output, invalid state, interruption, storage, and unknown failures.
 
 Core events report start, retry, success/failure, progress, cancellation, and completion. They are
 synchronous notifications and contain no credential. Optional runtime logs persist redacted
-evidence; interfaces render stable envelopes. Unsupported progress is never invented.
+evidence and request IDs, never raw idempotency keys; interfaces render stable envelopes.
+Unsupported progress is never invented.
 
 ## Packaging and deployment
 
 The default Wheel contains the pure core, mocks, and migrations but no static Web resources. Its
 only direct runtime dependency is TXT charset detection. Optional extras provide HTTP clients,
-persistence, CLI, or server frameworks. Playwright/browser binaries are not package or v0.3.0
+persistence, CLI, or server frameworks. Playwright/browser binaries are not package or v0.3.1
 acceptance dependencies.
 
 The supplied container is a headless server/runtime deployment, not the default library. It runs

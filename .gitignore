@@ -2,6 +2,7 @@
 .env.local
 .env.*.local
 !.env.example
+.DS_Store
 .venv/
 __pycache__/
 *.py[cod]
@@ -17,5 +18,6 @@ data/
 acceptance/*/artifacts/**/*.whl
 !acceptance/v0.2.0/artifacts/wheel/linguaspindle-0.2.0-py3-none-any.whl
 !acceptance/v0.3.0/artifacts/wheels/linguaspindle-0.3.0-py3-none-any.whl
+!acceptance/v0.3.1/artifacts/wheels/linguaspindle-0.3.1-py3-none-any.whl
 acceptance/*/artifacts/**/*.tar.gz
 acceptance/*/artifacts/**/*.sqlite3*

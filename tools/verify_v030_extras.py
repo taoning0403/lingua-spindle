@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify every LinguaSpindle v0.3 wheel extra in a fresh virtual environment.
+"""Verify every LinguaSpindle versioned Wheel extra in a fresh virtual environment.
 
 The verifier intentionally performs installation work only when invoked.  Its
 smoke checks are offline: configured network clients are constructed but never

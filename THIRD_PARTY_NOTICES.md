@@ -7,7 +7,7 @@ projects remain authoritative for their complete terms.
 
 ## Default core
 
-The default v0.3.0 dependency set has one direct runtime library:
+The default v0.3.1 dependency set has one direct runtime library:
 
 - **charset-normalizer** (MIT), used for bounded TXT charset detection.
 
@@ -28,11 +28,12 @@ Optional extras add permissively licensed direct dependencies:
 | `server` | FastAPI (MIT), Uvicorn (BSD-3-Clause), Pydantic (MIT), Starlette (BSD-3-Clause), python-multipart (Apache-2.0), SQLAlchemy (MIT), platformdirs (MIT) |
 
 Their transitive dependencies retain their own licenses/notices in installed distributions.
-`constraints-v030.txt` records direct versions used by the development/acceptance environment;
-`constraints-v020.txt` and `constraints-v010.txt` remain historical constraints.
+`constraints-v031.txt` records direct versions used by the current development/acceptance
+environment; `constraints-v030.txt`, `constraints-v020.txt`, and `constraints-v010.txt` remain
+historical constraints.
 
-Development tools include build/setuptools, pytest/pytest-cov, Ruff, and mypy. v0.3.0 removes
-Playwright and browser binaries from the dependency and acceptance contract.
+Development tools include build/setuptools, pytest/pytest-cov, Ruff, and mypy. v0.3.1 keeps
+Playwright and browser binaries out of the dependency and acceptance contract.
 
 ## External manga service
 

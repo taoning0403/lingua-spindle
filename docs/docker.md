@@ -53,6 +53,7 @@ Compose passes:
 | `LINGUASPINDLE_MAX_ARCHIVE_MEMBER_BYTES` | `104857600` |
 | `LINGUASPINDLE_MAX_ARCHIVE_COMPRESSION_RATIO` | `100` |
 | `LINGUASPINDLE_MAX_ARCHIVE_PATH_DEPTH` | `20` |
+| `LINGUASPINDLE_REQUIRE_IDEMPOTENCY_KEY` | `false` |
 
 The 512 MiB `/tmp` budget leaves room for the default 100 MiB multipart source, request framing,
 and simultaneous source/output temporary files. It is an operational default, not proof that
@@ -62,6 +63,10 @@ processing-time, and Provider-cost budgets. An archive expansion bound is likewi
 guarantee; parsing can buffer one already bounded member.
 
 See [EPUB support](epub.md) for archive/path/reference guards.
+
+For service-to-service callers, set `LINGUASPINDLE_REQUIRE_IDEMPOTENCY_KEY=true` only after every
+covered client sends a stable per-operation key. Default `false` preserves v0.3.0 clients. The
+setting does not add authentication; keep the same outer network perimeter.
 
 ## Inspect operation
 
@@ -141,3 +146,17 @@ step. See [migration guide](migrations/v0.2-to-v0.3.md).
 There is no in-place downgrade. To return to v0.2.0, stop v0.3.0, restore the complete pre-upgrade
 Volume, select the v0.2.0 image/source, and start only against that restored copy. Never run
 v0.2.0 against schema version 3.
+
+## Upgrade from v0.3.0 to v0.3.1
+
+1. Stop the v0.3.0 container and back up the complete named Volume.
+2. Build or obtain the exact approved v0.3.1 image and verify its source/tag identity.
+3. Start once with `LINGUASPINDLE_REQUIRE_IDEMPOTENCY_KEY=false`; migration 0004 adds durable
+   idempotency state and nullable Job fingerprints/request IDs without rewriting existing rows.
+4. Check container health, `doctor`, existing Project/Artifact access, and one Mock-backed
+   idempotency replay.
+5. Enable required mode only after all callers have deployed key generation/retry support.
+
+Rollback restores the complete pre-upgrade Volume and starts v0.3.0 against that restored copy.
+Never run v0.3.0 against schema version 4. See the
+[v0.3.0 to v0.3.1 migration guide](migrations/v0.3-to-v0.3.1.md).

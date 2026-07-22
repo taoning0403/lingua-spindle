@@ -127,6 +127,7 @@ configuration may resolve:
 | `LINGUASPINDLE_PORT` | `8765` | Server port. |
 | `LINGUASPINDLE_LOG_LEVEL` | `INFO` | Uvicorn log level. |
 | `LINGUASPINDLE_WORKER_POLL_SECONDS` | `0.25` | Explicitly started durable worker poll interval. |
+| `LINGUASPINDLE_REQUIRE_IDEMPOTENCY_KEY` | `false` | Require keys on persistent/Provider-triggering POST operations. |
 | `LINGUASPINDLE_MAX_UPLOAD_BYTES` | `104857600` | Runtime/server source bound. |
 | `LINGUASPINDLE_MAX_ARCHIVE_FILES` | `2000` | ZIP member bound. |
 | `LINGUASPINDLE_MAX_ARCHIVE_BYTES` | `1048576000` | Total expanded archive bytes. |
@@ -198,23 +199,27 @@ back up the complete data root, install `[runtime]`, and run `doctor` against th
 Migration 0003 is additive and retains old novel/manga rows/Artifacts. Follow the
 [v0.2-to-v0.3 migration guide](migrations/v0.2-to-v0.3.md); rollback restores the whole backup.
 
+An optional v0.3.0 runtime upgrades through additive migration 0004. Stop writers, back up the
+complete data root, and follow [the v0.3-to-v0.3.1 guide](migrations/v0.3-to-v0.3.1.md). Enable
+required idempotency mode only after every service caller sends a valid key.
+
 ## Development checkout
 
 ```bash
 python -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -c constraints-v030.txt -e '.[dev]'
+python -m pip install -c constraints-v031.txt -e '.[dev]'
 python -m ruff format --check src tests tools
 python -m ruff check --no-cache src tests tools
 python -m mypy src tools/generate_v020_acceptance.py tools/generate_v030_acceptance.py \
-  tools/verify_v030_extras.py
+  tools/verify_v030_extras.py tools/generate_v031_acceptance.py tools/verify_v031_extras.py
 python -m compileall -q src tests tools
 python -m pytest -q
 ```
 
-The v0.3.0 default test contract installs no browser and accesses no paid/network/model service.
-Exact candidate outcomes belong in `acceptance/v0.3.0/` after they are captured.
+The v0.3.1 default test contract installs no browser and accesses no paid/network/model service.
+Exact candidate outcomes belong in `acceptance/v0.3.1/` after they are captured.
 
 ## Troubleshooting
 

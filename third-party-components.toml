@@ -1,5 +1,5 @@
 schema_version = 1
-reviewed_on = "2026-07-21"
+reviewed_on = "2026-07-22"
 
 [[component]]
 name = "FastAPI"

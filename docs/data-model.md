@@ -79,8 +79,9 @@ database or revision/approval history.
 
 ## Optional runtime relational model
 
-SQLite migrations `0001_initial.sql`, `0002_epub.sql`, and `0003_headless_core.sql` implement the
-local runtime through private classes in `src/linguaspindle/models.py`.
+SQLite migrations `0001_initial.sql`, `0002_epub.sql`, `0003_headless_core.sql`, and
+`0004_service_idempotency.sql` implement the local runtime through private classes in
+`src/linguaspindle/models.py`.
 
 ```text
 LinguaSpindle instance
@@ -91,7 +92,8 @@ LinguaSpindle instance
 │                         └── * QaFinding
 ├── Project 1 ── * Artifact (optional Job/Step provenance)
 ├── TranslationProfile (instance-scoped, secret-free)
-└── ProviderConfig (instance-scoped, secret-free)
+├── ProviderConfig (instance-scoped, secret-free)
+└── IdempotencyRecord (operation-scoped, hashed key, safe resource reference)
 ```
 
 There is no User, Account, Session, Role, Permission, Organization, Tenant, Membership, owner,
@@ -120,7 +122,8 @@ Confirmed deletion is refused while related Jobs are non-terminal.
 ### Job, StepRun, and recovery
 
 `jobs` stores Project/Profile/Pipeline/Provider/Adapter references, status/progress/control,
-secret-free snapshots, claim token, timestamps, and normalized terminal error. `step_runs` stores
+secret-free snapshots, claim token, nullable execution fingerprint/request ID, timestamps, and
+normalized terminal error. `step_runs` stores
 ordered capability/executor state, attempts, progress, Artifact links, configuration, and error;
 `step_logs` is append-only across retry.
 
@@ -172,6 +175,19 @@ The primary internal row `id` remains a runtime UUID and is distinct from the st
 
 `qa_findings` remains diagnostic, not an editorial revision model.
 
+### IdempotencyRecord and migration 0004
+
+`idempotency_records` is unique on `(scope, key_hash)`. It stores only the SHA-256 of the raw
+caller key, a versioned semantic request fingerprint, processing/completed/failed/indeterminate
+state, safe resource type/ID/result reference, normalized error metadata, request ID, and
+timestamps. It never stores the raw key, Provider key, uploaded source, or caller translation
+text.
+
+Migration 0004 also adds nullable `jobs.execution_fingerprint` and `jobs.request_id`. A partial
+unique index on the execution fingerprint applies only to queued/running/paused/cancelling Jobs,
+which coalesces equivalent active work and permits intentional reruns after terminal state.
+Existing Jobs remain valid with `NULL` values and are not retroactively coalesced.
+
 ## Invariants
 
 - Never mutate source bytes or rebuild to the source path.
@@ -184,10 +200,13 @@ The primary internal row `id` remains a runtime UUID and is distinct from the st
 - Persist state before reporting it through an optional interface.
 - Never repeat succeeded Steps unconditionally after restart.
 - Never store or serialize a Provider key.
+- Never store or log a raw Idempotency-Key; persist only its hash and safe correlation metadata.
+- Let SQLite uniqueness and transactions arbitrate concurrent idempotency/active-Job claims.
 
 ## Backup and rollback
 
 The pure library has no managed data root. Optional runtime migration is forward-only. Before
 upgrade, stop all writers and copy the complete data root, including SQLite/WAL/SHM and every
-Artifact payload. Rollback means restoring that complete pre-upgrade copy and running v0.2.0;
-never run v0.2.0 against schema version 3 or restore only one side of the database/Artifact pair.
+Artifact payload. Rollback means restoring the complete backup made for the target downgrade;
+never run an older release against schema version 4 or restore only one side of the
+database/Artifact pair.

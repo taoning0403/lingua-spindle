@@ -28,7 +28,7 @@ external integration. Such changes need an ADR and license review.
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -c constraints-v030.txt -e '.[dev]'
+python -m pip install -c constraints-v031.txt -e '.[dev]'
 ```
 
 On Windows PowerShell use `.venv\Scripts\Activate.ps1`. The supported Python range begins at
@@ -42,12 +42,12 @@ Run the checks relevant to your change; before a pull request, run all of these:
 ruff format --check src tests tools
 ruff check src tests tools
 mypy src tools/generate_v020_acceptance.py tools/generate_v030_acceptance.py \
-  tools/verify_v030_extras.py
+  tools/verify_v030_extras.py tools/generate_v031_acceptance.py tools/verify_v031_extras.py
 python -m compileall -q src tests tools
 pytest -q --cov=linguaspindle --cov-branch --cov-report=term-missing
 ```
 
-The v0.3.0 contract has no GUI, static Web assets, Playwright dependency, or browser gate. Changes
+The v0.3.1 contract has no GUI, static Web assets, Playwright dependency, or browser gate. Changes
 to the optional server must retain its JSON/OpenAPI-only surface and no-GUI route tests.
 
 Never weaken an assertion or skip a required check merely to produce a green result. Record real

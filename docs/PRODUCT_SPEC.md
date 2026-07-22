@@ -1,9 +1,10 @@
-# LinguaSpindle v0.3.0 product contract
+# LinguaSpindle v0.3.1 product contract
 
-This document defines the user-approved v0.3.0 target. It is not a progress report:
+This document defines the user-approved v0.3.1 target. It is not a progress report:
 `PROJECT_STATE.md` records current implementation, ADRs record durable decisions, and
 `acceptance/` records commands and results. v0.1.0 and v0.2.0 evidence remains historical and is
-never rewritten by this milestone.
+never rewritten by this milestone. v0.3.1 retains the v0.3.0 headless/core contract and adds
+service-call hardening above the pure core.
 
 ## Identity and position
 
@@ -36,7 +37,7 @@ translation formats that reached v0.2.0 acceptance.
 7. **Runtime-only secrets.** A caller injects Provider keys at the moment of use. Keys never enter
    serialized models, database views, events, errors, logs, Artifacts, fixtures, or output.
 
-## v0.3.0 outcome
+## v0.3.1 outcome
 
 The default package is a side-effect-free Python library that can inspect, translate, and rebuild:
 
@@ -51,6 +52,10 @@ cooperative cancellation, partial results, stable errors, and versioned JSON-com
 
 Optional layers provide the OpenAI-compatible Provider, the existing `manga-image-translator`
 HTTP Adapter, SQLite/Artifact/Job recovery, CLI, and headless HTTP server.
+
+v0.3.1 adds durable service idempotency, database-safe active Job coalescing, and request
+correlation to the optional HTTP/runtime layers. It does not move HTTP, SQLite, identity, or
+idempotency concerns into the pure core.
 
 `import linguaspindle` must not read environment variables, create directories, open SQLite, or
 start a thread. The pure core must not import FastAPI, Uvicorn, Typer, SQLAlchemy, or Playwright.
@@ -248,6 +253,32 @@ translation mapping. Manga retains CBZ/image upload, asynchronous Job status, an
 Long-running work uses the optional runtime. The API never reaches into SQLAlchemy tables or core
 private helpers. It keeps typed OpenAPI and stable error envelopes and adds no auth/user model.
 
+## Service-call idempotency and request correlation
+
+The following operations accept `Idempotency-Key`: create Project, create Profile, create Job,
+translate an explicit Segment selection, rebuild, and retry Job. The key is 8–128 safe ASCII
+characters and is SHA-256 hashed immediately; only the hash, operation scope, versioned semantic
+fingerprint, status, safe resource reference, error metadata, and request ID may be persisted.
+Raw keys, Provider keys, uploaded content, and caller translation text never enter idempotency
+records or managed logs.
+
+Default compatibility mode accepts a missing key. Required mode is explicitly enabled with
+`LINGUASPINDLE_REQUIRE_IDEMPOTENCY_KEY=true` and returns 428 when a covered call lacks one. Same
+key/same semantics replays the retained resource; changed semantics conflict; concurrent work is
+in progress; and interrupted synchronous external work becomes indeterminate. Stable errors and
+HTTP 409 distinguish those states. Completed replay returns 200 and replay metadata without
+duplicating a Provider call or persistent resource.
+
+Equivalent active Jobs coalesce by a versioned execution fingerprint containing immutable source,
+Pipeline/version, effective Profile, Provider/model non-secret configuration, Adapter
+configuration, and language pair. A SQLite partial unique index protects queued, running, paused,
+and cancelling states across processes. Terminal state permits a deliberate rerun with a new key.
+Project upload publication and its claim are atomic; concurrent loser staging is removed.
+
+Every HTTP success/error includes `X-Request-ID`. A safe caller ID is retained or a UUID is
+generated. The first Job request ID is persisted and copied into Step log details. Pause, resume,
+and cancel preserve their natural state-machine idempotency and need no durable key record.
+
 ## GUI and caller responsibility
 
 v0.3.0 removes `src/linguaspindle/web/`, static package data, root/app/style GUI routes, SPA
@@ -267,7 +298,7 @@ approval history, bookshelf/project/content management, and business state.
 - Keep `third-party-components.toml` and `THIRD_PARTY_NOTICES.md` current, including code, models,
   fonts, integration method, modifications, and redistribution status.
 
-## v0.3.0 acceptance
+## v0.3.1 acceptance
 
 Required evidence includes:
 
@@ -285,8 +316,15 @@ Required evidence includes:
    source, model, or font;
 9. Ruff, strict mypy, compileall, pytest, branch coverage, Python 3.11–3.14 CI, and practical
    Windows core coverage; and
-10. a checksummed `acceptance/v0.3.0/` archive containing TXT/EPUB/manga samples, manifests,
-    results, validation, Wheels, dependency lists, and import-boundary evidence.
+10. durable same-key replay/conflict/restart tests and two-instance SQLite concurrency tests for
+    Project upload, active Job coalescing, orphan cleanup, terminal reruns, and Provider call count;
+11. compatibility/required modes, natural controls, request-ID persistence, OpenAPI headers, and
+    Provider-Key/Idempotency-Key leak scans;
+12. Compose parsing and a hardened non-root/read-only/Volume Docker health run with required mode;
+    and
+13. a checksummed `acceptance/v0.3.1/` archive containing reports, exact Wheel, deterministic
+    TXT/EPUB/manga samples, environment, command log, migration/extras/container/security
+    evidence, and checksums.
 
 Report Pass, Fail, Blocked, Not executed, and Optional external test distinctly. A Mock/fake is not
 evidence of a paid Provider or real manga model. Real paid Provider, real external manga model,
@@ -302,7 +340,8 @@ client, formal `novel-platform` coupling, PostgreSQL, Redis, Kafka, S3, or Kuber
 
 ## Version and publication control
 
-Update the package version to `0.3.0` only after every mandatory acceptance item passes and the
-v0.3.0 archive/checksums are complete. Development must not move/recreate `v0.2.0`, push a remote
-branch/tag, create a GitHub Release, or rewrite v0.2.0 historical acceptance. Publication requires
-separate authorization after report review.
+The release candidate declares package/image version `0.3.1`; it is not a published release until
+every mandatory acceptance item passes and the v0.3.1 archive/checksums are complete. Development
+must not move/recreate the v0.3.0 tag, rewrite historical acceptance, push a remote branch/tag,
+create a GitHub Release, publish Wheel/image artifacts, or deploy a server. Publication and
+deployment require separate authorization after report review.

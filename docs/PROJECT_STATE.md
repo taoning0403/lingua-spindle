@@ -1,12 +1,11 @@
 # Project state
 
-Last reviewed against the v0.3.0 execution contract and the current working implementation on
-2026-07-21. The v0.3.0 headless/library-first milestone is accepted and Git-published. Development
-was based on the released v0.2.0 commit `b0b5ef20dff65e7ecb6ace495a82fbe855e5d930` without moving
-or rewriting its tag. Mandatory source, static-analysis, migration, and local runtime gates passed;
-package metadata is `0.3.0`, and the exact final Wheel, image, extras, and checksummed archive have
-been verified. The annotated `v0.3.0` tag resolves to final archive commit
-`77974cbf47de2d40ac923e399c631056902b9f70`, which is contained in `main`.
+Last reviewed against the v0.3.1 service-hardening execution contract and current implementation
+on 2026-07-22. Development started from refreshed `origin/main` commit
+`25357315877a51e421891db945f3e8e485fd559b`; the published annotated `v0.3.0` tag still resolves to
+`77974cbf47de2d40ac923e399c631056902b9f70` and its historical acceptance archive is unchanged.
+Package/image metadata is now the local v0.3.1 candidate. No v0.3.1 branch/tag has been pushed,
+no GitHub Release or package/image publication has occurred, and no server deployment has begun.
 
 ## Current milestone direction
 
@@ -19,7 +18,22 @@ The permanent boundaries remain: no user/account/identity/tenant/permission mode
 secrets; capability-selected external Adapters; loopback-default HTTP; and no upstream manga
 source/model/font/GPU redistribution.
 
-## Implemented v0.3.0 release surface
+## Implemented v0.3.1 release surface
+
+### Service idempotency and correlation
+
+- The six persistent or Provider-triggering POST operations support a validated, immediately
+  hashed `Idempotency-Key`; compatibility mode is default and opt-in required mode returns 428.
+- Migration `0004_service_idempotency.sql` adds durable operation claims, nullable Job
+  fingerprint/request ID fields, and a partial unique index for equivalent active Jobs.
+- Same-key/same-request replays retain resource identity; changed, in-progress, and indeterminate
+  requests use stable 409 error codes. Selected translation, rebuild, retry, Profile, Job, and
+  streaming Project creation are covered without moving persistence concerns into the pure core.
+- Equivalent active Jobs coalesce through SQLite across concurrent application instances.
+  Terminal Jobs release the slot; Project publication is transactionally paired with its claim
+  and removes concurrent-loser staging payloads.
+- Every HTTP response includes a safe `X-Request-ID`; Job and Step evidence retains first-request
+  correlation. Raw idempotency keys and Provider keys are never persisted or logged.
 
 ### Pure public core
 
@@ -98,7 +112,7 @@ regression target.
 
 ## Verification and release state
 
-v0.3.0 is accepted and published as an annotated Git tag. The versioned `acceptance/v0.3.0/`
+v0.3.0 remains accepted and published as an annotated Git tag. The versioned `acceptance/v0.3.0/`
 archive binds its final results to source candidate
 `84270dec38b5f92fcc044b36c170f4230c15170f` and records 20 Pass, 0 Fail, 0 Blocked, and
 0 Not executed across required gates. The complete automated suite reports 228 passed,
@@ -118,6 +132,10 @@ The `codex/v0.3.0-headless-core` branch, annotated `v0.3.0` tag, and `main` rele
 pushed on 2026-07-21. No GitHub Release or deployment was performed; those remain separate future
 actions.
 
+The local v0.3.1 implementation suite has passed during development; exact final test, coverage,
+Wheel, extras, migration, Docker, leak-scan, and checksum outcomes are recorded only after the
+candidate acceptance archive is generated. Publication remains blocked on explicit user approval.
+
 ## Upgrade/deployment state
 
 - A core-only installation owns no mutable data root.
@@ -129,6 +147,9 @@ actions.
   uses the server/all extras; it serves no GUI.
 - The container remains non-root with a read-only root under Compose, a persistent `/data`, and no
   external manga stack, model, font, GPU runtime, browser, or paid key.
+- v0.3.0 optional-runtime users stop all writers and back up the complete data root/Volume before
+  migration 0004. Existing rows remain valid with nullable Job fields; rollback restores the
+  complete pre-upgrade backup rather than downgrading schema 4 in place.
 
 ## Known limitations and deliberate omissions
 
@@ -149,7 +170,8 @@ actions.
 ADR 0008 owns the library-first/headless dependency direction and supersedes the GUI/default-
 framework/key-source details of ADRs 0002, 0004, and 0005. ADRs 0001, 0003, 0006, and 0007 remain
 authoritative for trust, immutable/capability boundaries, the external manga service, and EPUB
-round trip.
+round trip. ADR 0009 owns server idempotency, active Job coalescing, and request correlation while
+keeping those concerns out of the pure core.
 
 Update this file when an implemented capability, verification conclusion, package/deployment
 surface, limitation, or milestone state changes. Put target requirements in `PRODUCT_SPEC.md`,

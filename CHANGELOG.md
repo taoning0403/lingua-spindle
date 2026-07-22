@@ -6,6 +6,32 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-22
+
+### Added
+
+- Durable, operation-scoped `Idempotency-Key` handling for Project/Profile/Job creation,
+  selected translation, rebuild, and retry, with compatibility and opt-in required modes.
+- Database-enforced active Job coalescing across concurrent runtime instances and atomic Project
+  upload publication without orphan payloads.
+- `X-Request-ID` on every HTTP response, persisted Job/Step correlation, replay/coalescing
+  response headers, and typed OpenAPI contracts.
+- Forward-only migration `0004_service_idempotency.sql` for hashed idempotency records and
+  nullable Job execution/request fingerprints.
+
+### Changed
+
+- Equivalent active Job requests now return the existing Job; terminal Jobs release the active
+  uniqueness slot so a new key can request a rerun.
+- Interrupted synchronous Provider operations become `indeterminate` instead of being guessed or
+  automatically repeated.
+
+### Security
+
+- Raw idempotency keys are hashed before persistence and are excluded from managed logs,
+  Artifacts, exports, and error payloads; semantic fingerprints retain no Provider key.
+- Unexpected HTTP failures return normalized messages correlated by a safe request ID.
+
 ## [0.3.0] - 2026-07-21
 
 ### Added
@@ -138,7 +164,8 @@ All notable changes are documented here. The format follows
 - The real manga Adapter exposes page-boundary cancellation and no streaming progress in v0.1.0.
 - Upstream manga model/font redistribution terms require operator revalidation.
 
-[Unreleased]: https://github.com/taoning0403/lingua-spindle/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/taoning0403/lingua-spindle/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/taoning0403/lingua-spindle/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/taoning0403/lingua-spindle/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/taoning0403/lingua-spindle/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/taoning0403/lingua-spindle/releases/tag/v0.1.0

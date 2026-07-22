@@ -159,6 +159,12 @@ Open <http://127.0.0.1:8765/docs> for OpenAPI. `/` returns JSON; there is no Web
 The API retains asynchronous Project/Job/Artifact flows and adds stable novel Segment listing,
 explicit selected translation, and Provider-free caller-mapping rebuild.
 
+Persistent or Provider-triggering POST operations accept `Idempotency-Key`. Compatibility mode
+allows callers to omit it; service-to-service deployments can set
+`LINGUASPINDLE_REQUIRE_IDEMPOTENCY_KEY=true`. Repeating the same key and semantic request returns
+the retained resource without duplicate work. Every response includes `X-Request-ID`; see the API
+reference for covered operations, replay headers, conflicts, and active Job coalescing.
+
 See [HTTP API](docs/api.md) and [Docker deployment](docs/docker.md).
 
 ## Trust boundary
@@ -215,14 +221,18 @@ schema downgrade.
 
 Read [v0.2-to-v0.3 migration](docs/migrations/v0.2-to-v0.3.md).
 
+When upgrading an optional v0.3.0 runtime to v0.3.1, stop writers and back up the complete data
+root before additive migration 0004. See
+[v0.3-to-v0.3.1 migration](docs/migrations/v0.3-to-v0.3.1.md).
+
 ## Development
 
 ```bash
-python -m pip install -c constraints-v030.txt -e '.[dev]'
+python -m pip install -c constraints-v031.txt -e '.[dev]'
 python -m ruff format --check src tests tools
 python -m ruff check --no-cache src tests tools
 python -m mypy src tools/generate_v020_acceptance.py tools/generate_v030_acceptance.py \
-  tools/verify_v030_extras.py
+  tools/verify_v030_extras.py tools/generate_v031_acceptance.py tools/verify_v031_extras.py
 python -m compileall -q src tests tools
 python -m pytest -q
 ```
@@ -237,7 +247,7 @@ results belong in the versioned [acceptance archive](acceptance/README.md).
 - [Data model](docs/data-model.md)
 - [Decision records](docs/DECISIONS.md)
 - [Current project state](docs/PROJECT_STATE.md)
-- [v0.3.0 release notes](docs/releases/v0.3.0.md)
+- [v0.3.1 release notes](docs/releases/v0.3.1.md)
 - [Structured third-party inventory](third-party-components.toml)
 - [Security policy](SECURITY.md)
 

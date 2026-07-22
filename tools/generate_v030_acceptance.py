@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Generate deterministic v0.3.0 core acceptance samples in a caller-owned root.
+"""Generate deterministic versioned core acceptance samples in a caller-owned root.
 
 This helper intentionally generates only format samples and core/import evidence. It does not
-run release gates, build packages, write an acceptance conclusion, or modify historical v0.2.0
-evidence.
+run release gates, build packages, write an acceptance conclusion, or modify historical
+versioned evidence.
 """
 
 from __future__ import annotations
@@ -109,17 +109,17 @@ def _arguments(argv: Sequence[str] | None = None) -> Arguments:
     parser.add_argument(
         "--output",
         type=Path,
-        help="Output root (default: <repository>/acceptance/v0.3.0)",
+        help=f"Output root (default: <repository>/acceptance/v{EXPECTED_VERSION})",
     )
     parser.add_argument(
         "--expected-commit",
         required=True,
-        help="Exact clean Git commit from which v0.3.0 evidence must be generated",
+        help=f"Exact clean Git commit from which v{EXPECTED_VERSION} evidence must be generated",
     )
     parsed = parser.parse_args(argv)
     repository = cast(Path, parsed.repository).resolve()
     configured_output = cast(Path | None, parsed.output)
-    output = (configured_output or repository / "acceptance" / "v0.3.0").resolve()
+    output = (configured_output or repository / "acceptance" / f"v{EXPECTED_VERSION}").resolve()
     return Arguments(
         repository=repository,
         output=output,
@@ -155,9 +155,16 @@ def _destination(output: Path, relative: PurePosixPath) -> Path:
 def _validate_roots(repository: Path, output: Path) -> None:
     if not (repository / "pyproject.toml").is_file():
         raise RuntimeError(f"Not a LinguaSpindle repository: {repository}")
-    historical = (repository / "acceptance" / "v0.2.0").resolve()
-    if output == historical or output.is_relative_to(historical):
-        raise RuntimeError("Refusing to generate inside immutable acceptance/v0.2.0")
+    acceptance_root = repository / "acceptance"
+    current = (acceptance_root / f"v{EXPECTED_VERSION}").resolve()
+    for candidate in acceptance_root.glob("v*"):
+        historical = candidate.resolve()
+        if historical == current:
+            continue
+        if output == historical or output.is_relative_to(historical):
+            raise RuntimeError(
+                f"Refusing to generate inside immutable {candidate.relative_to(repository)}"
+            )
     if output.exists() and (output.is_symlink() or not output.is_dir()):
         raise RuntimeError(f"Output root must be a real directory or not exist: {output}")
 
@@ -269,6 +276,7 @@ def _png(width: int, height: int, rgb: tuple[int, int, int]) -> bytes:
 
 
 def _epub2_bytes() -> bytes:
+    fixture_id = f"urn:uuid:linguaspindle-v{EXPECTED_VERSION.replace('.', '')}-epub2"
     container = b"""<?xml version="1.0" encoding="UTF-8"?>
 <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
   <rootfiles>
@@ -276,12 +284,12 @@ def _epub2_bytes() -> bytes:
   </rootfiles>
 </container>
 """
-    package = b"""<?xml version="1.0" encoding="UTF-8"?>
+    package = f"""<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf"
          xmlns:dc="http://purl.org/dc/elements/1.1/"
          unique-identifier="book-id" version="2.0">
   <metadata>
-    <dc:identifier id="book-id">urn:uuid:linguaspindle-v030-epub2</dc:identifier>
+    <dc:identifier id="book-id">{fixture_id}</dc:identifier>
     <dc:title>Clockwork Harbor</dc:title>
     <dc:creator>LinguaSpindle fixture</dc:creator>
     <dc:subject>Acceptance</dc:subject>
@@ -303,7 +311,7 @@ def _epub2_bytes() -> bytes:
     <reference type="text" title="Start" href="Text/chapter-1.xhtml#start"/>
   </guide>
 </package>
-"""
+""".encode()
     chapter_1 = b"""<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
   <head><title>Chapter One</title><link rel="stylesheet" href="../Styles/book.css"/></head>
@@ -323,9 +331,9 @@ def _epub2_bytes() -> bytes:
   </body>
 </html>
 """
-    ncx = b"""<?xml version="1.0" encoding="UTF-8"?>
+    ncx = f"""<?xml version="1.0" encoding="UTF-8"?>
 <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
-  <head><meta name="dtb:uid" content="urn:uuid:linguaspindle-v030-epub2"/></head>
+  <head><meta name="dtb:uid" content="{fixture_id}"/></head>
   <docTitle><text>Clockwork Harbor</text></docTitle>
   <navMap>
     <navPoint id="one" playOrder="1"><navLabel><text>Chapter One</text></navLabel>
@@ -334,7 +342,7 @@ def _epub2_bytes() -> bytes:
       <content src="Text/chapter-2.xhtml#arrival"/></navPoint>
   </navMap>
 </ncx>
-"""
+""".encode()
     entries = (
         ("mimetype", b"application/epub+zip", zipfile.ZIP_STORED),
         ("META-INF/container.xml", container, zipfile.ZIP_DEFLATED),
@@ -717,7 +725,7 @@ def _validate_release_source(repository: Path, expected_commit: str) -> None:
 def _environment_metadata(repository: Path) -> dict[str, object]:
     return {
         "schema_version": "acceptance-environment.v1",
-        "artifact_scope": "v0.3.0 core samples only",
+        "artifact_scope": f"v{EXPECTED_VERSION} core samples only",
         "linguaspindle_version": linguaspindle_version,
         "git_commit": _git_commit(repository),
         "python": {
@@ -768,7 +776,7 @@ def generate(
     *,
     expected_commit: str,
 ) -> tuple[GeneratedFile, ...]:
-    """Generate the fixed v0.3.0 core sample set without touching v0.2.0."""
+    """Generate the fixed versioned core sample set without touching historical evidence."""
 
     repository = repository.resolve()
     output = output.resolve()

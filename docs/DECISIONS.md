@@ -14,10 +14,11 @@ consolidated design.
 | [0006 — manga-image-translator external Adapter](adr/0006-manga-image-translator-external-adapter.md) | Accepted | Integrate the GPL upstream only as an operator-managed HTTP service, distribute none of its uncertain weights/fonts, and test through a fake service. |
 | [0007 — Structure-preserving EPUB round trip and bounded archive processing](adr/0007-epub-round-trip-and-bounded-archive-processing.md) | Accepted | Extend the existing Source/Segment/Artifact pipeline with stable EPUB text locators, deterministic reuse, source-based reconstruction, independent validation, streamed payload I/O, and centralized ZIP resource guards. |
 | [0008 — Headless, library-first orchestration core](adr/0008-headless-library-first-orchestration-core.md) | Accepted | Make the pure typed TXT/EPUB/manga core the default public boundary; move persistence and interfaces to extras, remove the GUI, and retain v0.2 data through migration 0003. |
+| [0009 — Durable server idempotency and request correlation](adr/0009-server-idempotency-and-request-correlation.md) | Accepted | Hash and persist operation-scoped idempotency claims, coalesce equivalent active Jobs through SQLite, and correlate every HTTP response and durable Job without moving those concerns into the pure core. |
 
 ## Recording a decision
 
-1. Add the next numbered file under `docs/adr/` (currently `0008`).
+1. Add the next numbered file under `docs/adr/` (currently `0009`).
 2. Record date, status, context, decision, and consequences.
 3. Add a concise row here and update consolidated architecture/data-model/project context.
 4. Supersede an accepted ADR with a new ADR when reversing it; do not rewrite history to hide the

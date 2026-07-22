@@ -37,6 +37,39 @@ Caller-controlled novel flow:
 
 The server uses ordinary request/response and Job polling. It defines no SSE or WebSocket contract.
 
+## Idempotency and request correlation
+
+These persistent or Provider-triggering operations accept `Idempotency-Key`:
+
+- `POST /api/projects`;
+- `POST /api/profiles`;
+- `POST /api/projects/{project_id}/jobs`;
+- `POST /api/projects/{project_id}/segments/translate`;
+- `POST /api/projects/{project_id}/rebuild`; and
+- `POST /api/jobs/{job_id}/retry`.
+
+A key is 8–128 ASCII letters, digits, `.`, `_`, `:`, or `-`. Use a fresh unpredictable value per
+semantic operation and keep it stable across transport retries. The server stores only its
+SHA-256. Default compatibility mode accepts a missing key; set
+`LINGUASPINDLE_REQUIRE_IDEMPOTENCY_KEY=true` to return 428/`IDEMPOTENCY_KEY_REQUIRED` when it is
+missing. An invalid key returns 400.
+
+The first successful call uses its normal status (`201`, `202`, or `200`) and returns `Location`
+plus `Idempotency-Replayed: false`. The same key and normalized request later returns the retained
+resource with HTTP 200 and `Idempotency-Replayed: true`. The same key with changed semantics
+returns `IDEMPOTENCY_CONFLICT`; a concurrent live claim returns `IDEMPOTENCY_IN_PROGRESS` with
+`Retry-After`; and an operation interrupted where an external effect cannot be proven returns
+`IDEMPOTENCY_INDETERMINATE`. These conflicts use HTTP 409.
+
+Equivalent active Job requests coalesce even when their idempotency keys differ. The server
+returns the existing Job with HTTP 200 and `X-Job-Coalesced: true`; the database releases that
+execution fingerprint after the Job becomes terminal, so an intentional rerun uses a new key.
+
+Every success and error includes `X-Request-ID`. A caller-supplied value is accepted only when it
+is 1–128 characters from the same safe character set; otherwise a UUID is generated. The first
+Job request ID is retained on that Job and added to its Step log details. Neither request IDs nor
+idempotency keys are authentication.
+
 ## Main endpoints
 
 | Method and path | Purpose |
@@ -47,7 +80,7 @@ The server uses ordinary request/response and Job polling. It defines no SSE or 
 | `GET /api/adapters` | Manga Adapter manifests and current health. |
 | `GET /api/providers` | Secret-free Provider status. |
 | `GET /api/pipelines` | Versioned runtime TXT/EPUB/manga Presets. |
-| `GET`, `POST /api/profiles` | List/create non-secret Translation Profiles. |
+| `GET`, `POST /api/profiles`; `GET /api/profiles/{id}` | List/create/read non-secret Translation Profiles. |
 | `GET`, `POST /api/projects` | List/create Projects; create accepts one bounded multipart Source. |
 | `GET`, `DELETE /api/projects/{id}` | Detail or confirmed deletion (`?confirmed=true`). |
 | `POST /api/projects/{id}/jobs` | Queue an asynchronous persistent Job. |
@@ -79,6 +112,8 @@ source=<TXT|EPUB|CBZ|PNG|JPEG|WebP>
 
 ```bash
 curl -sS -X POST http://127.0.0.1:8765/api/projects \
+  -H 'Idempotency-Key: project-book-20260722-01' \
+  -H 'X-Request-ID: import-book-01' \
   -F 'name=Book' \
   -F 'kind=novel' \
   -F 'source_language=en' \
@@ -102,6 +137,10 @@ Queue a persistent Job:
   "adapter_id": null
 }
 ```
+
+Send that JSON with a new `Idempotency-Key`; retries of the same intended Job keep the same key.
+The Job execution fingerprint also prevents two equivalent active Jobs when concurrent callers
+used different keys.
 
 Omitting the Pipeline selects a compatible Preset from Project/source kind: TXT →
 `novel_txt_v1`, EPUB → `novel_epub_v1`, manga → `manga_full_v1`. An incompatible explicit choice
@@ -127,6 +166,7 @@ they are not SQLAlchemy row representations.
 ```bash
 curl -sS -X POST \
   http://127.0.0.1:8765/api/projects/PROJECT_ID/segments/translate \
+  -H 'Idempotency-Key: selected-PROJECT_ID-01' \
   -H 'Content-Type: application/json' \
   -d '{
     "selected_segment_ids": ["SEGMENT_ID_1", "SEGMENT_ID_3"],
@@ -156,6 +196,7 @@ selection. Use the persistent Job endpoint for long background whole-project wor
 
 ```bash
 curl -sS -X POST http://127.0.0.1:8765/api/projects/PROJECT_ID/rebuild \
+  -H 'Idempotency-Key: rebuild-PROJECT_ID-01' \
   -H 'Content-Type: application/json' \
   -d '{
     "translations": {
@@ -218,11 +259,12 @@ Stable envelope:
 }
 ```
 
-Stable categories include configuration/dependency, upload/archive bounds, unsafe/invalid/
+Stable categories include configuration/dependency, idempotency key required/invalid/conflict/
+in-progress/indeterminate, upload/archive bounds, unsafe/invalid/
 unsupported/protected EPUB, source mismatch, unknown Segment, Adapter unavailable, external
 command, timeout, invalid format, model API, rate limit, cancellation, missing output, not found,
 invalid state, process interruption, storage, and unknown failure. The shared OpenAPI response map
-documents normalized envelopes for 400, 404, 409, 413, 422, 429, 500, 502, 503, and 504. Concrete
+documents normalized envelopes for 400, 404, 409, 413, 422, 428, 429, 500, 502, 503, and 504. Concrete
 status mapping includes 413 for source/archive limits, 404 for missing resources, 409 for invalid
 state, 429 for rate limiting, 502 for model transport, 503 for unavailable Adapters, and 504 for
 timeouts.
@@ -235,7 +277,8 @@ secret mechanism.
 ## Compatibility
 
 The optional server retains the v0.2.0 Project/Job/Artifact lifecycle while adding stable public
-Segment operations. Migration 0003 preserves existing rows and payloads; see the
-[migration guide](migrations/v0.2-to-v0.3.md). Use the generated OpenAPI contract for clients and
-treat undocumented fields as internal. The API contains no user/account/tenant/permission routes
-or fields.
+Segment operations. Migrations 0003 and 0004 preserve existing rows and payloads; see the
+[v0.2 to v0.3](migrations/v0.2-to-v0.3.md) and
+[v0.3 to v0.3.1](migrations/v0.3-to-v0.3.1.md) guides. Use the generated OpenAPI contract for
+clients and treat undocumented fields as internal. The API contains no
+user/account/tenant/permission routes or fields.

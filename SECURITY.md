@@ -2,9 +2,9 @@
 
 ## Supported version
 
-Security fixes target the latest published `0.2.x` line. The default branch may also contain the
-unreleased v0.3.0 candidate; it is supported for development and acceptance, not represented as a
-published release. This alpha software has not received an independent security audit.
+Security fixes target the latest published `0.3.0` release. The default branch may also contain
+the unreleased v0.3.1 candidate; it is supported for development and acceptance, not represented
+as a published release. This alpha software has not received an independent security audit.
 
 ## Reporting a vulnerability
 
@@ -34,6 +34,8 @@ This perimeter is operational infrastructure, not a LinguaSpindle user system.
   mechanism, never source control or an image layer.
 - LinguaSpindle does not accept the key through its API and applies centralized redaction before
   persisting managed diagnostics, metadata, JSON/text Artifacts, and exports.
+- Idempotency keys are caller credentials for retry correlation, not authentication. The service
+  hashes them immediately and must never log, persist, export, or return their raw values.
 - Avoid placing secrets in imported source files. An import containing the active runtime
   Provider key is rejected, but the application cannot classify every possible credential.
 - Treat database backups, immutable Sources, Artifacts, external Adapter logs, and exports as
