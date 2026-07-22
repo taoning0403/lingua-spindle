@@ -117,6 +117,7 @@ async def _contract_flow(data_dir) -> None:
             assert set(download_ok["headers"]) == {
                 "Content-Disposition",
                 "X-Content-Type-Options",
+                "X-Request-ID",
             }
             _assert_documented_errors(download_operation)
 

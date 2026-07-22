@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import tempfile
@@ -18,11 +19,14 @@ try:
         FastAPI,
         File,
         Form,
+        Header,
         Query,
         Request,
+        Response,
         UploadFile,
     )
     from fastapi.exceptions import RequestValidationError
+    from fastapi.openapi.utils import get_openapi
     from fastapi.responses import FileResponse, JSONResponse
     from pydantic import BaseModel, ConfigDict, Field
     from starlette.concurrency import run_in_threadpool
@@ -49,10 +53,22 @@ from ..core import (
     translate_segments,
 )
 from ..errors import ErrorCode, LinguaError
+from ..idempotency import (
+    IdempotencyClaim,
+    IdempotencyContext,
+    IdempotencyReplay,
+    ServiceOperationResult,
+    idempotency_context,
+    normalize_request_id,
+    normalized_text_mapping_hash,
+    request_fingerprint,
+)
 from ..json_types import normalize_json_object
 from ..orchestration.engine import JobRunner
 from ..orchestration.state import JobStatus, StepStatus
 from ..security import redact, redact_text
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class StrictRequest(BaseModel):
@@ -77,6 +93,23 @@ class CreateProfileRequest(StrictRequest):
     prompt_version: str = "v1"
     batch_size: int = Field(default=8, ge=1, le=100)
     model_parameters: dict[str, Any] = Field(default_factory=dict)
+
+
+class ProfileResponse(BaseModel):
+    id: str
+    name: str
+    source_language: str
+    target_language: str
+    provider_id: str
+    model: str
+    style: str
+    context_strategy: str
+    prompt_template: str
+    prompt_version: str
+    batch_size: int
+    model_parameters: dict[str, Any]
+    created_at: str
+    updated_at: str
 
 
 class ErrorResponse(BaseModel):
@@ -357,6 +390,75 @@ _STABLE_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     504: {"model": ErrorEnvelope, "description": "Provider or Adapter request timed out"},
 }
 
+_IDEMPOTENCY_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    **_STABLE_ERROR_RESPONSES,
+    428: {
+        "model": ErrorEnvelope,
+        "description": "Idempotency-Key is required by server configuration",
+    },
+}
+
+_IDEMPOTENCY_RESPONSE_HEADERS: dict[str, dict[str, Any]] = {
+    "Idempotency-Replayed": {
+        "description": "True only when the response reuses a completed idempotent result",
+        "schema": {"type": "string", "enum": ["true", "false"]},
+    },
+    "Location": {
+        "description": "Canonical API location of the created or reused resource",
+        "schema": {"type": "string"},
+    },
+}
+
+_JOB_RESPONSE_HEADERS: dict[str, dict[str, Any]] = {
+    **_IDEMPOTENCY_RESPONSE_HEADERS,
+    "X-Job-Coalesced": {
+        "description": "True when an equivalent active Job was reused",
+        "schema": {"type": "string", "enum": ["true", "false"]},
+    },
+}
+
+IdempotencyKeyHeader = Annotated[
+    str | None,
+    Header(
+        alias="Idempotency-Key",
+        description=(
+            "Caller-chosen 8-128 character idempotency key. The server stores only its SHA-256."
+        ),
+    ),
+]
+
+
+class RequestCorrelationMiddleware:
+    """Attach one sanitized request ID to every success and error response."""
+
+    def __init__(self, app: Callable[..., Awaitable[None]]) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        headers = {key.lower(): value for key, value in scope.get("headers", [])}
+        supplied = headers.get(b"x-request-id")
+        request_id = normalize_request_id(
+            supplied.decode("ascii", errors="ignore") if supplied is not None else None
+        )
+        state = scope.setdefault("state", {})
+        state["request_id"] = request_id
+
+        async def correlated_send(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                response_headers = [
+                    (key, value)
+                    for key, value in message.get("headers", [])
+                    if key.lower() != b"x-request-id"
+                ]
+                response_headers.append((b"x-request-id", request_id.encode("ascii")))
+                message["headers"] = response_headers
+            await send(message)
+
+        await self.app(scope, receive, correlated_send)
+
 
 class UploadBodyLimitMiddleware:
     """Bound mutating request bodies before FastAPI parses their content."""
@@ -434,6 +536,11 @@ def _status_for_error(error: LinguaError) -> int:
     return {
         ErrorCode.NOT_FOUND: 404,
         ErrorCode.INVALID_STATE: 409,
+        ErrorCode.IDEMPOTENCY_KEY_REQUIRED: 428,
+        ErrorCode.IDEMPOTENCY_KEY_INVALID: 400,
+        ErrorCode.IDEMPOTENCY_CONFLICT: 409,
+        ErrorCode.IDEMPOTENCY_IN_PROGRESS: 409,
+        ErrorCode.IDEMPOTENCY_INDETERMINATE: 409,
         ErrorCode.ADAPTER_UNAVAILABLE: 503,
         ErrorCode.TIMEOUT: 504,
         ErrorCode.MODEL_API: 502,
@@ -442,6 +549,37 @@ def _status_for_error(error: LinguaError) -> int:
         ErrorCode.ARCHIVE_LIMIT_EXCEEDED: 413,
         ErrorCode.UNKNOWN: 500,
     }.get(error.code, 400)
+
+
+def _request_id(request: Request) -> str:
+    return str(request.state.request_id)
+
+
+def _idempotency(
+    request: Request,
+    key: str | None,
+) -> IdempotencyContext | None:
+    service = _service(request)
+    return idempotency_context(
+        key,
+        request_id=_request_id(request),
+        required=service.settings.require_idempotency_key,
+    )
+
+
+def _operation_headers(
+    response: Response,
+    result: ServiceOperationResult,
+    *,
+    location: str,
+    success_status: int,
+    job: bool = False,
+) -> None:
+    response.status_code = 200 if result.replayed or result.coalesced else success_status
+    response.headers["Idempotency-Replayed"] = str(result.replayed).lower()
+    response.headers["Location"] = location
+    if job:
+        response.headers["X-Job-Coalesced"] = str(result.coalesced).lower()
 
 
 def _operation_options(
@@ -574,49 +712,143 @@ def _translate_selected_segments(
     service: ApplicationService,
     project_id: str,
     body: TranslateSegmentsRequest,
-) -> dict[str, Any]:
+    idempotency: IdempotencyContext | None = None,
+) -> ServiceOperationResult:
     _reject_runtime_secret(service, body.model_dump())
     context = _novel_source_context(service, project_id, body=body)
+    manifest_ids = {segment.segment_id for segment in context.manifest.segments}
+    unknown_ids = sorted(
+        (set(body.selected_segment_ids) | set(body.existing_translations)) - manifest_ids
+    )
+    if unknown_ids:
+        raise LinguaError(
+            ErrorCode.SEGMENT_NOT_FOUND,
+            "Selected Segment ID is not present in the manifest",
+            {"unknown_segment_ids": unknown_ids},
+        )
     options = _operation_options(service, context, body)
     provider = service.providers.get(body.provider_id)
-    result = translate_segments(
-        context.manifest,
-        provider,
-        options,
-        selected_segment_ids=body.selected_segment_ids,
-        existing_translations=body.existing_translations,
-        sensitive_values=(service.settings.openai_api_key or "",),
-    )
-    payload = json.dumps(result.to_dict(), ensure_ascii=False, indent=2).encode("utf-8")
-    artifact = service.create_artifact(
-        project_id=project_id,
-        kind="novel_translations",
-        filename=f"{_artifact_stem(context.source_name)}.translation-batch.json",
-        media_type="application/json",
-        payload=payload,
-        metadata={
-            "schema_version": result.schema_version,
-            "source_artifact_id": context.source_artifact_id,
-            "source_sha256": context.manifest.source_sha256,
-            "status": result.status.value,
-            "selected_segment_ids": list(result.selected_segment_ids),
-        },
-    )
-    return {
+    claim: IdempotencyClaim | None = None
+    if idempotency is not None:
+        selected = set(body.selected_segment_ids)
+        ordered_segment_ids = [
+            segment.segment_id
+            for segment in context.manifest.segments
+            if segment.segment_id in selected
+        ]
+        fingerprint_value = request_fingerprint(
+            "selected-translation",
+            {
+                "project_id": project_id,
+                "source_artifact_id": context.source_artifact_id,
+                "source_sha256": context.manifest.source_sha256,
+                "ordered_segment_ids": ordered_segment_ids,
+                "existing_translations_sha256": normalized_text_mapping_hash(
+                    body.existing_translations
+                ),
+                "provider": service.provider_execution_config(body.provider_id),
+                "source_language": context.source_language,
+                "target_language": context.target_language,
+                "style": body.style,
+                "prompt_version": body.prompt_version,
+                "concurrency": body.concurrency,
+                "max_retries": body.max_retries,
+                "retry_backoff_seconds": body.retry_backoff_seconds,
+            },
+        )
+        reserved = service.reserve_idempotency(
+            scope=f"projects:{project_id}:segments:translate",
+            request_fingerprint_value=fingerprint_value,
+            context=idempotency,
+        )
+        if isinstance(reserved, IdempotencyReplay):
+            artifact_payload = service.idempotent_resource(reserved)
+            try:
+                _, stored_result = service.read_artifact(reserved.resource_id)
+                result_payload = json.loads(stored_result)
+            except (LinguaError, json.JSONDecodeError, UnicodeDecodeError) as error:
+                raise LinguaError(
+                    ErrorCode.IDEMPOTENCY_CONFLICT,
+                    "The translation result retained by this Idempotency-Key is unavailable",
+                ) from error
+            return ServiceOperationResult(
+                {
+                    "project_id": project_id,
+                    "source_artifact_id": artifact_payload["metadata"]["source_artifact_id"],
+                    "result": result_payload,
+                    "artifact": artifact_payload,
+                },
+                replayed=True,
+            )
+        claim = reserved
+    try:
+        result = translate_segments(
+            context.manifest,
+            provider,
+            options,
+            selected_segment_ids=body.selected_segment_ids,
+            existing_translations=body.existing_translations,
+            sensitive_values=(service.settings.openai_api_key or "",),
+        )
+        payload = json.dumps(result.to_dict(), ensure_ascii=False, indent=2).encode("utf-8")
+        artifact = service.create_artifact(
+            project_id=project_id,
+            kind="novel_translations",
+            filename=f"{_artifact_stem(context.source_name)}.translation-batch.json",
+            media_type="application/json",
+            payload=payload,
+            metadata={
+                "schema_version": result.schema_version,
+                "source_artifact_id": context.source_artifact_id,
+                "source_sha256": context.manifest.source_sha256,
+                "status": result.status.value,
+                "selected_segment_ids": list(result.selected_segment_ids),
+            },
+        )
+    except BaseException:
+        if claim is not None:
+            service.mark_idempotency_indeterminate(claim)
+        raise
+    value = {
         "project_id": project_id,
         "source_artifact_id": context.source_artifact_id,
         "result": result.to_dict(),
         "artifact": service.get_artifact(artifact.id),
     }
+    if claim is not None:
+        try:
+            service.complete_idempotency(
+                claim,
+                resource_type="artifact",
+                resource_id=artifact.id,
+                response_status=200,
+                result_reference={
+                    "project_id": project_id,
+                    "source_artifact_id": context.source_artifact_id,
+                },
+            )
+        except BaseException:
+            service.mark_idempotency_indeterminate(claim)
+            raise
+    return ServiceOperationResult(value)
 
 
 def _rebuild_from_external_translations(
     service: ApplicationService,
     project_id: str,
     body: RebuildDocumentRequest,
-) -> dict[str, Any]:
+    idempotency: IdempotencyContext | None = None,
+) -> ServiceOperationResult:
     _reject_runtime_secret(service, body.model_dump())
     context = _novel_source_context(service, project_id)
+    manifest_ids = {segment.segment_id for segment in context.manifest.segments}
+    unknown_ids = sorted(set(body.translations) - manifest_ids)
+    if unknown_ids:
+        raise LinguaError(
+            ErrorCode.SEGMENT_NOT_FOUND,
+            "Selected Segment ID is not present in the manifest",
+            {"unknown_segment_ids": unknown_ids},
+        )
     is_epub = context.manifest.source_format in {SourceFormat.EPUB2, SourceFormat.EPUB3}
     suffix = ".epub" if is_epub else ".txt"
     media_type = "application/epub+zip" if is_epub else "text/plain; charset=utf-8"
@@ -626,6 +858,53 @@ def _rebuild_from_external_translations(
     )
     os.close(descriptor)
     temporary_path = Path(temporary_name)
+    claim: IdempotencyClaim | None = None
+    if idempotency is not None:
+        ordered_segment_ids = [
+            segment.segment_id
+            for segment in context.manifest.segments
+            if segment.segment_id in body.translations
+        ]
+        fingerprint_value = request_fingerprint(
+            "document-rebuild",
+            {
+                "project_id": project_id,
+                "source_artifact_id": context.source_artifact_id,
+                "source_sha256": context.manifest.source_sha256,
+                "ordered_segment_ids": ordered_segment_ids,
+                "translations_sha256": normalized_text_mapping_hash(body.translations),
+                "target_format": context.manifest.source_format.value,
+                "target_language": context.target_language,
+            },
+        )
+        reserved = service.reserve_idempotency(
+            scope=f"projects:{project_id}:rebuild",
+            request_fingerprint_value=fingerprint_value,
+            context=idempotency,
+        )
+        if isinstance(reserved, IdempotencyReplay):
+            artifact_payload = service.idempotent_resource(reserved)
+            try:
+                service.artifact_path(reserved.resource_id)
+                metadata = cast(dict[str, Any], artifact_payload["metadata"])
+                build_payload = cast(dict[str, Any], metadata["build"])
+                source_artifact_id = str(metadata["source_artifact_id"])
+            except (KeyError, LinguaError, TypeError) as error:
+                raise LinguaError(
+                    ErrorCode.IDEMPOTENCY_CONFLICT,
+                    "The rebuild result retained by this Idempotency-Key is unavailable",
+                ) from error
+            temporary_path.unlink(missing_ok=True)
+            return ServiceOperationResult(
+                {
+                    "project_id": project_id,
+                    "source_artifact_id": source_artifact_id,
+                    "build": build_payload,
+                    "artifact": artifact_payload,
+                },
+                replayed=True,
+            )
+        claim = reserved
     try:
         build = rebuild_document(
             context.source_path,
@@ -653,14 +932,34 @@ def _rebuild_from_external_translations(
                 "build": build.to_dict(),
             },
         )
+    except BaseException:
+        if claim is not None:
+            service.mark_idempotency_indeterminate(claim)
+        raise
     finally:
         temporary_path.unlink(missing_ok=True)
-    return {
+    value = {
         "project_id": project_id,
         "source_artifact_id": context.source_artifact_id,
         "build": build.to_dict(),
         "artifact": service.get_artifact(artifact.id),
     }
+    if claim is not None:
+        try:
+            service.complete_idempotency(
+                claim,
+                resource_type="artifact",
+                resource_id=artifact.id,
+                response_status=200,
+                result_reference={
+                    "project_id": project_id,
+                    "source_artifact_id": context.source_artifact_id,
+                },
+            )
+        except BaseException:
+            service.mark_idempotency_indeterminate(claim)
+            raise
+    return ServiceOperationResult(value)
 
 
 def create_app(settings: Settings | None = None, *, start_worker: bool = True) -> FastAPI:
@@ -705,12 +1004,24 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
         UploadBodyLimitMiddleware,
         maximum_bytes=runtime_settings.max_upload_bytes + 1024 * 1024,
     )
+    app.add_middleware(RequestCorrelationMiddleware)
 
     @app.exception_handler(LinguaError)
-    async def handle_lingua_error(_request: Request, error: LinguaError) -> JSONResponse:
+    async def handle_lingua_error(request: Request, error: LinguaError) -> JSONResponse:
         known = [runtime_settings.openai_api_key or ""]
+        request_id = _request_id(request)
+        _LOGGER.warning(
+            "Request failed request_id=%s error_code=%s",
+            request_id,
+            error.code.value,
+        )
+        headers = None
+        if error.code == ErrorCode.IDEMPOTENCY_IN_PROGRESS:
+            retry_after = int((error.details or {}).get("retry_after_seconds", 1))
+            headers = {"Retry-After": str(max(retry_after, 1))}
         return JSONResponse(
             status_code=_status_for_error(error),
+            headers=headers,
             content={
                 "error": {
                     "code": error.code,
@@ -723,8 +1034,12 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(
-        _request: Request, error: RequestValidationError
+        request: Request, error: RequestValidationError
     ) -> JSONResponse:
+        _LOGGER.warning(
+            "Request validation failed request_id=%s",
+            _request_id(request),
+        )
         validation = [
             {key: value for key, value in item.items() if key not in {"input", "ctx"}}
             for item in error.errors()
@@ -736,6 +1051,25 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
                     "code": ErrorCode.CONFIGURATION,
                     "message": "Request validation failed",
                     "details": {"validation": validation},
+                    "retryable": False,
+                }
+            },
+        )
+
+    @app.exception_handler(Exception)
+    async def handle_unexpected_error(request: Request, error: Exception) -> JSONResponse:
+        _LOGGER.error(
+            "Unexpected request failure request_id=%s exception_type=%s",
+            _request_id(request),
+            type(error).__name__,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": {
+                    "code": ErrorCode.UNKNOWN,
+                    "message": "Unexpected server error",
+                    "details": {"exception_type": type(error).__name__},
                     "retryable": False,
                 }
             },
@@ -765,19 +1099,75 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
     async def profiles(request: Request) -> list[dict[str, Any]]:
         return _service(request).list_profiles()
 
-    @app.post("/api/profiles", tags=["system"], status_code=201)
-    async def create_profile(request: Request, body: CreateProfileRequest) -> dict[str, Any]:
-        return _service(request).create_profile(**body.model_dump())
+    @app.post(
+        "/api/profiles",
+        tags=["system"],
+        status_code=201,
+        response_model=ProfileResponse,
+        responses={
+            200: {
+                "model": ProfileResponse,
+                "description": "Completed idempotent Profile replay",
+                "headers": _IDEMPOTENCY_RESPONSE_HEADERS,
+            },
+            201: {
+                "model": ProfileResponse,
+                "description": "Profile created",
+                "headers": _IDEMPOTENCY_RESPONSE_HEADERS,
+            },
+            **_IDEMPOTENCY_ERROR_RESPONSES,
+        },
+    )
+    async def create_profile(
+        request: Request,
+        response: Response,
+        body: CreateProfileRequest,
+        idempotency_key: IdempotencyKeyHeader = None,
+    ) -> dict[str, Any]:
+        result = _service(request).create_profile_operation(
+            **body.model_dump(),
+            idempotency=_idempotency(request, idempotency_key),
+            request_id=_request_id(request),
+        )
+        _operation_headers(
+            response,
+            result,
+            location=f"/api/profiles/{result.value['id']}",
+            success_status=201,
+        )
+        return result.value
+
+    @app.get(
+        "/api/profiles/{profile_id}",
+        tags=["system"],
+        response_model=ProfileResponse,
+        responses=_STABLE_ERROR_RESPONSES,
+    )
+    async def get_profile(request: Request, profile_id: str) -> dict[str, Any]:
+        return _service(request).get_profile(profile_id)
 
     @app.post(
         "/api/projects",
         tags=["projects"],
         status_code=201,
         response_model=ProjectResponse,
-        responses=_STABLE_ERROR_RESPONSES,
+        responses={
+            200: {
+                "model": ProjectResponse,
+                "description": "Completed idempotent Project replay",
+                "headers": _IDEMPOTENCY_RESPONSE_HEADERS,
+            },
+            201: {
+                "model": ProjectResponse,
+                "description": "Project and immutable Source created",
+                "headers": _IDEMPOTENCY_RESPONSE_HEADERS,
+            },
+            **_IDEMPOTENCY_ERROR_RESPONSES,
+        },
     )
     async def create_project(
         request: Request,
+        response: Response,
         name: Annotated[str, Form(min_length=1, max_length=200)],
         kind: Annotated[Literal["novel", "manga"], Form()],
         source_language: Annotated[str, Form(min_length=1, max_length=40)],
@@ -786,10 +1176,11 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
             UploadFile,
             File(description="TXT, EPUB 2/3, CBZ/ZIP, or one PNG/JPEG/WebP image"),
         ],
+        idempotency_key: IdempotencyKeyHeader = None,
     ) -> dict[str, Any]:
         service = _service(request)
-        return await run_in_threadpool(
-            service.create_project_from_stream,
+        result = await run_in_threadpool(
+            service.create_project_from_stream_operation,
             name=name,
             kind=kind,
             source_language=source_language,
@@ -797,7 +1188,16 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
             source_name=source.filename or "source.bin",
             source=source.file,
             media_type=source.content_type,
+            idempotency=_idempotency(request, idempotency_key),
+            request_id=_request_id(request),
         )
+        _operation_headers(
+            response,
+            result,
+            location=f"/api/projects/{result.value['id']}",
+            success_status=201,
+        )
+        return result.value
 
     @app.get(
         "/api/projects",
@@ -837,12 +1237,41 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
         tags=["jobs"],
         status_code=202,
         response_model=JobResponse,
-        responses=_STABLE_ERROR_RESPONSES,
+        responses={
+            200: {
+                "model": JobResponse,
+                "description": "Completed replay or equivalent active Job",
+                "headers": _JOB_RESPONSE_HEADERS,
+            },
+            202: {
+                "model": JobResponse,
+                "description": "New Job queued",
+                "headers": _JOB_RESPONSE_HEADERS,
+            },
+            **_IDEMPOTENCY_ERROR_RESPONSES,
+        },
     )
     async def create_job(
-        request: Request, project_id: str, body: CreateJobRequest
+        request: Request,
+        response: Response,
+        project_id: str,
+        body: CreateJobRequest,
+        idempotency_key: IdempotencyKeyHeader = None,
     ) -> dict[str, Any]:
-        return _service(request).create_job(project_id=project_id, **body.model_dump())
+        result = _service(request).create_job_operation(
+            project_id=project_id,
+            **body.model_dump(),
+            idempotency=_idempotency(request, idempotency_key),
+            request_id=_request_id(request),
+        )
+        _operation_headers(
+            response,
+            result,
+            location=f"/api/jobs/{result.value['id']}",
+            success_status=202,
+            job=True,
+        )
+        return result.value
 
     @app.get(
         "/api/jobs",
@@ -897,10 +1326,32 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
         "/api/jobs/{job_id}/retry",
         tags=["jobs"],
         response_model=JobResponse,
-        responses=_STABLE_ERROR_RESPONSES,
+        responses={
+            200: {
+                "model": JobResponse,
+                "description": "Job retry transition or completed replay",
+                "headers": _IDEMPOTENCY_RESPONSE_HEADERS,
+            },
+            **_IDEMPOTENCY_ERROR_RESPONSES,
+        },
     )
-    async def retry_job(request: Request, job_id: str) -> dict[str, Any]:
-        return _service(request).retry_job(job_id)
+    async def retry_job(
+        request: Request,
+        response: Response,
+        job_id: str,
+        idempotency_key: IdempotencyKeyHeader = None,
+    ) -> dict[str, Any]:
+        result = _service(request).retry_job_operation(
+            job_id,
+            idempotency=_idempotency(request, idempotency_key),
+        )
+        _operation_headers(
+            response,
+            result,
+            location=f"/api/jobs/{result.value['id']}",
+            success_status=200,
+        )
+        return result.value
 
     @app.get(
         "/api/projects/{project_id}/artifacts",
@@ -985,41 +1436,75 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
         "/api/projects/{project_id}/segments/translate",
         tags=["documents"],
         response_model=SelectedTranslationResponse,
-        responses=_STABLE_ERROR_RESPONSES,
+        responses={
+            200: {
+                "model": SelectedTranslationResponse,
+                "description": "Selected translation result or completed replay",
+                "headers": _IDEMPOTENCY_RESPONSE_HEADERS,
+            },
+            **_IDEMPOTENCY_ERROR_RESPONSES,
+        },
     )
     async def translate_selected_project_segments(
         request: Request,
+        response: Response,
         project_id: str,
         body: TranslateSegmentsRequest,
+        idempotency_key: IdempotencyKeyHeader = None,
     ) -> dict[str, Any]:
         """Translate only explicit stable Segment IDs and persist the JSON result Artifact."""
 
-        return await run_in_threadpool(
+        result = await run_in_threadpool(
             _translate_selected_segments,
             _service(request),
             project_id,
             body,
+            _idempotency(request, idempotency_key),
         )
+        _operation_headers(
+            response,
+            result,
+            location=f"/api/artifacts/{result.value['artifact']['id']}",
+            success_status=200,
+        )
+        return result.value
 
     @app.post(
         "/api/projects/{project_id}/rebuild",
         tags=["documents"],
         response_model=RebuildDocumentResponse,
-        responses=_STABLE_ERROR_RESPONSES,
+        responses={
+            200: {
+                "model": RebuildDocumentResponse,
+                "description": "Rebuilt Artifact or completed replay",
+                "headers": _IDEMPOTENCY_RESPONSE_HEADERS,
+            },
+            **_IDEMPOTENCY_ERROR_RESPONSES,
+        },
     )
     async def rebuild_project_document(
         request: Request,
+        response: Response,
         project_id: str,
         body: RebuildDocumentRequest,
+        idempotency_key: IdempotencyKeyHeader = None,
     ) -> dict[str, Any]:
         """Rebuild from the immutable Source using only caller-supplied Segment text."""
 
-        return await run_in_threadpool(
+        result = await run_in_threadpool(
             _rebuild_from_external_translations,
             _service(request),
             project_id,
             body,
+            _idempotency(request, idempotency_key),
         )
+        _operation_headers(
+            response,
+            result,
+            location=f"/api/artifacts/{result.value['artifact']['id']}",
+            success_status=200,
+        )
+        return result.value
 
     @app.get("/", include_in_schema=False)
     async def headless_root() -> dict[str, str]:
@@ -1031,5 +1516,52 @@ def create_app(settings: Settings | None = None, *, start_worker: bool = True) -
             "docs": "/docs",
             "openapi": "/openapi.json",
         }
+
+    def correlated_openapi() -> dict[str, Any]:
+        if app.openapi_schema is not None:
+            return app.openapi_schema
+        schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            description=app.description,
+            routes=app.routes,
+        )
+        request_parameter = {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": False,
+            "description": (
+                "Optional 1-128 character correlation ID using letters, numbers, dot, "
+                "underscore, colon, or hyphen. Invalid values are replaced safely."
+            ),
+            "schema": {"type": "string", "maxLength": 128},
+        }
+        response_header = {
+            "description": "Sanitized caller correlation ID or a server-generated UUID",
+            "schema": {"type": "string"},
+        }
+        for path_item in schema.get("paths", {}).values():
+            if not isinstance(path_item, dict):
+                continue
+            for method, operation in path_item.items():
+                if method not in {"get", "post", "put", "patch", "delete", "options", "head"}:
+                    continue
+                if not isinstance(operation, dict):
+                    continue
+                parameters = operation.setdefault("parameters", [])
+                if not any(
+                    isinstance(parameter, dict)
+                    and parameter.get("in") == "header"
+                    and str(parameter.get("name", "")).lower() == "x-request-id"
+                    for parameter in parameters
+                ):
+                    parameters.append(request_parameter)
+                for response_spec in operation.get("responses", {}).values():
+                    if isinstance(response_spec, dict):
+                        response_spec.setdefault("headers", {})["X-Request-ID"] = response_header
+        app.openapi_schema = schema
+        return schema
+
+    app.openapi = correlated_openapi  # type: ignore[method-assign]
 
     return app
